@@ -1,0 +1,17 @@
+# Private WeRead acquisition and local review; never publish or import into frontend.
+.private/
+.env
+.env.*
+!.env.example
+*.local
+
+# Dependencies and build / test artifacts
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+
+# Local editor / OS
+.DS_Store
+Thumbs.db

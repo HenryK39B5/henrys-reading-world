@@ -1,0 +1,52 @@
+:root {
+    --paper: #faf9f6;
+    --ink: #252522;
+    --ink-soft: #66645e;
+    --rule: #dedcd5;
+    --accent: #425a4b;
+    --stage-font: 'Songti SC', 'STSong', 'SimSun', serif;
+    --ui-font: system-ui, 'Microsoft YaHei', sans-serif;
+    --measure: 1120px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    color-scheme: light;
+}
+
+body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--ui-font);
+    font-size: 16px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+}
+
+a {
+    color: inherit;
+    text-decoration-color: var(--rule);
+    text-underline-offset: 0.25em;
+}
+
+button {
+    font: inherit;
+    color: inherit;
+}
+
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
