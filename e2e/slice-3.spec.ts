@@ -156,13 +156,17 @@ test.describe('source reveal', () => {
     });
 
     test('explains a single-passage book instead of offering a dead control', async ({ page }) => {
+        // Hunting for a specific book is a walk through many draws, so give the test room.
+        test.setTimeout(90_000);
         const { countByBook } = loadSnapshot();
         const single = [...countByBook.entries()].find(([, count]) => count === 1);
         test.skip(single === undefined, 'no single-passage book in the snapshot');
 
+        // Reduced motion makes each draw instant; the source panel behaves the same either way.
+        await page.emulateMedia({ reducedMotion: 'reduce' });
         await page.goto('/');
         // Walk the global stage until a book that holds a single passage is on screen.
-        for (let index = 0; index < 60; index += 1) {
+        for (let index = 0; index < 200; index += 1) {
             const record = await currentRecord(page);
             if (record.bookId === single?.[0]) {
                 break;
@@ -171,7 +175,7 @@ test.describe('source reveal', () => {
         }
 
         const record = await currentRecord(page);
-        test.skip(record.bookId !== single?.[0], 'the single-passage book did not come up in 60 draws');
+        test.skip(record.bookId !== single?.[0], 'the single-passage book did not come up in 200 draws');
 
         await page.getByTestId('source-toggle').click();
         await expect(page.getByTestId('source-count')).toHaveText('这里收录了 1 处划线');
