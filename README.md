@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-- 阶段：第一轮 Experience Prototype。**Slice 0–3 已完成**（真实取数、快照、骨架、隔离、校验、文字舞台、换句手感、策展式序列、出处原位展开）；Slice 4（书籍与主题）尚未开始。
+- 阶段：第一轮 Experience Prototype。**Slice 0–4 已完成**（真实取数、快照、骨架、隔离、校验、文字舞台、换句手感、策展式序列、出处展开、书籍 / 主题 / 年份 / About）；Slice 5（分享与打磨）尚未开始。
 - 产品基线：`PRODUCT_BRIEF.md` v0.1，保持原文不变。
 - 硬约束：所有开发只使用 Henry 本人的真实划线，不使用 fake / demo 数据。
 - 数据（local-only，未公开审核）：**46 条真实划线 · 20 本书 · 5 个主题 · 3 个年份**。
@@ -18,7 +18,7 @@ npm ci
 npm run snapshot:local      # 由已抓取的原始数据生成 .private/local-snapshot.json
 npm run dev:local           # http://127.0.0.1:5173 （仅本机模式，读取私有快照）
 npm run check:local         # typecheck + lint + test + 数据校验
-npm run test:e2e            # Playwright（真实 Chromium，19 个用例）
+npm run test:e2e            # Playwright（真实 Chromium，23 个用例）
 ```
 
 公开路径（等待公开清单，暂不用于本机预览真实内容）：
@@ -78,7 +78,7 @@ npm run smoke:local                       # 用真实快照做渲染冒烟检查
 
 ## 两个不同的完成标准
 
-1. **工程原型可评审**：真实划线在本机可用，工程检查与浏览器验证通过。
+1. **工程原型可评审**：真实划线在本机可用，工程检查与浏览器验证通过。（Slice 0–4 已达成）
 2. **Prototype Gate 通过**：需要 Henry 确认可对评审访客展示的内容范围，并完成真实访客体验评审。
 
 不要因为第 1 项完成就声称第 2 项成立。本机许可不等于公开发布许可；上传与部署尚未授权。

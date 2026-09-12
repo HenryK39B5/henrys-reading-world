@@ -23,6 +23,8 @@ export type EncounterStageProps = {
     bookUnseenCount: number;
     /** Why the visitor cannot move on, when that is the case. */
     deadEnd: string | null;
+    /** Opens the book section for this book (Slice 4); absent when the section cannot be reached. */
+    onOpenBook?: (bookId: string) => void;
     onNext: () => void;
     onNextInBook: () => void;
     onOpenSource: () => void;
@@ -51,6 +53,7 @@ export function EncounterStage({
     onNextInBook,
     onOpenSource,
     onCloseSource,
+    onOpenBook,
 }: EncounterStageProps) {
     const band = lengthBand(highlight.text);
     const timeLabel = relativeYearLabel(highlight.year, nowYear);
@@ -152,6 +155,18 @@ export function EncounterStage({
                             >
                                 再看一处
                             </button>
+                            {onOpenBook === undefined || book === undefined ? null : (
+                                <button
+                                    type="button"
+                                    className="ghost-button"
+                                    data-testid="open-book"
+                                    onClick={() => {
+                                        onOpenBook(book.id);
+                                    }}
+                                >
+                                    查看这本书
+                                </button>
+                            )}
                             <button type="button" className="ghost-button" data-testid="close-source" onClick={handleClose}>
                                 收起
                             </button>

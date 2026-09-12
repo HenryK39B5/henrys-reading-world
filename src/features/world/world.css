@@ -1,0 +1,248 @@
+.world {
+    margin-top: 64px;
+    border-top: 1px solid var(--rule);
+    padding-top: 32px;
+}
+
+.about-section {
+    margin-top: 64px;
+    padding-top: 32px;
+    border-top: 1px solid var(--rule);
+    scroll-margin-top: 24px;
+}
+
+.stage-region:focus {
+    outline: none;
+}
+
+.world-filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-label {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-right: 4px;
+}
+
+.chip {
+    min-height: 36px;
+    padding: 6px 14px;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    background: transparent;
+    font-size: 13px;
+    color: var(--ink-soft);
+    cursor: pointer;
+}
+
+.chip[aria-pressed='true'] {
+    border-color: var(--ink-soft);
+    color: var(--ink);
+}
+
+@media (hover: hover) {
+    .chip:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+}
+
+.world-section {
+    margin-top: 56px;
+    scroll-margin-top: 24px;
+}
+
+.section-heading {
+    font-family: var(--stage-font);
+    font-size: 22px;
+    font-weight: 400;
+    margin: 0 0 6px;
+}
+
+.section-note {
+    margin: 0 0 20px;
+    font-size: 13px;
+    color: var(--ink-soft);
+}
+
+.book-list,
+.topic-list,
+.topic-highlights,
+.book-highlights {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.book-item + .book-item,
+.topic-item + .topic-item {
+    border-top: 1px solid var(--rule);
+}
+
+.book-button {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 14px;
+    width: 100%;
+    min-height: 44px;
+    padding: 14px 0;
+    background: none;
+    border: 0;
+    text-align: left;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.book-title {
+    font-family: var(--stage-font);
+}
+
+.book-author,
+.book-count {
+    font-size: 13px;
+    color: var(--ink-soft);
+}
+
+@media (hover: hover) {
+    .book-button:hover .book-title,
+    .topic-button:hover .topic-title {
+        color: var(--accent);
+    }
+}
+
+.topic-item {
+    padding: 18px 0;
+}
+
+.topic-button {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 14px;
+    width: 100%;
+    min-height: 44px;
+    padding: 0;
+    background: none;
+    border: 0;
+    text-align: left;
+    cursor: pointer;
+    font-size: 17px;
+}
+
+.topic-title {
+    font-family: var(--stage-font);
+}
+
+.topic-count {
+    font-size: 13px;
+    color: var(--ink-soft);
+}
+
+.topic-description {
+    margin: 6px 0 0;
+    font-size: 14px;
+    color: var(--ink-soft);
+    max-width: 46em;
+}
+
+.topic-detail,
+.book-detail {
+    margin-top: 18px;
+    padding-left: 18px;
+    border-left: 1px solid var(--rule);
+}
+
+.passage-button {
+    display: block;
+    width: 100%;
+    padding: 12px 0;
+    background: none;
+    border: 0;
+    text-align: left;
+    cursor: pointer;
+}
+
+.passage-text {
+    display: block;
+    font-family: var(--stage-font);
+    font-size: 17px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-width: 40em;
+}
+
+.passage-source {
+    display: block;
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--ink-soft);
+}
+
+@media (hover: hover) {
+    .passage-button:hover .passage-text {
+        color: var(--accent);
+    }
+}
+
+.book-detail-heading {
+    font-family: var(--stage-font);
+    font-size: 18px;
+    font-weight: 400;
+    margin: 0 0 6px;
+}
+
+.link-button {
+    margin-top: 12px;
+    padding: 6px 0;
+    background: none;
+    border: 0;
+    color: var(--ink-soft);
+    font-size: 14px;
+    text-decoration: underline;
+    text-decoration-color: var(--rule);
+    text-underline-offset: 0.3em;
+    cursor: pointer;
+}
+
+@media (hover: hover) {
+    .link-button:hover {
+        color: var(--accent);
+    }
+}
+
+.world-empty {
+    margin: 12px 0 0;
+    font-size: 14px;
+    color: var(--ink-soft);
+}
+
+.about-line {
+    margin: 0;
+    font-size: 15px;
+    color: var(--ink);
+    max-width: 40em;
+}
+
+.about-note {
+    margin: 10px 0 0;
+    font-size: 13px;
+    color: var(--ink-soft);
+    max-width: 40em;
+}
+
+@media (max-width: 640px) {
+    .passage-text {
+        font-size: 16px;
+    }
+
+    .topic-detail,
+    .book-detail {
+        padding-left: 14px;
+    }
+}
