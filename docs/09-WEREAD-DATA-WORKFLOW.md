@@ -96,7 +96,7 @@
 本机可见，不可外传                         可构建，不代表已授权部署
 ```
 
-每个快照都使用 `03` 的最小字段结构。原始 book / bookmark ID、账号 VID、原始 deepLink、精确时间、私密想法和返回 envelope 不进入前端。
+每一个快照都使用 `03` 的最小字段结构。原始 book / bookmark ID、账号 VID、原始 deepLink、精确时间、私密想法和返回 envelope 不进入前端。`coverPath` 只接受 `covers/`（公开）与 `local-covers/`（仅本机服务）两种前缀，详见 `03 §2`。
 
 没有审核许可不把记录标为 public；即使 `secret=0`，也不自动把 Henry 的整本书所有划线公开。API secret 状态是风险信号，不是本站出版许可。
 

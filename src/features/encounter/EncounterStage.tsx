@@ -1,4 +1,6 @@
 import { useRef } from 'react';
+import type { CSSProperties } from 'react';
+import { coverUrl, useCoverAccent } from '../../app/covers.ts';
 import type { Phase } from '../../domain/encounter.ts';
 import { lengthBand } from '../../domain/length.ts';
 import { describeBookCollection, relativeYearLabel } from '../../domain/timeLabel.ts';
@@ -58,6 +60,8 @@ export function EncounterStage({
     const band = lengthBand(highlight.text);
     const timeLabel = relativeYearLabel(highlight.year, nowYear);
     const toggleRef = useRef<HTMLButtonElement>(null);
+    const cover = coverUrl(book?.coverPath);
+    const accent = useCoverAccent(cover);
 
     // The control reflects reality before it is pressed: one passage, or already all seen, means the
     // visitor is told why instead of being silently moved to another book.
@@ -82,6 +86,7 @@ export function EncounterStage({
             data-phase={phase}
             data-commit-count={commitCount}
             data-source-open={sourceOpen ? 'true' : 'false'}
+            style={{ '--book-accent': accent } as CSSProperties}
             aria-labelledby="stage-heading"
         >
             <h2 id="stage-heading" className="sr-only">
@@ -127,8 +132,14 @@ export function EncounterStage({
 
             <div id={SOURCE_PANEL_ID} className="source-panel" hidden={!sourceOpen} data-testid="source-panel">
                 <div className="source-body">
-                    <div className="cover-placeholder" aria-hidden="true">
-                        <span className="cover-placeholder-title">{book?.title ?? '出处缺失'}</span>
+                    <div className="cover-frame">
+                        {cover === undefined ? (
+                            <div className="cover-placeholder">
+                                <span className="cover-placeholder-title">{book?.title ?? '出处缺失'}</span>
+                            </div>
+                        ) : (
+                            <img className="cover-image" src={cover} alt={`《${book?.title ?? ''}》书封`} decoding="async" />
+                        )}
                     </div>
                     <div className="source-meta">
                         <p className="source-book">

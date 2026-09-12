@@ -25,7 +25,7 @@ type Book = {
   title: string;              // API 原始书名
   author: string;             // API 原始作者；缺失显示“作者信息暂缺”，不猜测
   description?: string;       // 已核对来源的简介摘录，或经审核的编辑说明
-  coverPath?: string;         // 仅本地公开素材路径；不复制带参数的原始 URL
+  coverPath?: string;         // covers/… = 公开素材；local-covers/… = 仅本机服务
 };
 
 type Topic = {
@@ -61,7 +61,7 @@ type Highlight = {
 | `updated[].bookId` | 对照真实 Book，使用稳定本地 bookId |
 | `createTime` | 按文档 Unix 秒转换，以 `Asia/Shanghai` 取年；无效 / 未来值标记待核对，不猜测 |
 | `book.title / author` | 使用返回原文；不同版本书籍不能只凭同名合并 |
-| `cover / deepLink / range / chapterUid` | 默认不进入快照；位置仅用于本地核对 |
+| `cover / deepLink / range / chapterUid` | 默认不进入快照；位置仅用于本地核对。封面经 `npm run covers:fetch` 下载到 `.private/covers/`，以 `local-covers/<file>` 写入快照 |
 | `reviewCount / bookmarkCount` | 不当划线数，不用于“精选数” |
 | `noteCount` | 平台划线数，仅可本地比对；不作为当前站点公开数量 |
 

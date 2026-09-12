@@ -27,12 +27,16 @@ const ID_PATTERNS = {
     highlight: /^h-\d{3,}$/u,
 };
 
-const COVER_PATTERN = /^covers\/[a-z0-9][a-z0-9._-]*\.(?:jpg|jpeg|png|webp)$/u;
+const COVER_PUBLIC_PATTERN = /^covers\/[a-z0-9][a-z0-9._-]*\.(?:jpg|jpeg|png|webp)$/u;
+/** Cover art that only exists locally until the release decision is made (see PUB-06). */
+const COVER_LOCAL_PATTERN = /^local-covers\/[a-z0-9][a-z0-9._-]*\.(?:jpg|jpeg|png|webp)$/u;
 
 type Context = {
     errors: string[];
     warnings: string[];
     currentYear: number;
+    /** Integrity level being validated; local-only covers are rejected in a public snapshot. */
+    visibility: Visibility | null;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -114,8 +118,11 @@ function validateBook(ctx: Context, index: number, value: unknown): Book | null 
     if (id !== null && !ID_PATTERNS.book.test(id)) {
         ctx.errors.push(`${where}.id: expected an id like b-001`);
     }
-    if (coverPath !== undefined && !COVER_PATTERN.test(coverPath)) {
-        ctx.errors.push(`${where}.coverPath: expected a local covers/ asset path without query or traversal`);
+    if (coverPath !== undefined && !COVER_PUBLIC_PATTERN.test(coverPath) && !COVER_LOCAL_PATTERN.test(coverPath)) {
+        ctx.errors.push(`${where}.coverPath: expected a local covers/ or local-covers/ asset path without query or traversal`);
+    }
+    if (coverPath !== undefined && COVER_LOCAL_PATTERN.test(coverPath) && ctx.visibility !== 'local-only') {
+        ctx.errors.push(`${where}.coverPath: local-covers assets are only valid in a local-only snapshot`);
     }
     if (id === null || title === null || author === null) {
         return null;
@@ -341,7 +348,7 @@ function checkContentCoverage(ctx: Context, snapshot: Snapshot): void {
 
 export function validateSnapshot(input: unknown, options: ValidateOptions = {}): ValidationResult {
     const currentYear = options.currentYear ?? new Date().getFullYear();
-    const ctx: Context = { errors: [], warnings: [], currentYear };
+    const ctx: Context = { errors: [], warnings: [], currentYear, visibility: null };
     if (!Number.isInteger(currentYear)) {
         throw new Error('currentYear must be an integer');
     }
@@ -361,6 +368,8 @@ export function validateSnapshot(input: unknown, options: ValidateOptions = {}):
         ctx.errors.push('snapshot.visibility: expected "public" or "local-only"');
     } else if (options.expectedVisibility !== undefined && visibility !== options.expectedVisibility) {
         ctx.errors.push(`snapshot.visibility: expected "${options.expectedVisibility}"`);
+    } else {
+        ctx.visibility = visibility;
     }
 
     const owner = validateOwner(ctx, input['owner']);

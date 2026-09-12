@@ -1,11 +1,47 @@
 import { readFile } from 'node:fs/promises';
+import type { ServerResponse } from 'node:http';
 import { resolve } from 'node:path';
 import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
 import { validateSnapshot } from './src/domain/validate.ts';
 
 const LOCAL_SNAPSHOT_ROUTE = '/__local_snapshot';
+const LOCAL_COVER_PREFIX = '/__local_cover/';
 const LOCAL_SNAPSHOT_FILE = '.private/local-snapshot.json';
+const LOCAL_COVER_DIR = '.private/covers';
+const COVER_FILE_PATTERN = /^[a-z0-9][a-z0-9._-]*\.(?:jpg|jpeg|png|webp)$/u;
+const COVER_CONTENT_TYPES: Record<string, string> = {
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    webp: 'image/webp',
+};
+
+function sendText(res: ServerResponse, status: number, body: string): void {
+    res.statusCode = status;
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.end(body);
+}
+
+/** Serves one locally held cover. File names are pattern-checked, so no traversal is possible. */
+async function sendLocalCover(path: string, res: ServerResponse): Promise<void> {
+    const fileName = path.slice(LOCAL_COVER_PREFIX.length);
+    if (!COVER_FILE_PATTERN.test(fileName)) {
+        sendText(res, 404, 'Not Found');
+        return;
+    }
+    const extension = fileName.split('.').pop() ?? '';
+    try {
+        const bytes = await readFile(resolve(process.cwd(), LOCAL_COVER_DIR, fileName));
+        res.statusCode = 200;
+        res.setHeader('Content-Type', COVER_CONTENT_TYPES[extension] ?? 'application/octet-stream');
+        res.setHeader('Cache-Control', 'no-store');
+        res.setHeader('X-Robots-Tag', 'noindex');
+        res.end(bytes);
+    } catch {
+        sendText(res, 404, 'Not Found');
+    }
+}
 
 /**
  * Local-only development snapshot endpoint.
@@ -29,8 +65,8 @@ function localSnapshotPlugin(enabled: boolean): Plugin {
                 return;
             }
             server.middlewares.use((req, res, next) => {
-                const path = (req.url ?? '').split('?')[0];
-                if (path !== LOCAL_SNAPSHOT_ROUTE) {
+                const path = (req.url ?? '').split('?')[0] ?? '';
+                if (path !== LOCAL_SNAPSHOT_ROUTE && !path.startsWith(LOCAL_COVER_PREFIX)) {
                     next();
                     return;
                 }
@@ -38,6 +74,10 @@ function localSnapshotPlugin(enabled: boolean): Plugin {
                     res.statusCode = 405;
                     res.setHeader('Allow', 'GET, HEAD');
                     res.end('Method Not Allowed');
+                    return;
+                }
+                if (path.startsWith(LOCAL_COVER_PREFIX)) {
+                    void sendLocalCover(path, res);
                     return;
                 }
                 void (async () => {

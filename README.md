@@ -27,6 +27,7 @@ npm run dev:local           # 打开 http://127.0.0.1:5173
 npm run check:local         # typecheck + lint + 单测 + 快照校验（开发主校验）
 npm run test:e2e            # Playwright，真实 Chromium，23 个用例
 npm run capture:review      # 生成评审截图 + 可读数字，输出到 .private/review/critique-1/
+npm run covers:fetch        # 下载真实书封到 .private/covers/（只由 dev:local 服务）
 npm run smoke:local         # 用真实快照做渲染冒烟检查
 ```
 

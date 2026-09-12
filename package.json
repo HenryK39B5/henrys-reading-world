@@ -21,7 +21,8 @@
     "check": "npm run typecheck && npm run lint && npm run test && npm run validate:data && vite build",
     "preview": "vite preview",
     "test:e2e": "playwright test",
-    "capture:review": "playwright test --config playwright.capture.config.ts"
+    "capture:review": "playwright test --config playwright.capture.config.ts",
+    "covers:fetch": "node scripts/fetch-covers.ts"
   },
   "dependencies": {
     "react": "^19.3.0",

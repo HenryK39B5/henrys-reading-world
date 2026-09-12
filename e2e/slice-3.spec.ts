@@ -68,7 +68,15 @@ test.describe('source reveal', () => {
         await expect(page.getByTestId('source-count')).toHaveText(
             `这里收录了 ${String(countByBook.get(before.bookId) ?? 0)} 处划线`,
         );
-        await expect(page.locator('.cover-placeholder')).toContainText(titles.get(before.bookId) ?? '');
+        // Real cover art is used when it has been fetched; otherwise a typeset title stands in for it.
+        const frame = page.locator('.cover-frame');
+        const coverImage = frame.locator('img');
+        const coverTitle = titles.get(before.bookId) ?? '';
+        if ((await coverImage.count()) > 0) {
+            expect(await coverImage.getAttribute('alt')).toContain(coverTitle);
+        } else {
+            await expect(frame.locator('.cover-placeholder')).toContainText(coverTitle);
+        }
         await page.waitForTimeout(300);
         await page.screenshot({ path: join(REVIEW_DIR, 'source-open-1440.png'), fullPage: true });
 

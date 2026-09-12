@@ -5,6 +5,7 @@
     min-height: 60vh;
     min-height: 64svh;
     padding: 32px 0 8px;
+    --book-accent: var(--accent);
 }
 
 .stage-live {
@@ -152,7 +153,8 @@
 
 .source-toggle[aria-expanded='true'] .stage-book {
     text-decoration: underline;
-    text-decoration-color: var(--rule);
+    text-decoration-color: var(--book-accent);
+    text-decoration-thickness: 1px;
     text-underline-offset: 0.35em;
 }
 
@@ -190,9 +192,24 @@
 }
 
 /* Stands in for the cover until locally publishable cover art exists. */
-.cover-placeholder {
+.cover-frame {
     flex: 0 0 auto;
-    width: 108px;
+    width: 124px;
+}
+
+.cover-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    border: 1px solid var(--rule);
+    /* A hairline of the cover's own colour: colour without competing with the sentence. */
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--book-accent) 12%, transparent);
+}
+
+.cover-placeholder {
+    width: 100%;
     aspect-ratio: 2 / 3;
     border: 1px solid var(--rule);
     background: linear-gradient(180deg, rgba(66, 90, 75, 0.06), rgba(66, 90, 75, 0));
@@ -200,6 +217,15 @@
     align-items: center;
     justify-content: center;
     padding: 10px;
+}
+
+.source-book {
+    margin: 0;
+    font-size: 16px;
+    text-decoration: underline;
+    text-decoration-color: var(--book-accent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.35em;
 }
 
 .cover-placeholder-title {

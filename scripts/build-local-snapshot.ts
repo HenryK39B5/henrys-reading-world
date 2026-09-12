@@ -39,6 +39,7 @@ type Candidate = {
 const ROOT = process.cwd();
 const POOL_PATH = join(ROOT, '.private/curation/candidate-pool.json');
 const PLAN_PATH = join(ROOT, '.private/curation/fetch-plan.json');
+const COVERS_PATH = join(ROOT, '.private/curation/covers.json');
 const SELECTION_PATH = join(ROOT, '.private/curation/selection.json');
 const SNAPSHOT_PATH = join(ROOT, '.private/local-snapshot.json');
 const MAP_PATH = join(ROOT, '.private/curation/selection-source-map.json');
@@ -160,6 +161,24 @@ async function main(): Promise<void> {
 
     const books: Book[] = [];
     const bookIdByPlanIndex = new Map<number, string>();
+
+    // Covers are optional: when present they are served by the local development endpoint, so a
+    // public build still ships no cover art until the release decision is made.
+    const coverByPlanIndex = new Map<number, string>();
+    try {
+        const coverIndex = await readJson(COVERS_PATH);
+        if (isRecord(coverIndex)) {
+            for (const entry of asRecordArray(coverIndex['entries'], 'cover entries')) {
+                const fileName = String(entry['fileName'] ?? '');
+                if (/^[a-z0-9][a-z0-9._-]*\.(?:jpg|jpeg|png|webp)$/u.test(fileName)) {
+                    coverByPlanIndex.set(Number(entry['planIndex']), fileName);
+                }
+            }
+        }
+    } catch {
+        console.log('note: no cover index found; run npm run covers:fetch to add real cover art');
+    }
+
     for (const [index, entry] of asRecordArray(selection['books'], 'books').entries()) {
         const id = requireString(entry['id'], `books[${index}].id`);
         const planIndex = Number(entry['planIndex']);
@@ -174,11 +193,13 @@ async function main(): Promise<void> {
         const title = requireString(planEntry['title'], `plan[${planIndex}].title`);
         const authorRaw = String(planEntry['author'] ?? '').trim();
         const description = entry['description'] === undefined ? undefined : requireString(entry['description'], `books[${index}].description`);
+        const coverFileName = coverByPlanIndex.get(planIndex);
         books.push({
             id,
             title,
             author: authorRaw.length > 0 ? authorRaw : UNKNOWN_AUTHOR_LABEL,
             ...(description === undefined ? {} : { description }),
+            ...(coverFileName === undefined ? {} : { coverPath: `local-covers/${coverFileName}` }),
         });
     }
 

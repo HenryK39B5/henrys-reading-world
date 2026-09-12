@@ -1,3 +1,4 @@
+import { coverUrl, useCoverAccent } from '../../app/covers.ts';
 import type { SnapshotIndex } from '../../domain/snapshot.ts';
 import {
     bookCountText,
@@ -9,10 +10,13 @@ import {
     summarizeTopics,
     topicCountText,
     yearOptions,
+    type BookEntry,
+    type TopicEntry,
 } from '../../domain/world.ts';
-import { relativeYearLabel } from '../../domain/timeLabel.ts';
+import { describeBookCollection, relativeYearLabel } from '../../domain/timeLabel.ts';
 import type { Highlight } from '../../domain/types.ts';
 import { useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import './world.css';
 
 const COLLAPSED_BOOK_COUNT = 5;
@@ -107,24 +111,15 @@ export function World({
                 <p className="section-note">按划线年份排列，与读完时间无关。</p>
                 <ul className="book-list" data-testid="book-list">
                     {visibleBooks.map((entry) => (
-                        <li key={entry.book.id} className="book-item">
-                            <button
-                                type="button"
-                                className="book-button"
-                                data-testid={`book-${entry.book.id}`}
-                                aria-expanded={openBookId === entry.book.id}
-                                onClick={() => {
-                                    setExpandedTopicId(null);
-                                    onOpenBook(openBookId === entry.book.id ? null : entry.book.id);
-                                }}
-                            >
-                                <span className="book-title">《{entry.book.title}》</span>
-                                <span className="book-meta">
-                                    <span className="book-author">{entry.book.author}</span>
-                                    <span className="book-count">{bookCountText(entry)}</span>
-                                </span>
-                            </button>
-                        </li>
+                        <BookRow
+                            key={entry.book.id}
+                            entry={entry}
+                            open={openBookId === entry.book.id}
+                            onToggle={() => {
+                                setExpandedTopicId(null);
+                                onOpenBook(openBookId === entry.book.id ? null : entry.book.id);
+                            }}
+                        />
                     ))}
                 </ul>
                 {books.length > COLLAPSED_BOOK_COUNT ? (
@@ -149,6 +144,8 @@ export function World({
                         highlights={highlightsForBook(index, openBook.book.id, yearFilter)}
                         bookId={openBook.book.id}
                         title={openBook.book.title}
+                        author={openBook.book.author}
+                        coverPath={openBook.book.coverPath}
                         nowYear={nowYear}
                         onOpenHighlight={onOpenHighlight}
                     />
@@ -161,74 +158,126 @@ export function World({
                 </h2>
                 <p className="section-note">这些主题由真实划线整理而成，只呈现材料，不替主人下结论。</p>
                 <ul className="topic-list" data-testid="topic-list">
-                    {topics.map((entry) => {
-                        const expanded = expandedTopicId === entry.topic.id;
-                        return (
-                            <li key={entry.topic.id} className="topic-item">
-                                <button
-                                    type="button"
-                                    className="topic-button"
-                                    data-testid={`topic-${entry.topic.id}`}
-                                    aria-expanded={expanded}
-                                    onClick={() => {
-                                        onOpenBook(null);
-                                        setExpandedTopicId(expanded ? null : entry.topic.id);
-                                    }}
-                                >
-                                    <span className="topic-title">{entry.topic.title}</span>
-                                    <span className="topic-count">{topicCountText(entry)}</span>
-                                </button>
-                                {entry.topic.description === undefined ? null : (
-                                    <p className="topic-description">{entry.topic.description}</p>
-                                )}
-                                {expanded ? (
-                                    <div className="topic-detail" data-testid={`topic-detail-${entry.topic.id}`}>
-                                        {entry.highlightCount === 0 ? (
-                                            <p className="world-empty">
-                                                这一年里没有与这个主题相关的划线。
-                                                <button
-                                                    type="button"
-                                                    className="link-button"
-                                                    onClick={() => {
-                                                        onYearFilterChange(null);
-                                                    }}
-                                                >
-                                                    清除筛选
-                                                </button>
-                                            </p>
-                                        ) : (
-                                            <>
-                                                <ul className="topic-highlights">
-                                                    {highlightsForTopic(
-                                                        entry,
-                                                        expanded && entry.highlightCount > TOPIC_PREVIEW_COUNT
-                                                            ? TOPIC_EXPANDED_COUNT
-                                                            : TOPIC_PREVIEW_COUNT,
-                                                    ).map((highlight) => (
-                                                        <TopicPassage
-                                                            key={highlight.id}
-                                                            highlight={highlight}
-                                                            index={index}
-                                                            nowYear={nowYear}
-                                                            onOpenHighlight={onOpenHighlight}
-                                                        />
-                                                    ))}
-                                                </ul>
-                                                {entry.highlightCount > TOPIC_EXPANDED_COUNT ? (
-                                                    <p className="section-note">
-                                                        这里显示前 {TOPIC_EXPANDED_COUNT} 处，共 {entry.highlightCount} 处。
-                                                    </p>
-                                                ) : null}
-                                            </>
-                                        )}
-                                    </div>
-                                ) : null}
-                            </li>
-                        );
-                    })}
+                    {topics.map((entry) => (
+                        <TopicRow
+                            key={entry.topic.id}
+                            entry={entry}
+                            open={expandedTopicId === entry.topic.id}
+                            index={index}
+                            nowYear={nowYear}
+                            onToggle={() => {
+                                onOpenBook(null);
+                                setExpandedTopicId(expandedTopicId === entry.topic.id ? null : entry.topic.id);
+                            }}
+                            onOpenHighlight={onOpenHighlight}
+                            onClearYearFilter={() => {
+                                onYearFilterChange(null);
+                            }}
+                        />
+                    ))}
                 </ul>
             </section>
         </div>
+    );
+}
+
+/**
+ * One topic row. Its dot takes the accent of the book it leads with, so the topic list has colour
+ * tied to a real cover rather than to a palette picked by hand.
+ */
+function TopicRow({
+    entry,
+    open,
+    index,
+    nowYear,
+    onToggle,
+    onOpenHighlight,
+    onClearYearFilter,
+}: {
+    entry: TopicEntry;
+    open: boolean;
+    index: SnapshotIndex;
+    nowYear: number;
+    onToggle: () => void;
+    onOpenHighlight: (id: string) => void;
+    onClearYearFilter: () => void;
+}) {
+    const lead = entry.leads[0];
+    const leadBook = lead === undefined ? undefined : index.booksById.get(lead.bookId);
+    const accent = useCoverAccent(coverUrl(leadBook?.coverPath));
+
+    return (
+        <li className="topic-item" style={{ '--book-accent': accent } as CSSProperties}>
+            <button
+                type="button"
+                className="topic-button"
+                data-testid={`topic-${entry.topic.id}`}
+                aria-expanded={open}
+                onClick={onToggle}
+            >
+                <span className="topic-title">{entry.topic.title}</span>
+                <span className="topic-count">{topicCountText(entry)}</span>
+            </button>
+            {entry.topic.description === undefined ? null : <p className="topic-description">{entry.topic.description}</p>}
+            {!open ? null : (
+                <div className="topic-detail" data-testid={`topic-detail-${entry.topic.id}`}>
+                    {entry.highlightCount === 0 ? (
+                        <p className="world-empty">
+                            这一年里没有与这个主题相关的划线。
+                            <button type="button" className="link-button" onClick={onClearYearFilter}>
+                                清除筛选
+                            </button>
+                        </p>
+                    ) : (
+                        <>
+                            <ul className="topic-highlights">
+                                {highlightsForTopic(
+                                    entry,
+                                    entry.highlightCount > TOPIC_PREVIEW_COUNT ? TOPIC_EXPANDED_COUNT : TOPIC_PREVIEW_COUNT,
+                                ).map((highlight) => (
+                                    <TopicPassage
+                                        key={highlight.id}
+                                        highlight={highlight}
+                                        index={index}
+                                        nowYear={nowYear}
+                                        onOpenHighlight={onOpenHighlight}
+                                    />
+                                ))}
+                            </ul>
+                            {entry.highlightCount > TOPIC_EXPANDED_COUNT ? (
+                                <p className="section-note">
+                                    这里显示前 {TOPIC_EXPANDED_COUNT} 处，共 {entry.highlightCount} 处。
+                                </p>
+                            ) : null}
+                        </>
+                    )}
+                </div>
+            )}
+        </li>
+    );
+}
+
+function BookRow({ entry, open, onToggle }: { entry: BookEntry; open: boolean; onToggle: () => void }) {
+    const url = coverUrl(entry.book.coverPath);
+    const accent = useCoverAccent(url);
+
+    return (
+        <li className="book-item" style={{ '--book-accent': accent } as CSSProperties}>
+            <button type="button" className="book-button" data-testid={`book-${entry.book.id}`} aria-expanded={open} onClick={onToggle}>
+                <span className="book-cover" aria-hidden="true">
+                    {url === undefined ? (
+                        <span className="book-cover-fallback">{entry.book.title}</span>
+                    ) : (
+                        <img src={url} alt="" loading="lazy" decoding="async" />
+                    )}
+                </span>
+                <span className="book-title">《{entry.book.title}》</span>
+                <span className="book-meta">
+                    <span className="book-author">{entry.book.author}</span>
+                    <span className="book-count">{bookCountText(entry)}</span>
+                </span>
+            </button>
+        </li>
     );
 }
 
@@ -269,12 +318,16 @@ function TopicPassage({
 function BookDetail({
     bookId,
     title,
+    author,
+    coverPath,
     highlights,
     nowYear,
     onOpenHighlight,
 }: {
     bookId: string;
     title: string;
+    author: string;
+    coverPath: string | undefined;
     highlights: Highlight[];
     nowYear: number;
     onOpenHighlight: (id: string) => void;
@@ -282,6 +335,8 @@ function BookDetail({
     const [showAll, setShowAll] = useState(false);
     const headingRef = useRef<HTMLHeadingElement>(null);
     const visible = showAll ? highlights : highlights.slice(0, 6);
+    const url = coverUrl(coverPath);
+    const accent = useCoverAccent(url);
 
     // Opening a book is a navigation step: put focus on its heading, whether the visitor arrived from
     // the book list or from the source panel next to the passage.
@@ -290,10 +345,23 @@ function BookDetail({
     }, [bookId]);
 
     return (
-        <div className="book-detail" data-testid={`book-detail-${bookId}`}>
+        <div className="book-detail" data-testid={`book-detail-${bookId}`} style={{ '--book-accent': accent } as CSSProperties}>
             <h3 className="book-detail-heading" tabIndex={-1} ref={headingRef} data-testid="book-detail-heading">
                 《{title}》里的划线
             </h3>
+            <div className="book-detail-head">
+                <span className="book-cover book-cover-large" aria-hidden="true">
+                    {url === undefined ? (
+                        <span className="book-cover-fallback">{title}</span>
+                    ) : (
+                        <img src={url} alt="" decoding="async" />
+                    )}
+                </span>
+                <p className="book-detail-meta">
+                    {author}
+                    <span className="book-detail-count">{describeBookCollection(highlights.length)}</span>
+                </p>
+            </div>
             {highlights.length === 0 ? (
                 <p className="world-empty">这一年里没有这本书的划线。</p>
             ) : (
