@@ -18,8 +18,9 @@
 | 前端工程骨架 | 已完成（Slice 0） | React 19 + TS 6 + Vite 8；严格数据校验、仅本机隔离 |
 | 文字舞台（Slice 1） | 已完成 | 真实句子为视觉中心；三档排版；导航（3 项待开放）；160/280ms 转场 |
 | 换句交互（Slice 1） | 已完成 | 状态机 + 快速连点防重入 + reduced-motion 即时切换 + 单一 aria-live |
-| 浏览器验证 | 已执行 | Playwright + Chromium：**10 个用例全通过**；已截 短/中/长 三档 + 390/320 移动端 |
-| 本机检查 | 已执行 | `check:local` 全绿：typecheck + lint + 46 个单测（7 文件）+ 数据校验 |
+| 策展序列（Slice 2） | 已完成 | Opening / Contrast / Surprise / Exploration、评分、去重优先、cycle 重置、book scope |
+| 浏览器验证 | 已执行 | Playwright + Chromium：**13 个用例全通过**；已截 短/中/长三档 + 390/320 移动端 + 前三句证据 |
+| 本机检查 | 已执行 | `check:local` 全绿：typecheck + lint + 69 个单测（8 文件）+ 数据校验 |
 | 公开构建 | 已执行 | `npm run build` 成功；local 模式构建被拒绝；公开快照当前为空 |
 | 可公开快照 | 留到发布前 | 公开清单未审核，真实内容未进入 `src/data/` |
 | 数据覆盖缺口 | 已记录 | 真实划线无原始换行样本；年份仅 2024–2026；入选书籍 20 本超出 6–10 目标 |
@@ -138,6 +139,49 @@ Slice / task IDs：Slice 1 — T10 / T11 / T12
 
 - 转场动画的实际观感（160/280ms 是否最好）需要人眼判断，列在 Brief §17 开放问题上。
 - 未做 200% 缩放、Safari / 真机与完整键盘遍历（计划在 Slice 5）。
+
+## Slice 2 执行记录（已完成）
+
+```text
+日期 / 执行者：2026-09-12 / 实现 Agent
+Slice / task IDs：Slice 2 — T20 / T21 / T22
+状态：verified（算法与交互）；体验判断留待 Critique #1
+数据模式：真实数据 local-only；全局舞台只从 43 条独立可读划线中抽样（18 本书）
+```
+
+**完成内容**
+
+- `selectNext`：阶段按 `globalDrawCount` 划分（0 Opening / 1 Contrast / 2 Surprise / ≥3 Exploration），阶段内部按降级梯队，最后一梯队总是全候选集。
+- 去重先于评分：先排除当前句与当前 cycle 已看；全部看完则新 cycle（优先排除历史最后 3 个 ID，必要时从最早者逐步放回）；池内只剩当前句时返回 `only-current`，不空转。
+- 评分按 `docs/04 §5` 公式实现（quality / pinned / 不同书 / 主题不交叉 / 时间跨度 / 新鲜度 / 近期同书惩罚 / 重复曝光惩罚），随后按 `max(1, score)` 轮盘抽样；候选先按 ID 稳定排序，保证固定 RNG 可复现。
+- 主题缺失不算反差；年份缺失不算“旧”；`standaloneReadable=false` 的内容不进入全局随机池（只出现在书 / 主题层，Slice 3–4）。
+- book scope 已实现（同书内选取、越界返回 `exhausted-book`、不隐式重置全局 cycle），供 Slice 3 直接使用。
+
+**主要修改文件**：`src/domain/serendipity.ts` + `serendipity.test.ts`、`src/features/encounter/useEncounter.ts`（默认选择器改为 `selectNextQuote`）、`EncounterStage.tsx`（新增 `data-commit-count` 诊断计数）、`ReadingWorldPage.tsx`、`e2e/slice-1.spec.ts`（改为不依赖固定顺序）、`e2e/slice-2.spec.ts`。
+
+**实际命令 → 结果**
+
+| 命令 | 结果 |
+| --- | --- |
+| `npx vitest run src/domain` | 59 用例通过（其中 serendipity 23 条） |
+| `npm run check:local` | 全绿：typecheck + lint + **69 用例 / 8 文件** + 数据校验 |
+| `npx playwright test` | **13/13 通过** |
+| `npx playwright test e2e/slice-2.spec.ts --repeat-each=3` | **9/9 通过**（抽样稳定性） |
+
+**浏览器实测项（真实数据）**
+
+- 第一句：带 opening 标记、独立可读、20–120 字（tier 1 生效）。
+- 第二句：**不同书**且与第一句主题不交叉。
+- 第三句：再次换书（本次实际抽到《挪威的森林》，与前一则政治史类内容形成明显反差）。
+- 连续 7 次换句无重复，`data-commit-count` 与实际提交次数一致（=7）。
+- 连续 6 次展示涉及 ≥4 本书，且未出现相邻同书。
+- 证据（私有，不上传）：`.private/review/slice-2/draw-{1,2,3}-*.png`。
+
+**偏差 / 待判断**
+
+1. 真实年份只跨 2024–2026，因此“距今年份 ≥3 年”的 surprise 分支无法被真实数据触发；实际触发走的是策展标记 `surpriseCandidate`。这不是 bug，但意味着“时间纵深”目前只能靠人工标记表达，Prove 阶段需真实访客判断是否可惜。
+2. Exploration 阶段（第 4 句起）不再强制每三句一次 surprise，符合 `docs/04`；实际观感需要人眼确认。
+3. 第 4 句以后没有“换主题”的硬约束，只靠评分中的主题不交叉加分；长期连看是否仍显得有节奏，待 Critique #1。
 
 ## 公开发布前待处理事项（发布阻断项，不阻断本机开发）
 

@@ -1,14 +1,8 @@
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
-import {
-    createInitialState,
-    encounterReducer,
-    isBusy,
-    type EncounterEvent,
-    type EncounterState,
-    type TransitionDurations,
-} from '../../domain/encounter.ts';
+import { createInitialState, encounterReducer, isBusy, type EncounterEvent, type EncounterState, type TransitionDurations } from '../../domain/encounter.ts';
 import type { Selector } from '../../domain/selection.ts';
-import { selectInitialOpening, selectSequential } from '../../domain/sequence.ts';
+import { selectInitialOpening } from '../../domain/sequence.ts';
+import { selectNextQuote } from '../../domain/serendipity.ts';
 import type { Highlight } from '../../domain/types.ts';
 
 export const EXIT_MS = 160;
@@ -51,7 +45,7 @@ export function useReducedMotion(): boolean {
  * The reducer decides *what* happens; this hook only schedules the commit/end events, clears them
  * on unmount and drops duplicate dispatches during StrictMode's double invocation.
  */
-export function useEncounter(highlights: Highlight[], nowYear: number, selector: Selector = selectSequential): EncounterController {
+export function useEncounter(highlights: Highlight[], nowYear: number, selector: Selector = selectNextQuote): EncounterController {
     const reducedMotion = useReducedMotion();
     const durations = useMemo<TransitionDurations>(
         () => (reducedMotion ? { exit: 0, enter: 0 } : { exit: EXIT_MS, enter: ENTER_MS }),

@@ -1,10 +1,10 @@
 /**
  * Slice 1 placeholder ordering.
  *
- * The encounter stage needs a way to move between passages before the curation engine exists.
- * This module walks the snapshot in order so that typography and transition feel can be verified
- * without an algorithm in the way. Slice 2 replaces it with `selectNext` from docs/04; the
- * reducer and UI stay unchanged because both implement the same `Selector` contract.
+ * Kept as a deterministic, dependency-free reference implementation: it documents the sequence a
+ * snapshot is authored in and is used by tests that need a predictable walk of the data. The stage
+ * itself uses the curation engine in `serendipity.ts` (Slice 2), because both implement the same
+ * `Selector` contract.
  */
 import type { SelectionInput, SelectionResult } from './selection.ts';
 import type { Highlight } from './types.ts';

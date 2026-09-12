@@ -10,6 +10,8 @@ export type EncounterStageProps = {
     phase: Phase;
     busy: boolean;
     nowYear: number;
+    /** Committed changes this session; a plain diagnostic counter, also asserted in the browser tests. */
+    commitCount: number;
     /** Why the visitor cannot move on, when that is the case. */
     deadEnd: string | null;
     onNext: () => void;
@@ -19,12 +21,18 @@ export type EncounterStageProps = {
  * The passage stage: the sentence is the only visual centre (PRODUCT_BRIEF P1).
  * Source reveal (Slice 3) and share (Slice 5) are deliberately absent here.
  */
-export function EncounterStage({ highlight, book, phase, busy, nowYear, deadEnd, onNext }: EncounterStageProps) {
+export function EncounterStage({ highlight, book, phase, busy, nowYear, commitCount, deadEnd, onNext }: EncounterStageProps) {
     const band = lengthBand(highlight.text);
     const timeLabel = relativeYearLabel(highlight.year, nowYear);
 
     return (
-        <section className="stage" data-band={band} data-phase={phase} aria-labelledby="stage-heading">
+        <section
+            className="stage"
+            data-band={band}
+            data-phase={phase}
+            data-commit-count={commitCount}
+            aria-labelledby="stage-heading"
+        >
             <h2 id="stage-heading" className="sr-only">
                 当前划线
             </h2>

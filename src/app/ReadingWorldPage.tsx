@@ -41,6 +41,7 @@ export function ReadingWorldPage({ snapshot, warnings }: ReadingWorldPageProps) 
                         phase={encounter.state.phase}
                         busy={encounter.busy}
                         nowYear={nowYear}
+                        commitCount={encounter.state.commitCount}
                         deadEnd={describeDeadEnd(encounter.state)}
                         onNext={encounter.next}
                     />
