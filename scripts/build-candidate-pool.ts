@@ -120,7 +120,17 @@ async function main(): Promise<void> {
     const minChars = readArg('min-chars', 8);
     const maxChars = readArg('max-chars', 400);
 
-    const plan = readPlan(await readJson(PLAN_PATH));
+    const plan = readPlan(
+        await (async () => {
+            try {
+                return await readJson(PLAN_PATH);
+            } catch {
+                throw new Error(
+                    '缺少 .private/curation/fetch-plan.json。先运行 ./scripts/weread-fetch-highlights.ps1 -BuildPlan（需要当前进程设置 WEREAD_API_KEY）。',
+                );
+            }
+        })(),
+    );
     const byPlanIndex = new Map<number, Candidate[]>();
     const seen = new Set<string>();
     let skippedTooShort = 0;
@@ -240,4 +250,9 @@ async function main(): Promise<void> {
     console.log('written: .private/curation/candidate-pool.json, .private/curation/candidate-shortlist.md');
 }
 
-await main();
+try {
+    await main();
+} catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+}

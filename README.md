@@ -14,31 +14,54 @@
 ## 快速开始
 
 ```powershell
-npm ci
+npm ci                      # 首次：按锁文件安装依赖（已安装过则跳过）
 npm run snapshot:local      # 由已抓取的原始数据生成 .private/local-snapshot.json
-npm run dev:local           # http://127.0.0.1:5173 （仅本机模式，读取私有快照）
-npm run check:local         # typecheck + lint + test + 数据校验
-npm run test:e2e            # Playwright（真实 Chromium，23 个用例）
+npm run dev:local           # 打开 http://127.0.0.1:5173
 ```
 
-公开路径（等待公开清单，暂不用于本机预览真实内容）：
+`dev:local` 是**唯一能看到真实划线的开发模式**：它读取 `.private/local-snapshot.json`，并在页面顶部标出“仅本机 · 未公开审核”。
+
+常用命令：
 
 ```powershell
-npm run dev                 # 只读取 src/data/public-snapshot.json（当前为空）
-npm run build               # 公开构建；local 模式会被直接拒绝
+npm run check:local         # typecheck + lint + 单测 + 快照校验（开发主校验）
+npm run test:e2e            # Playwright，真实 Chromium，23 个用例
+npm run capture:review      # 生成评审截图 + 可读数字，输出到 .private/review/critique-1/
+npm run smoke:local         # 用真实快照做渲染冒烟检查
+```
+
+公开路径（当前只用于验证构建，不展示真实内容）：
+
+```powershell
+npm run dev                 # 只读取 src/data/public-snapshot.json（当前为空 → 显示真实空状态）
+npm run build               # 公开构建；local 模式会被直接报错拒绝
 npm run preview
 ```
 
-数据工具：
+只读取数（仅当需要新数据时，需要环境变量 `WEREAD_API_KEY`；跑页面不需要它）：
 
 ```powershell
 ./scripts/weread-request.ps1 -ApiName '/book/bookmarklist' -Parameters @{ bookId = '<id>' } -OutputName 'highlights/xxx.json'
-npm run pool -- --books 24 --per-book 8   # 生成候选池与人工挑选短名单（.private）
-npm run validate:data:local
-npm run smoke:local                       # 用真实快照做渲染冒烟检查
+./scripts/weread-fetch-highlights.ps1 -BuildPlan
+npm run pool -- --books 24 --per-book 8   # 生成候选池与人工挑选短名单
+npm run snapshot:local                    # 挑选结果 → 开发快照
 ```
 
-`dev:local` 使用 Vite 模式名 `local-private`（Vite 保留 `local` 用于 `.env` 后缀，不能作为模式名）。
+`dev:local` 使用 Vite 模式名 `local-private`（Vite 保留 `local` 用于 `.env` 后缀，不能作为模式名）。端口固定 5173 且 `strictPort`，被占用时会直接失败而不是换端口。
+
+### 体验时的建议路径
+
+1. 首屏读一句话 → 点 `再来一句` 连续 3–5 次，看第二句是否换书换话题、第三句是否“意外”。
+2. 点书名（出处行）→ 展开面板 → `再看一处`（同书）→ `查看这本书`。
+3. 向下：年份筛选 → 点一本 / 一个主题 → 点其中的划线，会回到上方舞台。
+4. 快速连点十几次 `再来一句`，观察是否闪烁、叠字、跳位。
+5. 系统开启“减少动态效果”后再点，文本应当立即切换。
+
+## 数据与发布边界
+
+- 开发阶段：真实划线可读取、使用、传输、发给外部模型审阅（用户 2026-09-12 确认）。`.private/` 不入库、不进公开构建，是为了保持“尚未做发布决定”的状态。
+- 不能外发的只有凭证：`WEREAD_API_KEY`、账号标识、原始回包中的个人字段。
+- 正式公开发布前需讨论公开范围（登记为 PUB-01）。
 
 ## 实际版本
 

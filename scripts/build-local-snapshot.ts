@@ -51,6 +51,15 @@ async function readJson(path: string): Promise<unknown> {
     return JSON.parse(await readFile(path, 'utf8')) as unknown;
 }
 
+/** Missing private inputs are the most likely first-run failure, so say what to run next. */
+async function requireJson(path: string, hint: string): Promise<unknown> {
+    try {
+        return await readJson(path);
+    } catch {
+        throw new Error(`缺少 ${path.slice(ROOT.length + 1)}。${hint}`);
+    }
+}
+
 function requireString(value: unknown, where: string): string {
     if (typeof value !== 'string' || value.trim().length === 0) {
         throw new Error(`${where}: expected a non-empty string`);
@@ -89,7 +98,10 @@ function asRecordArray(value: unknown, where: string): Record<string, unknown>[]
 }
 
 async function main(): Promise<void> {
-    const pool = await readJson(POOL_PATH);
+    const pool = await requireJson(
+        POOL_PATH,
+        '先运行 npm run pool（未抓过原始数据时，先执行 ./scripts/weread-fetch-highlights.ps1 -BuildPlan 再抓取，需要 WEREAD_API_KEY）。详见 docs/09-WEREAD-DATA-WORKFLOW.md。',
+    );
     if (!isRecord(pool)) {
         throw new Error('candidate pool must be an object');
     }
@@ -108,13 +120,19 @@ async function main(): Promise<void> {
         candidates.set(candidate.candidateId, candidate);
     }
 
-    const plan = asRecordArray(await readJson(PLAN_PATH), 'plan');
+    const plan = asRecordArray(
+        await requireJson(PLAN_PATH, '先运行 scripts/weread-fetch-highlights.ps1 -BuildPlan 生成取数计划。'),
+        'plan',
+    );
     const planById = new Map<number, Record<string, unknown>>();
     for (const entry of plan) {
         planById.set(Number(entry['index']), entry);
     }
 
-    const selection = await readJson(SELECTION_PATH);
+    const selection = await requireJson(
+        SELECTION_PATH,
+        '这是人工挑选文件，缺少时无法生成快照；可从 .private/curation/candidate-shortlist.md 重新挑选。',
+    );
     if (!isRecord(selection)) {
         throw new Error('selection must be an object');
     }
@@ -242,4 +260,10 @@ async function main(): Promise<void> {
     console.log('next: npm run dev:local');
 }
 
-await main();
+try {
+    await main();
+} catch (error) {
+    // Keep first-run failures readable: one line, no stack, no private data.
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+}
