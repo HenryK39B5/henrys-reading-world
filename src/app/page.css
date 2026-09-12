@@ -33,6 +33,10 @@
 }
 
 .nav-link {
+    display: inline-flex;
+    align-items: center;
+    /* Keeps the light look while meeting the 44px touch target the project commits to. */
+    min-height: 44px;
     color: var(--ink-soft);
     text-decoration: none;
     padding: 4px 2px;

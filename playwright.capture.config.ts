@@ -1,15 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Browser verification runs against the local development server, which is the only mode that
- * serves the private, not-yet-publicly-approved snapshot. The server binds to loopback only.
+ * Review capture runs a separate spec that only takes screenshots and prints measurements.
+ * It is kept out of the normal test run (see testIgnore in playwright.config.ts).
  */
 export default defineConfig({
     testDir: './e2e',
-    // Review captures are run explicitly via `npm run capture:review`.
-    testIgnore: ['**/capture.spec.ts'],
+    testMatch: '**/capture.spec.ts',
     fullyParallel: false,
-    forbidOnly: true,
     retries: 0,
     reporter: [['list']],
     use: {

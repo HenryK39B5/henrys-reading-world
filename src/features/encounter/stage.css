@@ -44,16 +44,20 @@
     /* ~30 CJK characters per line, independent of the band's font size. */
     max-width: 30em;
     margin: 0;
+    /* Avoid a single trailing character on its own line: balance short blocks, keep long ones natural. */
+    text-wrap: pretty;
 }
 
 .stage[data-band='short'] .stage-text {
-    font-size: clamp(28px, 5.4vw, 52px);
+    font-size: clamp(28px, 4.6vw, 46px);
     line-height: 1.7;
+    text-wrap: balance;
 }
 
 .stage[data-band='medium'] .stage-text {
-    font-size: clamp(24px, 3.8vw, 40px);
+    font-size: clamp(24px, 3.6vw, 38px);
     line-height: 1.8;
+    text-wrap: balance;
 }
 
 .stage[data-band='long'] .stage-text {
@@ -68,7 +72,11 @@
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    gap: 8px;
+    gap: 0;
+}
+
+.stage-attribution > .dash {
+    margin-right: 2px;
 }
 
 .stage-book {
@@ -77,11 +85,12 @@
 
 .stage-time {
     color: var(--ink-soft);
+    margin-left: 6px;
 }
 
 .stage-time::before {
     content: '·';
-    margin-right: 8px;
+    margin-right: 6px;
 }
 
 .stage-actions {
@@ -132,9 +141,9 @@
 .source-toggle {
     display: inline-flex;
     align-items: baseline;
-    gap: 8px;
+    gap: 0;
     min-height: 44px;
-    padding: 4px 2px;
+    padding: 4px 0;
     background: none;
     border: 0;
     cursor: pointer;
@@ -159,6 +168,7 @@
 
 .source-chevron {
     font-size: 12px;
+    margin-left: 6px;
 }
 
 .source-panel {
@@ -259,11 +269,11 @@
     }
 
     .stage[data-band='short'] .stage-text {
-        font-size: clamp(28px, 8vw, 34px);
+        font-size: clamp(28px, 7.4vw, 32px);
     }
 
     .stage[data-band='medium'] .stage-text {
-        font-size: clamp(24px, 6.4vw, 28px);
+        font-size: clamp(23px, 6vw, 27px);
     }
 
     .stage[data-band='long'] .stage-text {

@@ -96,7 +96,9 @@ export function EncounterStage({
                     </p>
                 </blockquote>
                 <p className="stage-attribution">
-                    <span aria-hidden="true">——</span>
+                    <span aria-hidden="true" className="dash">
+                        ——
+                    </span>
                     <button
                         type="button"
                         className="source-toggle"

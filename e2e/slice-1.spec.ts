@@ -206,6 +206,18 @@ test.describe('length bands in a real browser', () => {
         const buttonBox = await page.getByTestId('next-quote').boundingBox();
         expect(buttonBox?.height ?? 0).toBeGreaterThanOrEqual(44);
 
+        // Every interactive target, not just the main control, meets the project's 44px touch target.
+        const smallestTarget = await page.evaluate(() => {
+            const targets = [...document.querySelectorAll('button, a[href]')].filter((node) => {
+                const rect = node.getBoundingClientRect();
+                return rect.width > 0 && rect.height > 0;
+            });
+            return Math.round(
+                targets.reduce((smallest, node) => Math.min(smallest, node.getBoundingClientRect().height), 999),
+            );
+        });
+        expect(smallestTarget).toBeGreaterThanOrEqual(44);
+
         await page.setViewportSize({ width: 390, height: 844 });
         await page.reload();
         await expect(page.locator('.stage-text')).toBeVisible();

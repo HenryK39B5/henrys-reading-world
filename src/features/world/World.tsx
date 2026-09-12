@@ -119,8 +119,10 @@ export function World({
                                 }}
                             >
                                 <span className="book-title">《{entry.book.title}》</span>
-                                <span className="book-author">{entry.book.author}</span>
-                                <span className="book-count">{bookCountText(entry)}</span>
+                                <span className="book-meta">
+                                    <span className="book-author">{entry.book.author}</span>
+                                    <span className="book-count">{bookCountText(entry)}</span>
+                                </span>
                             </button>
                         </li>
                     ))}
