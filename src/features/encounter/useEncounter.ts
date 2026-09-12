@@ -12,6 +12,10 @@ export type EncounterController = {
     state: EncounterState;
     busy: boolean;
     next: () => void;
+    /** Another passage from the book on screen; never leaves that book. */
+    nextInBook: () => void;
+    openSource: () => void;
+    closeSource: () => void;
     open: (id: string) => void;
 };
 
@@ -45,7 +49,7 @@ export function useReducedMotion(): boolean {
  * The reducer decides *what* happens; this hook only schedules the commit/end events, clears them
  * on unmount and drops duplicate dispatches during StrictMode's double invocation.
  */
-export function useEncounter(highlights: Highlight[], nowYear: number, selector: Selector = selectNextQuote): EncounterController {
+export function useEncounter(highlights: Highlight[], selector: Selector = selectNextQuote): EncounterController {
     const reducedMotion = useReducedMotion();
     const durations = useMemo<TransitionDurations>(
         () => (reducedMotion ? { exit: 0, enter: 0 } : { exit: EXIT_MS, enter: ENTER_MS }),
@@ -53,7 +57,7 @@ export function useEncounter(highlights: Highlight[], nowYear: number, selector:
     );
 
     const [state, dispatch] = useReducer(
-        (current: EncounterState, event: EncounterEvent) => encounterReducer(current, event, { highlights, durations, selector, rng: Math.random, nowYear }),
+        (current: EncounterState, event: EncounterEvent) => encounterReducer(current, event, { highlights, durations, selector, rng: Math.random }),
         undefined,
         () => createInitialState(highlights, selectInitialOpening(highlights)),
     );
@@ -76,9 +80,21 @@ export function useEncounter(highlights: Highlight[], nowYear: number, selector:
         dispatch({ type: 'NEXT_GLOBAL' });
     }, []);
 
+    const nextInBook = useCallback(() => {
+        dispatch({ type: 'NEXT_IN_BOOK' });
+    }, []);
+
+    const openSource = useCallback(() => {
+        dispatch({ type: 'OPEN_SOURCE' });
+    }, []);
+
+    const closeSource = useCallback(() => {
+        dispatch({ type: 'CLOSE_SOURCE' });
+    }, []);
+
     const open = useCallback((id: string) => {
         dispatch({ type: 'OPEN_HIGHLIGHT', id });
     }, []);
 
-    return { state, busy: isBusy(state), next, open };
+    return { state, busy: isBusy(state), next, nextInBook, openSource, closeSource, open };
 }

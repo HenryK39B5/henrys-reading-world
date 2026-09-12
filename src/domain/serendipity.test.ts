@@ -41,7 +41,6 @@ function makeInput(overrides: Partial<SelectionInput> = {}): SelectionInput {
         globalDrawCount: 0,
         scope: { kind: 'global' },
         rng: () => 0,
-        nowYear: 2026,
         ...overrides,
     };
 }
@@ -187,34 +186,47 @@ describe('contrast draw', () => {
 });
 
 describe('surprise draw', () => {
-    it('prefers a different book that is flagged or at least three years older', () => {
+    it('prefers another book that opens a topic the visitor has not met this session', () => {
         const highlights = [
-            highlight('h-001', { bookId: 'b-001', year: 2025 }),
-            highlight('h-002', { bookId: 'b-002', year: 2025, qualityScore: 5 }),
-            highlight('h-003', { bookId: 'b-003', year: 2022, qualityScore: 1 }),
+            // Already seen this visit: t-001 from b-001.
+            highlight('h-001', { bookId: 'b-001', topicIds: ['t-001'] }),
+            // Same book, higher quality, but no new ground.
+            highlight('h-002', { bookId: 'b-001', topicIds: ['t-002'], qualityScore: 5 }),
+            // Another book repeating the same topic: a contrast, not a new territory.
+            highlight('h-003', { bookId: 'b-002', topicIds: ['t-001'], qualityScore: 5 }),
+            // Another book opening an unseen topic: the surprise.
+            highlight('h-004', { bookId: 'b-003', topicIds: ['t-009'], qualityScore: 1 }),
         ];
         const result = selectNext(
             makeInput({ highlights, currentId: 'h-001', historyIds: ['h-001'], seenInCycle: ['h-001'], globalDrawCount: 2 }),
         );
-        expect(result).toEqual({ kind: 'selected', id: 'h-003', reason: 'surprise' });
+        expect(result).toEqual({ kind: 'selected', id: 'h-004', reason: 'surprise' });
     });
 
-    it('honours an explicit surprise flag on a recent passage', () => {
+    it('treats a topic already shown earlier in the session as known ground', () => {
         const highlights = [
-            highlight('h-001', { bookId: 'b-001', year: 2025 }),
-            highlight('h-002', { bookId: 'b-002', year: 2026, qualityScore: 5 }),
-            highlight('h-003', { bookId: 'b-003', year: 2026, surpriseCandidate: true, qualityScore: 1 }),
+            highlight('h-001', { bookId: 'b-001', topicIds: ['t-001'] }),
+            highlight('h-009', { bookId: 'b-009', topicIds: ['t-001'], qualityScore: 5 }),
+            highlight('h-002', { bookId: 'b-002', topicIds: ['t-001', 't-002'], qualityScore: 1 }),
+            highlight('h-004', { bookId: 'b-004', topicIds: ['t-009'], qualityScore: 1 }),
         ];
+        // h-009 was already shown this visit, so t-001 is no longer new; only h-004 brings new ground.
         const result = selectNext(
-            makeInput({ highlights, currentId: 'h-001', historyIds: ['h-001'], seenInCycle: ['h-001'], globalDrawCount: 2 }),
+            makeInput({
+                highlights,
+                currentId: 'h-002',
+                historyIds: ['h-001', 'h-009', 'h-002'],
+                seenInCycle: ['h-001', 'h-009', 'h-002'],
+                globalDrawCount: 2,
+            }),
         );
-        expect(result).toEqual({ kind: 'selected', id: 'h-003', reason: 'surprise' });
+        expect(result).toEqual({ kind: 'selected', id: 'h-004', reason: 'surprise' });
     });
 
-    it('degrades to a normal contrast when nothing surprising exists', () => {
+    it('degrades to a plain contrast when no new territory remains', () => {
         const highlights = [
-            highlight('h-001', { bookId: 'b-001', year: 2026 }),
-            highlight('h-002', { bookId: 'b-002', year: 2026 }),
+            highlight('h-001', { bookId: 'b-001', topicIds: ['t-001'] }),
+            highlight('h-002', { bookId: 'b-002', topicIds: ['t-001'] }),
         ];
         const result = selectNext(
             makeInput({ highlights, currentId: 'h-001', historyIds: ['h-001'], seenInCycle: ['h-001'], globalDrawCount: 2 }),
@@ -222,19 +234,22 @@ describe('surprise draw', () => {
         expect(result).toEqual({ kind: 'selected', id: 'h-002', reason: 'surprise' });
     });
 
-    it('never invents time depth for a missing year', () => {
-        const missingYear = withoutYear(highlight('h-001'));
-        expect(missingYear.year).toBeUndefined();
-        const result = selectNext(
-            makeInput({
-                highlights: [missingYear, withoutYear(highlight('h-002', { bookId: 'b-002' }))],
-                currentId: 'h-001',
-                historyIds: ['h-001'],
-                seenInCycle: ['h-001'],
-                globalDrawCount: 2,
-            }),
-        );
-        expect(result.kind === 'selected' ? result.id : null).toBe('h-002');
+    it('ignores the bookmark year completely, present or missing', () => {
+        const build = (withYears: boolean) => {
+            const base = [
+                highlight('h-001', { bookId: 'b-001', topicIds: ['t-001'] }),
+                highlight('h-002', { bookId: 'b-002', topicIds: ['t-001'], qualityScore: 5 }),
+                highlight('h-003', { bookId: 'b-003', topicIds: ['t-009'], qualityScore: 1 }),
+            ];
+            return withYears ? base : base.map((item) => withoutYear(item));
+        };
+        const pick = (highlights: Highlight[]) =>
+            selectNext(
+                makeInput({ highlights, currentId: 'h-001', historyIds: ['h-001'], seenInCycle: ['h-001'], globalDrawCount: 2 }),
+            );
+        // A very old passage and a passage with no year behave identically: only territory decides.
+        expect(pick(build(true))).toEqual(pick(build(false)));
+        expect(pick(build(true))).toEqual({ kind: 'selected', id: 'h-003', reason: 'surprise' });
     });
 });
 

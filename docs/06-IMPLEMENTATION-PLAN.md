@@ -20,7 +20,11 @@
 
 **Slice 1 执行结果（2026-09-12）**：T10–T12 完成。真实舞台、四入口导航（三个待开放项标为不可用）、三档真实排版、160/280ms 转场状态机、快速连点防重入、reduced-motion 即时切换、单一 aria-live 区域均已实现并用真实浏览器验证。
 
-**Slice 2 执行结果（2026-09-12）**：T20–T22 完成。`src/domain/serendipity.ts` 按 `docs/04` 实现 Opening / Contrast / Surprise / Exploration、评分公式、去重优先、cycle 重置与 book scope，并接入 `useEncounter`（`selectSequential` 保留为确定性参照实现）。新增 23 条单测与 3 条浏览器用例（含 3 轮重复执行）均通过。待进入 Slice 3。
+**Slice 2 执行结果（2026-09-12）**：T20–T22 完成。`src/domain/serendipity.ts` 按 `docs/04` 实现 Opening / Contrast / Surprise / Exploration、评分公式、去重优先、cycle 重置与 book scope，并接入 `useEncounter`（`selectSequential` 保留为确定性参照实现）。新增 23 条单测与 3 条浏览器用例（含 3 轮重复执行）均通过。
+
+**Slice 2 修订（2026-09-12，用户反馈）**：用户指出“距今年份 XX”的意外对访客没有意义。已从选句逻辑中移除年份与时间门槛：Surprise 改为**领域意外**（换书 + 带来本次会话未出现过的主题），评分公式去掉 yearGap / 新鲜度项，改为“新主题 +2 / 本书本会话首次出现 +1 / `surpriseCandidate` 仅 +1 轻提示”；`SelectionInput` 不再接收 `nowYear`。年份只用于展示模糊时间标签。`docs/04` 已同步，单元测试更新至 66 条。
+
+**Slice 3 执行结果（2026-09-12）**：T30–T32 完成。出处行改为可展开按钮（`aria-expanded` / `aria-controls`），原位展开面板：书名占位框、书名作者、真实收录数、`再看一处`、`收起`；收起后焦点回到出处按钮；全局换句关闭面板，同书换句保持展开且不消耗全局阶段计数；本书只有一条或已看过全部时，控件在点击前即禁用并说明原因；`exhausted-book` / `only-current` / `empty` 均有明确文案。新增 6 条 reducer 单测与 6 条浏览器用例。待进入 Slice 4（书籍与主题区域）。
 
 **证据：** 实际工具版本、启动地址、校验命令、敏感路径 HTTP 拒绝结果、数据授权记录位置（不抄原始私有内容）。
 

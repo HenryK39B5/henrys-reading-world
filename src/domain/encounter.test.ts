@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { createInitialState, describeDeadEnd, encounterReducer, isBusy, type EncounterContext } from './encounter.ts';
+import {
+    createInitialState,
+    describeBookDeadEnd,
+    describeDeadEnd,
+    encounterReducer,
+    isBusy,
+    type EncounterContext,
+} from './encounter.ts';
 import { selectSequential } from './sequence.ts';
+import { selectNextQuote } from './serendipity.ts';
 import type { Highlight } from './types.ts';
 
 function highlight(id: string, overrides: Partial<Highlight> = {}): Highlight {
@@ -27,7 +35,6 @@ function makeContext(overrides: Partial<EncounterContext> = {}): EncounterContex
         durations: { exit: 160, enter: 280 },
         selector: selectSequential,
         rng: () => 0.5,
-        nowYear: 2025,
         ...overrides,
     };
 }
@@ -167,6 +174,97 @@ describe('encounter transitions', () => {
     });
 });
 
+describe('slice 3 source reveal', () => {
+    it('opens and closes the source panel for the current passage', () => {
+        const context = makeContext();
+        let state = createInitialState(HIGHLIGHTS, 'h-001');
+        expect(state.sourceOpen).toBe(false);
+
+        state = encounterReducer(state, { type: 'OPEN_SOURCE' }, context);
+        expect(state.sourceOpen).toBe(true);
+        // Opening the source is not a draw: it must not disturb the exposure counters.
+        expect(state.commitCount).toBe(0);
+        expect(state.globalDrawCount).toBe(1);
+
+        expect(encounterReducer(state, { type: 'OPEN_SOURCE' }, context)).toBe(state);
+
+        state = encounterReducer(state, { type: 'CLOSE_SOURCE' }, context);
+        expect(state.sourceOpen).toBe(false);
+        expect(encounterReducer(state, { type: 'CLOSE_SOURCE' }, context)).toBe(state);
+    });
+
+    it('ignores a source request when there is no passage', () => {
+        const context = makeContext();
+        const empty = createInitialState([], null);
+        expect(encounterReducer(empty, { type: 'OPEN_SOURCE' }, context)).toBe(empty);
+    });
+
+    it('closes the source as soon as a global passage is requested', () => {
+        const context = makeContext();
+        let state = encounterReducer(createInitialState(HIGHLIGHTS, 'h-001'), { type: 'OPEN_SOURCE' }, context);
+        expect(state.sourceOpen).toBe(true);
+        state = encounterReducer(state, { type: 'NEXT_GLOBAL' }, context);
+        expect(state.sourceOpen).toBe(false);
+    });
+
+    it('moves inside one book, keeps the source open and does not consume a global draw', () => {
+        const bookHighlights = [
+            highlight('h-001', { bookId: 'b-001' }),
+            highlight('h-002', { bookId: 'b-001' }),
+            highlight('h-003', { bookId: 'b-002' }),
+        ];
+        const context = makeContext({ highlights: bookHighlights, selector: selectNextQuote });
+        let state = encounterReducer(createInitialState(bookHighlights, 'h-001'), { type: 'OPEN_SOURCE' }, context);
+        state = encounterReducer(state, { type: 'NEXT_IN_BOOK' }, context);
+        expect(state.pending?.id).toBe('h-002');
+        state = encounterReducer(state, { type: 'COMMIT_QUOTE' }, context);
+
+        expect(state.currentId).toBe('h-002');
+        expect(state.sourceOpen).toBe(true);
+        expect(state.globalDrawCount).toBe(1);
+        expect(state.commitCount).toBe(1);
+        expect(state.phase).toBe('entering');
+    });
+
+    it('never leaves the book and reports exhaustion instead', () => {
+        const bookHighlights = [
+            highlight('h-001', { bookId: 'b-001' }),
+            highlight('h-002', { bookId: 'b-001' }),
+            highlight('h-003', { bookId: 'b-002', qualityScore: 5, pinned: true }),
+        ];
+        const context = makeContext({ highlights: bookHighlights, selector: selectNextQuote });
+        let state = encounterReducer(createInitialState(bookHighlights, 'h-001'), { type: 'OPEN_SOURCE' }, context);
+        state = encounterReducer(state, { type: 'NEXT_IN_BOOK' }, context);
+        state = encounterReducer(state, { type: 'COMMIT_QUOTE' }, context);
+        state = encounterReducer(state, { type: 'TRANSITION_END' }, context);
+        expect(state.currentId).toBe('h-002');
+
+        // Every passage of this book has now been seen; b-002 must not be substituted in.
+        const exhausted = encounterReducer(state, { type: 'NEXT_IN_BOOK' }, context);
+        expect(exhausted.lastResult.kind).toBe('exhausted-book');
+        expect(exhausted.currentId).toBe('h-002');
+        expect(exhausted.commitCount).toBe(state.commitCount);
+        expect(describeBookDeadEnd(exhausted)).toContain('已经看完');
+        expect(describeBookDeadEnd(state)).toBeNull();
+    });
+
+    it('ignores book moves while a transition is in flight and without a passage', () => {
+        const context = makeContext({ selector: selectNextQuote });
+        const idle = createInitialState(HIGHLIGHTS, 'h-001');
+        const busy = encounterReducer(idle, { type: 'NEXT_GLOBAL' }, context);
+        expect(encounterReducer(busy, { type: 'NEXT_IN_BOOK' }, context)).toBe(busy);
+        expect(encounterReducer(createInitialState([], null), { type: 'NEXT_IN_BOOK' }, context).currentId).toBeNull();
+    });
+
+    it('updates the source panel for a direct open of another passage', () => {
+        const context = makeContext();
+        let state = encounterReducer(createInitialState(HIGHLIGHTS, 'h-001'), { type: 'OPEN_SOURCE' }, context);
+        state = encounterReducer(state, { type: 'OPEN_HIGHLIGHT', id: 'h-003' }, context);
+        expect(state.currentId).toBe('h-003');
+        expect(state.sourceOpen).toBe(false);
+    });
+});
+
 describe('slice 1 placeholder ordering', () => {
     it('walks the snapshot in order and wraps around', () => {
         const base = { historyIds: [], seenInCycle: [], globalDrawCount: 1, rng: () => 0, nowYear: 2025 };
@@ -192,7 +290,6 @@ describe('slice 1 placeholder ordering', () => {
             globalDrawCount: 1,
             scope: { kind: 'book', bookId: 'b-001' },
             rng: () => 0,
-            nowYear: 2025,
         });
         expect(result.kind).toBe('only-current');
     });

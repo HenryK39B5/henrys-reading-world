@@ -33,7 +33,15 @@ export type SelectionInput = {
     scope: SelectionScope;
     /** Injected randomness: the same input and RNG always produce the same output. */
     rng: () => number;
-    nowYear: number;
+};
+
+/**
+ * What this session has already shown. Surprise means a new territory for *this visit* — a topic the
+ * visitor has not met yet — not an old date on a bookmark.
+ */
+export type SessionTerritory = {
+    topicIds: Set<string>;
+    bookIds: Set<string>;
 };
 
 export type Selector = (input: SelectionInput) => SelectionResult;

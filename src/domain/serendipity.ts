@@ -8,12 +8,11 @@
  * always produce the same passage. No network, no model, no stored tracking.
  */
 import { countNonWhitespace } from './length.ts';
-import type { SelectionInput, SelectionResult, Selector } from './selection.ts';
+import type { SelectionInput, SelectionResult, Selector, SessionTerritory } from './selection.ts';
 import type { Highlight } from './types.ts';
 
 export const OPENING_MIN_CHARS = 20;
 export const OPENING_MAX_CHARS = 120;
-export const SURPRISE_MIN_AGE_YEARS = 3;
 export const OPENING_SHORTLIST = 5;
 export const EXPLORE_SHORTLIST = 8;
 
@@ -26,8 +25,25 @@ function isWithin(count: number, min: number, max: number): boolean {
     return count >= min && count <= max;
 }
 
-function isOldEnough(highlight: Highlight, nowYear: number): boolean {
-    return highlight.year !== undefined && nowYear - highlight.year >= SURPRISE_MIN_AGE_YEARS;
+/** What this session has already shown; derived from the exposure history, never stored. */
+export function sessionTerritory(input: SelectionInput): SessionTerritory {
+    const territory: SessionTerritory = { topicIds: new Set<string>(), bookIds: new Set<string>() };
+    for (const id of input.historyIds) {
+        const entry = input.highlights.find((item) => item.id === id);
+        if (entry === undefined) {
+            continue;
+        }
+        territory.bookIds.add(entry.bookId);
+        for (const topicId of entry.topicIds) {
+            territory.topicIds.add(topicId);
+        }
+    }
+    return territory;
+}
+
+/** True when the passage opens a topic the visitor has not seen this session. */
+function bringsNewTopic(highlight: Highlight, territory: SessionTerritory): boolean {
+    return highlight.topicIds.some((topicId) => !territory.topicIds.has(topicId));
 }
 
 function topicsDisjoint(left: Highlight, right: Highlight): boolean {
@@ -44,8 +60,9 @@ function topicsDisjoint(left: Highlight, right: Highlight): boolean {
 export function scoreCandidate(highlight: Highlight, current: Highlight | null, input: SelectionInput): number {
     const differentBook = current !== null && highlight.bookId !== current.bookId;
     const disjointTopics = current !== null && topicsDisjoint(highlight, current);
-    const yearGap = current?.year !== undefined && highlight.year !== undefined && Math.abs(highlight.year - current.year) >= 3;
-    const fresh = highlight.year !== undefined && input.nowYear - highlight.year <= 1;
+    const territory = sessionTerritory(input);
+    const opensNewTerritory = bringsNewTopic(highlight, territory);
+    const freshBook = !territory.bookIds.has(highlight.bookId);
     const sameBookInRecentHistory =
         current !== null &&
         input.historyIds
@@ -56,10 +73,11 @@ export function scoreCandidate(highlight: Highlight, current: Highlight | null, 
     return (
         2 * highlight.qualityScore +
         (highlight.pinned ? 2 : 0) +
+        (highlight.surpriseCandidate ? 1 : 0) +
         (differentBook ? 3 : 0) +
         (disjointTopics ? 2 : 0) +
-        (yearGap ? 1 : 0) +
-        (fresh ? 1 : 0) -
+        (opensNewTerritory ? 2 : 0) +
+        (freshBook ? 1 : 0) -
         (sameBookInRecentHistory ? 2 : 0) -
         Math.min(priorExposures, 3)
     );
@@ -119,18 +137,28 @@ function buildCyclePool(pool: Highlight[], input: SelectionInput): CyclePool {
     return { candidates: withoutRecent.length > 0 ? withoutRecent : rest, cycleReset: true };
 }
 
-type Tiers = { otherBookAndDisjoint: Highlight[]; otherBook: Highlight[]; surprisingOtherBook: Highlight[]; surprising: Highlight[] };
+type Tiers = {
+    newTerritory: Highlight[];
+    otherBookAndDisjoint: Highlight[];
+    otherBook: Highlight[];
+    surprisingOtherBook: Highlight[];
+};
 
-function buildTiers(candidates: Highlight[], current: Highlight | null, nowYear: number): Tiers {
+function buildTiers(candidates: Highlight[], current: Highlight | null, input: SelectionInput): Tiers {
+    const territory = sessionTerritory(input);
     if (current === null) {
-        return { otherBookAndDisjoint: [], otherBook: [], surprisingOtherBook: [], surprising: [] };
+        return { newTerritory: [], otherBookAndDisjoint: [], otherBook: [], surprisingOtherBook: [] };
     }
-    const isSurprising = (highlight: Highlight) => highlight.surpriseCandidate || isOldEnough(highlight, nowYear);
+    const otherBook = candidates.filter((highlight) => highlight.bookId !== current.bookId);
     return {
-        otherBookAndDisjoint: candidates.filter((highlight) => highlight.bookId !== current.bookId && topicsDisjoint(highlight, current)),
-        otherBook: candidates.filter((highlight) => highlight.bookId !== current.bookId),
-        surprisingOtherBook: candidates.filter((highlight) => highlight.bookId !== current.bookId && isSurprising(highlight)),
-        surprising: candidates.filter(isSurprising),
+        newTerritory: otherBook.filter(
+            (highlight) => bringsNewTopic(highlight, territory) && topicsDisjoint(highlight, current),
+        ),
+        otherBookAndDisjoint: candidates.filter(
+            (highlight) => highlight.bookId !== current.bookId && topicsDisjoint(highlight, current),
+        ),
+        otherBook,
+        surprisingOtherBook: otherBook.filter((highlight) => bringsNewTopic(highlight, territory)),
     };
 }
 
@@ -189,7 +217,7 @@ export function selectNext(input: SelectionInput): SelectionResult {
     }
 
     const draw = input.globalDrawCount;
-    const tiers = buildTiers(candidates, current, input.nowYear);
+    const tiers = buildTiers(candidates, current, input);
     const sized = candidates.filter((highlight) =>
         isWithin(countNonWhitespace(highlight.text), OPENING_MIN_CHARS, OPENING_MAX_CHARS),
     );
@@ -203,9 +231,10 @@ export function selectNext(input: SelectionInput): SelectionResult {
             return pickFromTiers([tiers.otherBookAndDisjoint, tiers.otherBook], candidates, current, input, 'contrast');
         }
         if (draw === 2) {
-            // Best effort only: a real surprise depends on the material, so it degrades cleanly.
+            // The surprise is a change of territory: another book that opens a topic this visit has not
+            // met yet. It degrades cleanly when the remaining material holds no new ground.
             return pickFromTiers(
-                [tiers.surprisingOtherBook, tiers.surprising, tiers.otherBookAndDisjoint, tiers.otherBook],
+                [tiers.newTerritory, tiers.surprisingOtherBook, tiers.otherBookAndDisjoint, tiers.otherBook],
                 candidates,
                 current,
                 input,

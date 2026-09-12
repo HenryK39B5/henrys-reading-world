@@ -19,8 +19,10 @@
 | 文字舞台（Slice 1） | 已完成 | 真实句子为视觉中心；三档排版；导航（3 项待开放）；160/280ms 转场 |
 | 换句交互（Slice 1） | 已完成 | 状态机 + 快速连点防重入 + reduced-motion 即时切换 + 单一 aria-live |
 | 策展序列（Slice 2） | 已完成 | Opening / Contrast / Surprise / Exploration、评分、去重优先、cycle 重置、book scope |
-| 浏览器验证 | 已执行 | Playwright + Chromium：**13 个用例全通过**；已截 短/中/长三档 + 390/320 移动端 + 前三句证据 |
-| 本机检查 | 已执行 | `check:local` 全绿：typecheck + lint + 69 个单测（8 文件）+ 数据校验 |
+| Surprise 机制修订 | 已按用户反馈调整 | 去掉“距今年份”分支，改为“换书 + 带来本次会话未出现过的主题”的领域意外 |
+| 出处展开（Slice 3） | 已完成 | 原位展开、真实收录计数、再看一处 / 收起、焦点回归、耗尽与单条明确说明 |
+| 浏览器验证 | 已执行 | Playwright + Chromium：**19 个用例全通过**；已截 短/中/长三档 + 移动端 + 前三句 + 出处面板 |
+| 本机检查 | 已执行 | `check:local` 全绿：typecheck + lint + 76 个单测（8 文件）+ 数据校验 |
 | 公开构建 | 已执行 | `npm run build` 成功；local 模式构建被拒绝；公开快照当前为空 |
 | 可公开快照 | 留到发布前 | 公开清单未审核，真实内容未进入 `src/data/` |
 | 数据覆盖缺口 | 已记录 | 真实划线无原始换行样本；年份仅 2024–2026；入选书籍 20 本超出 6–10 目标 |
@@ -183,6 +185,47 @@ Slice / task IDs：Slice 2 — T20 / T21 / T22
 2. Exploration 阶段（第 4 句起）不再强制每三句一次 surprise，符合 `docs/04`；实际观感需要人眼确认。
 3. 第 4 句以后没有“换主题”的硬约束，只靠评分中的主题不交叉加分；长期连看是否仍显得有节奏，待 Critique #1。
 
+## Slice 3 执行记录（已完成）
+
+```text
+日期 / 执行者：2026-09-12 / 实现 Agent
+Slice / task IDs：Slice 3 — T30 / T31 / T32
+状态：verified（交互与无障碍）；封面上线待素材授权
+数据模式：真实数据 local-only
+```
+
+**完成内容**
+
+- T30 出处行改为 button（`aria-expanded` / `aria-controls="source-panel"`），原位展开 / 收起，不跳页；收起后焦点回到出处按钮。
+- T31 面板内容：书名占位框（无本地可用封面时的真实书名排版）、书名作者、`这里收录了 N 处划线`（来自当前快照，非平台总量）。
+- T32 `再看一处`：只在同书内选句，保持面板展开，**不消耗 globalDrawCount**；本书只有一条或已全部看过时，**点击前**即 `aria-disabled=true` 并给出原因，绝不静默跳书。
+- 状态机新增 `sourceOpen` 与 `pendingScope`：全局换句在请求时即关闭面板；同书换句提交后保持展开；直接打开其他划线关闭面板。
+
+**主要修改文件**：`src/domain/encounter.ts`(+6 test)、`src/features/encounter/{EncounterStage.tsx,useEncounter.ts,stage.css}`、`src/app/ReadingWorldPage.tsx`、`e2e/slice-3.spec.ts`。
+
+**实际命令 → 结果**
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run check:local` | 全绿：typecheck + lint + **76 用例 / 8 文件** + 数据校验 |
+| `npx playwright test` | **19/19 通过**（Slice 0/1/2/3） |
+
+**浏览器实测项（真实数据）**
+
+- 展开 / 收起、键盘 Enter 开关、`aria-expanded` 与面板可见性一致。
+- 收录数文案与快照实际值一致（如“这里收录了 2 处划线”）。
+- `再看一处` 换句后 `bookId` 不变、面板保持展开、`data-commit-count` +1。
+- 走完一本书的全部划线后：`source-note` 显示“这本书里收录的划线都看过了”，按钮禁用。
+- 单条书目：提示“这本书目前只收录了一处划线”。
+- 全局 `再来一句` 后：`data-source-open=false`，面板隐藏。
+- 证据（私有，不上传）：`.private/review/slice-3/{source-open,next-in-book,book-exhausted}-1440.png`。
+
+**偏差 / 待判断**
+
+1. **未实现“查看这本书”按钮**：书籍区域属于 Slice 4，此时放置该按钮会产生死链接（与导航待开放项同一原则）。Slice 4 会在书籍区域落地时补上，并接到书详情。
+2. **未使用真实书封与出版社简介**：需要本地可公开的封面素材与经审核的简介来源；当前用书名占位框 + 真实计数，不拉取外部图片、不编造简介。已登记为 PUB-06 / PUB-07。
+3. 出处按钮的视觉重量（下划线 + “⌄”提示）是否够轻、是否够可发现，需要人眼在 review 时判断。
+
 ## 公开发布前待处理事项（发布阻断项，不阻断本机开发）
 
 | 编号 | 事项 | 依据 |
@@ -192,6 +235,8 @@ Slice / task IDs：Slice 2 — T20 / T21 / T22
 | PUB-03 | 导出 `src/data/public-snapshot.json` 并做产物审查（无原始标识、无密钥、无私密字段） | docs/02 §4、PRIV-01 |
 | PUB-04 | 版权与引用长度复核 | PRODUCT_BRIEF §14 / Gate 4 |
 | PUB-05 | 分享链接、卡片预览与部署地址的真实外部行为验证 | Gate 4 |
+| PUB-06 | 书封素材：确定是否下载 / 转换为本地 `public/covers/` 素材，并确认版权与使用范围 | docs/05 §5、docs/02 §7 |
+| PUB-07 | 书籍简介：确定是否使用出版社简介删节或自写编辑说明，并逐本核对 | docs/03 §2 |
 
 
 ## 后续每片记录（追加，不覆盖历史）

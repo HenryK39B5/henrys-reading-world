@@ -17,10 +17,17 @@ export type ReadingWorldPageProps = {
 export function ReadingWorldPage({ snapshot, warnings }: ReadingWorldPageProps) {
     const index = useMemo(() => indexSnapshot(snapshot), [snapshot]);
     const nowYear = useMemo(() => new Date().getFullYear(), []);
-    const encounter = useEncounter(index.snapshot.highlights, nowYear);
+    const encounter = useEncounter(index.snapshot.highlights);
 
     const current = encounter.state.currentId === null ? undefined : index.highlightsById.get(encounter.state.currentId);
     const book = current === undefined ? undefined : index.booksById.get(current.bookId);
+    const bookHighlightCount = current === undefined ? 0 : (index.highlightsByBook.get(current.bookId)?.length ?? 0);
+    const bookUnseenCount =
+        current === undefined
+            ? 0
+            : (index.highlightsByBook.get(current.bookId) ?? []).filter(
+                  (item) => item.id !== current.id && !encounter.state.seenInCycle.includes(item.id),
+              ).length;
 
     return (
         <div className="shell">
@@ -42,8 +49,14 @@ export function ReadingWorldPage({ snapshot, warnings }: ReadingWorldPageProps) 
                         busy={encounter.busy}
                         nowYear={nowYear}
                         commitCount={encounter.state.commitCount}
+                        sourceOpen={encounter.state.sourceOpen}
+                        bookHighlightCount={bookHighlightCount}
+                        bookUnseenCount={bookUnseenCount}
                         deadEnd={describeDeadEnd(encounter.state)}
                         onNext={encounter.next}
+                        onNextInBook={encounter.nextInBook}
+                        onOpenSource={encounter.openSource}
+                        onCloseSource={encounter.closeSource}
                     />
                 )}
             </main>

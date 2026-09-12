@@ -11,10 +11,12 @@ type SelectionResult =
 
 // 具体类型按项目实现，语义保持一致
 selectNext({ highlights, historyIds, seenInCycle, currentId,
-  globalDrawCount, scope, nowYear, rng }): SelectionResult
+  globalDrawCount, scope, rng }): SelectionResult
 ```
 
-`rng(): number` 返回 [0,1)，测试注入固定序列；排序之前按稳定 ID 排列，保证同输入、同 RNG、同 nowYear 同输出。函数不修改输入 Set / 数组，不更新 React 状态。
+`rng(): number` 返回 [0,1)，测试注入固定序列；排序之前按稳定 ID 排列，保证同输入、同 RNG 同输出。函数不修改输入 Set / 数组，不更新 React 状态。
+
+**年份不参与选句。** 划线年份只用于展示模糊时间标签（`docs/05 §7`）。2026-09-12 用户反馈：“距今年份 XX”的意外对访客没有意义；惊喜应来自内容领域，而不是时间。
 
 隐私与许可已在快照入口处理；算法不接收“隐藏但不可公开”的条目。`standaloneReadable=false` 可出现在书 / 主题列表，但不进入全局舞台随机候选；通过明确深链 / 用户选择仍可展示获准的记录及出处。
 
@@ -59,15 +61,19 @@ selectNext({ highlights, historyIds, seenInCycle, currentId,
 
 先保证未看，再按：
 
-1. 不同书且 `surpriseCandidate=true` 或距 nowYear 至少 3 年；
-2. 任何满足上述 surprise 条件的候选；
-3. Contrast 规则。
+1. 换书，且带来本次会话尚未出现过的主题（新领域），并与当前句主题不交叉；
+2. 换书，且带来本次会话尚未出现过的主题；
+3. 换书，且与当前句主题不交叉；
+4. 换书；
+5. 任意未看候选。
 
-括号语义为 `differentBook && (curatedSurprise || oldYear)`。年份缺失不当旧记录；当前不足 3 年不写“来自 4 年前”。第三次只能尽力触发真实 surprise，不能强制伪造时间标签。
+设计理由：惊喜应当是“原来他还读这个”——内容领域与当前句子距离足够远，而不是一句时间上很近或很久的划线。时间纵深对访客没有信息量，已从选句逻辑中移除。
+
+第三次只能尽力触发真实的领域反差；没有新领域可换时逐级降级，不伪造任何东西。不要求每三次都出现 surprise，避免显得刻意。
 
 ### Exploration
 
-全部全局候选评分、取前 8 条加权抽样。后续不再强制每三句 Surprise；时间跨度奖励自然带入旧记录即可，避免每次都“刻意惊喜”。
+全部全局候选评分、取前 8 条加权抽样。后续不再强制每三句 Surprise；新领域奖励与主题不交叉加分自然带入未读过的角落，避免每次都“刻意惊喜”。
 
 ### Book
 
@@ -80,15 +86,16 @@ selectNext({ highlights, historyIds, seenInCycle, currentId,
 ```text
 score = 2 * qualityScore
       + (pinned ? 2 : 0)
+      + (surpriseCandidate ? 1 : 0)
       + (不同于上一条书籍 ? 3 : 0)
       + (双方主题非空且不相交 ? 2 : 0)
-      + (双方年份存在且相差至少 3 年 ? 1 : 0)
-      + (年份存在且 nowYear - year <= 1 ? 1 : 0)
+      + (带来本次会话尚未出现过的主题 ? 2 : 0)
+      + (本书在本次会话中尚未出现过 ? 1 : 0)
       - (出现在最近 3 条的同书 ? 2 : 0)
       - min(当前 session 该 ID 既往曝光数, 3)
 ```
 
-全局始终只接受 year <= nowYear 的合法数据；年份新鲜度缺失则为 0。随机加权 `weight=max(1, score)`，轮盘抽样；累计误差落到最后一个候选。pin 是轻偏好，不可突破去重或隐私约束。
+“本次会话” = 当前页面生命周期内已提交的曝光（`historyIds`）。年份既不参与评分，也不作为降级条件：缺失年份不影响任何权重，也不会被当成“旧”。`surpriseCandidate` 只是策展人的轻微提示（权重 1），不构成硬门槛，也不能突破去重或隐私约束。随机加权 `weight=max(1, score)`，轮盘抽样；累计误差落到最后一个候选。pin 是轻偏好，不可突破去重。
 
 不需要在界面显示 score / reason，测试和开发诊断可以显示 ID 与 reason，不打印私有文本。
 
@@ -99,7 +106,7 @@ score = 2 * qualityScore
 - 固定输入、RNG、时间得到可复现结果；输入未被修改。
 - Opening 优先指定池，缺池降级。
 - Contrast 有不同书时不选同书；能避主题时避开，未知主题不伪算反差。
-- Surprise 有旧年 / 策展候选时选中；没有时正常降级。
+- Surprise 在存在“新领域”候选时选中它；没有新领域时逐级降级；年份缺失或同年候选不受影响。
 - 有未看内容时不重复；耗尽后不会相邻重复；单条不死循环。
 - 空集合、同书集合、缺年份 / 主题时不崩溃。
 - pin 不突破去重，非独立文本不进随机池。
