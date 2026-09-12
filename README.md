@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-- 阶段：第一轮 Experience Prototype。**Slice 0 已完成**（真实取数、快照、工程骨架、隔离、校验）；Slice 1 尚未开始。
+- 阶段：第一轮 Experience Prototype。**Slice 0 与 Slice 1 已完成**（真实取数、快照、骨架、隔离、校验、文字舞台与换句手感）；Slice 2 尚未开始。
 - 产品基线：`PRODUCT_BRIEF.md` v0.1，保持原文不变。
 - 硬约束：所有开发只使用 Henry 本人的真实划线，不使用 fake / demo 数据。
 - 数据（local-only，未公开审核）：**46 条真实划线 · 20 本书 · 5 个主题 · 3 个年份**。
@@ -18,7 +18,7 @@ npm ci
 npm run snapshot:local      # 由已抓取的原始数据生成 .private/local-snapshot.json
 npm run dev:local           # http://127.0.0.1:5173 （仅本机模式，读取私有快照）
 npm run check:local         # typecheck + lint + test + 数据校验
-npm run test:e2e            # Playwright（真实 Chromium）
+npm run test:e2e            # Playwright（真实 Chromium，10 个用例）
 ```
 
 公开路径（等待公开清单，暂不用于本机预览真实内容）：

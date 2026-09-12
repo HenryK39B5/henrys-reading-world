@@ -2,20 +2,20 @@ import { expect, test } from '@playwright/test';
 
 /**
  * Slice 0 browser acceptance: the real-data path renders, and private material stays out of
- * reachable URLs. Slice 1+ adds the encounter stage, source reveal and exploration flows.
+ * reachable URLs. Slice 1 replaces the status panel with the passage stage, so the assertions here
+ * cover the shell plus the isolation guarantees that must never regress.
  */
 test('renders real authorized data in local development mode', async ({ page }) => {
     await page.goto('/');
 
-    await expect(page.getByText("Henry's Reading World")).toBeVisible();
+    await expect(page.getByRole('heading', { name: "Henry's Reading World", level: 1 })).toBeVisible();
     await expect(page.getByText('仅本机 · 未公开审核')).toBeVisible();
 
-    const heading = page.getByRole('heading', { name: '真实划线数据已就绪' });
-    await expect(heading).toBeVisible();
-
-    // Coverage line rendered from the real snapshot, not hard-coded copy.
-    await expect(page.getByText(/条划线 · \d+ 本书 · \d+ 个主题 · \d+ 个年份/)).toBeVisible();
-    await expect(page.locator('.stage-sample')).toBeVisible();
+    // A real passage from the local snapshot reaches the stage; nothing is hard-coded copy.
+    const passage = page.getByTestId('stage-passage');
+    await expect(passage).toBeVisible();
+    expect((await passage.innerText()).trim().length).toBeGreaterThan(0);
+    await expect(page.locator('.stage-book')).toContainText('《');
 });
 
 test('keeps private files and credentials unreachable over HTTP', async ({ page, request }) => {
@@ -53,5 +53,5 @@ test('keeps private files and credentials unreachable over HTTP', async ({ page,
     expect(post.status()).toBe(405);
 
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: '真实划线数据已就绪' })).toBeVisible();
+    await expect(page.getByTestId('stage-passage')).toBeVisible();
 });

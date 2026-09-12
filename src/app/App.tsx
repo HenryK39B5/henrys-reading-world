@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
+import { ReadingWorldPage } from './ReadingWorldPage.tsx';
 import { StatusPanel, type LoadState } from './StatusPanel.tsx';
 import { DATA_MODE, loadSnapshot } from './snapshotSource.ts';
-import './app.css';
+import './page.css';
 
 export function App() {
     const [state, setState] = useState<LoadState>({ status: 'loading' });
@@ -18,12 +19,16 @@ export function App() {
         };
     }, []);
 
+    if (state.status === 'ready') {
+        return <ReadingWorldPage snapshot={state.snapshot} warnings={state.warnings} />;
+    }
+
     return (
         <div className="shell">
-            <header className="brand-row">
-                <span className="brand">Henry's Reading World</span>
-                {DATA_MODE === 'local' ? <span className="badge">仅本机 · 未公开审核</span> : null}
+            <header className="site-header">
+                <h1 className="brand">Henry's Reading World</h1>
             </header>
+            {DATA_MODE === 'local' ? <p className="local-badge">仅本机 · 未公开审核</p> : null}
             <main className="status-area">
                 <StatusPanel state={state} />
             </main>

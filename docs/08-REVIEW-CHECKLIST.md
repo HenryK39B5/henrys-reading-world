@@ -16,8 +16,10 @@
 | 全部书籍开发授权 | 已批准 | 包括私密阅读；取消 6 本限制 |
 | 本机开发快照 | 已生成 | `.private/local-snapshot.json`：46 条 / 20 本 / 5 主题，visibility=local-only |
 | 前端工程骨架 | 已完成（Slice 0） | React 19 + TS 6 + Vite 8；严格数据校验、仅本机隔离 |
-| 浏览器验证 | 已执行 | Playwright + Chromium：2 个 e2e 用例通过；1440 / 390 视口已截图 |
-| 本机检查 | 已执行 | `check:local` 全绿：typecheck + lint + 27 个单测（5 文件）+ 数据校验 |
+| 文字舞台（Slice 1） | 已完成 | 真实句子为视觉中心；三档排版；导航（3 项待开放）；160/280ms 转场 |
+| 换句交互（Slice 1） | 已完成 | 状态机 + 快速连点防重入 + reduced-motion 即时切换 + 单一 aria-live |
+| 浏览器验证 | 已执行 | Playwright + Chromium：**10 个用例全通过**；已截 短/中/长 三档 + 390/320 移动端 |
+| 本机检查 | 已执行 | `check:local` 全绿：typecheck + lint + 46 个单测（7 文件）+ 数据校验 |
 | 公开构建 | 已执行 | `npm run build` 成功；local 模式构建被拒绝；公开快照当前为空 |
 | 可公开快照 | 留到发布前 | 公开清单未审核，真实内容未进入 `src/data/` |
 | 数据覆盖缺口 | 已记录 | 真实划线无原始换行样本；年份仅 2024–2026；入选书籍 20 本超出 6–10 目标 |
@@ -87,8 +89,65 @@ Slice / task IDs：Slice 0 — T00 / T01 / T02 / T03 / T04
 
 **需要用户判断的问题**
 
-1. 是否同意当前主题划分与标题（5 个：随机与运气 / 交易与自我克制 / 权力与体制 / 向内寻找 / 金钱的位置）。
-2. 是否保留包含政治史与敏感题材的真实划线（如 `c-0001`、`c-0008` 等已标 reviewNote 的条目）——本机开发已可用，公开发布前需单独确认。
+1. 主题划分与标题已获用户确认（5 个：随机与运气 / 交易与自我克制 / 权力与体制 / 向内寻找 / **金钱与价值**；“金钱的位置”已按用户意见改名）。
+2. 敏感题材真实划线（如 `c-0001`、`c-0008`，已标 `reviewNote`）本机开发保留；用户决定**先进行本机开发，公开发布时再处理这个事项**。已登记到下方“公开发布前待处理事项”。
+
+## Slice 1 执行记录（已完成）
+
+```text
+日期 / 执行者：2026-09-12 / 实现 Agent
+Slice / task IDs：Slice 1 — T10 / T11 / T12
+状态：verified（工程与交互）；产品体验判断留待 Critique #1
+数据模式与用户许可依据：真实数据 local-only；快照 46 条 / 20 本 / 5 主题
+```
+
+**完成内容**
+
+- T10 舞台：品牌、四入口导航（书 / 主题 / 关于暂标为不可用，不留死链接）、真实句子舞台、出处行（书名・作者・模糊年份）与 `再来一句` 控件。
+- T11 三档真实排版：短 28–52px / 中 24–40px / 长 20–30px，按去空白字符数分档；行宽约 30 个汉字；`pre-wrap` 保留原文换行与标点；不截断、不省略、不缩小到不可读。
+- T12 转场：纯函数状态机 `idle → exiting(160ms) → 提交 → entering(280ms) → idle`；转场中重复点击一律丢弃（不排队、不闪烁、不叠字）；`prefers-reduced-motion` 时直接提交、不进入转场；单一 `aria-live="polite"` 区域同时报出句子与出处。
+- 时间表达：只根据已审核年份生成模糊措辞（今年 / 一年前 / 来自 N 年前 / 很久以前），年份缺失则不提时间。
+- 未做（按计划属于后续切片）：出处展开（Slice 3）、分享与稳定链接（Slice 5）、真正的策展算法（Slice 2，当前用 `selectSequential` 占位且已在代码与文档标明）。
+
+**主要修改文件**：`src/domain/{selection,sequence,encounter,timeLabel}.ts`(+2 test)、`src/features/encounter/{EncounterStage.tsx,useEncounter.ts,stage.css}`、`src/app/{App.tsx,ReadingWorldPage.tsx,Nav.tsx,page.css}`、`src/styles/global.css`、`e2e/slice-1.spec.ts`、`e2e/slice-0.spec.ts`（随舞台落地更新）。
+
+**实际命令 → 结果**
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run check:local` | 全绿：typecheck + lint + **46 用例 / 7 文件** + 数据校验（1 条已知覆盖警告） |
+| `npx playwright test` | **10/10 通过**（Slice 0 两个 + Slice 1 八个） |
+
+**浏览器实测项（Chromium，真实数据）**
+
+- 首屏：首条真实划线 + 出处 + 控件；`.stage-text` 在任意时刻只有 1 个节点。
+- 不自动换句：静止 1.6s 文本不变。
+- **20 次同一任务内连点 → 只前进一步**，期间 `aria-disabled=true`、焦点保持在按钮、转场结束后恢复为 false。
+- 键盘 Enter 可触发换句；reduced-motion 下 900ms 内完成且从未停在 exiting 阶段。
+- 短 / 中 / 长 三档在 1440px 下均可读、无横向溢出、无截断；320px 无横向溢出、按钮高度 ≥44px。
+- aria-live 区域全页仅 1 个。
+- 证据（私有，不上传）：`.private/review/slice-1/band-{short,medium,long}-1440.png`、`mobile-390.png`。
+
+**偏差 / 待判断**
+
+1. 导航的 `书 / 主题 / 关于` 当前以 `aria-disabled` 呈现，不做假链接；Slice 3–4 落地后改为真链接（`src/app/Nav.tsx` 一行开关）。
+2. 页面底部的“数据覆盖提示”是仅本机模式的开发辅助，不在公开发布范围；移入 Gate 2 前需确认是否保留。
+3. 当前选句顺序是占位的快照顺序（Slice 1 为了先验证排版与手感）；这**不是**产品算法，Slice 2 将按 `docs/04` 替换。
+
+**未验证 / 缺口**
+
+- 转场动画的实际观感（160/280ms 是否最好）需要人眼判断，列在 Brief §17 开放问题上。
+- 未做 200% 缩放、Safari / 真机与完整键盘遍历（计划在 Slice 5）。
+
+## 公开发布前待处理事项（发布阻断项，不阻断本机开发）
+
+| 编号 | 事项 | 依据 |
+| --- | --- | --- |
+| PUB-01 | 逐条确认 46 条真实划线的公开范围；尤其是政治史与敏感题材（`c-0001` 等，见 `.private/curation/selection-source-map.json` 的 `reviewNote`） | 用户 2026-09-12 决定：本机先行，公开前处理 |
+| PUB-02 | 主题标题与划分的最终复核（当前已获用户口头同意，公开前再核） | docs/03 §6 |
+| PUB-03 | 导出 `src/data/public-snapshot.json` 并做产物审查（无原始标识、无密钥、无私密字段） | docs/02 §4、PRIV-01 |
+| PUB-04 | 版权与引用长度复核 | PRODUCT_BRIEF §14 / Gate 4 |
+| PUB-05 | 分享链接、卡片预览与部署地址的真实外部行为验证 | Gate 4 |
 
 
 ## 后续每片记录（追加，不覆盖历史）
