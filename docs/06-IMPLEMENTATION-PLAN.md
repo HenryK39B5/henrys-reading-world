@@ -1,4 +1,6 @@
-# 06 — 施工切片与验收
+# 06 — 施工切片与验收（v1 历史计划）
+
+> Slice 0–4 已完成。用户在 Critique #1 后调整产品方向，**不要直接进入本文件原 Slice 5**；先按 `docs/11-V2-IMPLEMENTATION-PLAN.md` 完成 V2-A～V2-D，再执行 V2-E（原 Slice 5 的分享与打磨）。
 
 规则：每片完成后执行可用检查、真实浏览器体验、写回执行记录，再做下一片。缺工具 / 数据明确 blocked，不伪造通过。数据审批不是可以用 mock 消除的依赖。
 
@@ -83,7 +85,7 @@
 
 **提交 Critique #1：** 1440px / 390px 全页截图、短中长句截图、连续 3–5 次换句和打开出处的短录屏。只有本机许可时证据不离开 `.private/review/`；是否分享给评审者另需用户确认。
 
-## Slice 5 — Share and Polish
+## Slice 5 — Share and Polish（已顺延为 docs/11 的 V2-E）
 
 任务：
 

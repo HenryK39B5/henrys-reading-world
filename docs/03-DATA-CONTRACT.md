@@ -1,4 +1,6 @@
-# 03 — 真实数据契约
+# 03 — 真实数据契约（schema v1 历史基线）
+
+> 当前代码仍使用本文件的 schemaVersion 1。下一阶段将按 `docs/10` / `docs/11 §1–3` 迁移到 schemaVersion 2：主题引用从 Highlight 移到 Book，Highlight 删除编辑评分与 Opening/Surprise 字段，全量候选进入 local-only 快照。迁移完成前不要混用两个结构。
 
 ## 1. 硬边界
 

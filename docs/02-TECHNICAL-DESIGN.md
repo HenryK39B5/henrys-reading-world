@@ -1,4 +1,6 @@
-# 02 — 技术与工程设计
+# 02 — 技术与工程设计（v1 基线）
+
+> 栈、安全隔离、URL 和工程底线继续有效。数据 schema、选择状态与 scope 将按 `docs/11` 迁移：schema 2、Book.themeIds、all/theme 持久舞台范围和先选书再选句。下文 `globalDrawCount` 与 Opening/Contrast/Surprise 是当前 v1 代码说明，不是下一阶段目标。
 
 ## 1. 栈与命令
 

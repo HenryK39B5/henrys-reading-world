@@ -1,13 +1,13 @@
 # Henry's Reading World
 
-一个让别人通过你曾经停留过的文字，偶然认识你一点的个人阅读空间。
+一个可以随便抽一句、按主题书架或按书闲逛的个人阅读空间。
 
 ## 当前状态
 
-- 阶段：第一轮 Experience Prototype。**Slice 0–4 已完成**（真实取数、快照、骨架、隔离、校验、文字舞台、换句手感、策展式序列、出处展开、书籍 / 主题 / 年份 / About）；Slice 5（分享与打磨）尚未开始。
-- 产品基线：`PRODUCT_BRIEF.md` v0.1，保持原文不变。
-- 硬约束：所有开发只使用 Henry 本人的真实划线，不使用 fake / demo 数据。
-- 数据（local-only，未公开审核）：**46 条真实划线 · 20 本书 · 5 个主题 · 3 个年份**。
+- 阶段：v1 的 **Slice 0–4 已完成**；Critique #1 后已确定 v2 方向，下一步按 V2-A～V2-E 迁移（全量数据 → 公平发现算法 → 主题舞台 → 全量浏览 → 分享打磨）。
+- 产品方向：`PRODUCT_BRIEF.md` 是历史基线；最新决定见 `docs/10-PRODUCT-DIRECTION-V2.md`，施工路线见 `docs/11-V2-IMPLEMENTATION-PLAN.md`。
+- 硬约束：所有开发只使用 Henry 本人的真实划线，不使用 fake / demo 数据；主题属于书籍，不做逐句人格标签。
+- 当前页面仍是 v1 local-only 快照：**46 条真实划线 · 20 本书 · 5 个主题 · 3 个年份**。v2 目标是让约 4,663 条 / 130 本全部可到达，但不同时渲染。
 - 原始数据与快照只存在于本机 `.private/`，已被 `.gitignore` 排除，不进入前端包。
 - 公开快照 `src/data/public-snapshot.json` 仍为空 → 当前页面在本机显示真实内容，公开发布仍待审核。
 
@@ -50,13 +50,13 @@ npm run snapshot:local                    # 挑选结果 → 开发快照
 
 `dev:local` 使用 Vite 模式名 `local-private`（Vite 保留 `local` 用于 `.env` 后缀，不能作为模式名）。端口固定 5173 且 `strictPort`，被占用时会直接失败而不是换端口。
 
-### 体验时的建议路径
+### 当前 v1 体验路径
 
-1. 首屏读一句话 → 点 `再来一句` 连续 3–5 次，看第二句是否换书换话题、第三句是否“意外”。
+1. 首屏读一句话 → 点 `再来一句`。
 2. 点书名（出处行）→ 展开面板 → `再看一处`（同书）→ `查看这本书`。
-3. 向下：年份筛选 → 点一本 / 一个主题 → 点其中的划线，会回到上方舞台。
-4. 快速连点十几次 `再来一句`，观察是否闪烁、叠字、跳位。
-5. 系统开启“减少动态效果”后再点，文本应当立即切换。
+3. 向下查看当前书籍、主题与年份区域。
+
+注意：当前仍是迁移前 v1。v2 将取消前三句 Opening/Contrast/Surprise 编排，改为先公平选书再选句，并增加持久的 `随便看看 / 主题书架` 舞台范围。
 
 ## 数据与发布边界
 
@@ -92,6 +92,8 @@ npm run snapshot:local                    # 挑选结果 → 开发快照
 | [07 — 模型交接](docs/07-IMPLEMENTATION-HANDOFF.md) | 开始施工、续接、回报模板、模型分工 |
 | [08 — Review 记录](docs/08-REVIEW-CHECKLIST.md) | 执行记录与 Prototype Gate 检查 |
 | [09 — 微信读书流程](docs/09-WEREAD-DATA-WORKFLOW.md) | skill 移植、真实数据获取与发布边界 |
+| [10 — Product Direction v2](docs/10-PRODUCT-DIRECTION-V2.md) | Critique #1 后的最新产品目标、主题语义与公平漫游原则 |
+| [11 — v2 施工计划](docs/11-V2-IMPLEMENTATION-PLAN.md) | schema 2、全量数据、算法、主题舞台与分片验收 |
 
 ## 真实数据现状
 
