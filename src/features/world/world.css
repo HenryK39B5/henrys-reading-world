@@ -70,8 +70,8 @@
 }
 
 .book-list,
-.topic-list,
-.topic-highlights,
+.theme-list,
+.theme-highlights,
 .book-highlights {
     list-style: none;
     margin: 0;
@@ -79,7 +79,7 @@
 }
 
 .book-item + .book-item,
-.topic-item + .topic-item {
+.theme-item + .theme-item {
     border-top: 1px solid var(--rule);
 }
 
@@ -157,16 +157,16 @@
 
 @media (hover: hover) {
     .book-button:hover .book-title,
-    .topic-button:hover .topic-title {
+    .theme-button:hover .theme-title {
         color: var(--accent);
     }
 }
 
-.topic-item {
+.theme-item {
     padding: 18px 0;
 }
 
-.topic-button {
+.theme-button {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
@@ -181,12 +181,12 @@
     font-size: 17px;
 }
 
-.topic-title {
+.theme-title {
     font-family: var(--stage-font);
 }
 
-/* Each topic carries a dot in the accent of the book it leads with. */
-.topic-button::before {
+/* Each theme shelf carries a dot in the accent of the book it leads with. */
+.theme-button::before {
     content: '';
     width: 7px;
     height: 7px;
@@ -196,19 +196,19 @@
     align-self: center;
 }
 
-.topic-count {
+.theme-count {
     font-size: 13px;
     color: var(--ink-soft);
 }
 
-.topic-description {
+.theme-description {
     margin: 6px 0 0;
     font-size: 14px;
     color: var(--ink-soft);
     max-width: 46em;
 }
 
-.topic-detail,
+.theme-detail,
 .book-detail {
     margin-top: 18px;
     padding-left: 18px;
@@ -321,7 +321,7 @@
         font-size: 16px;
     }
 
-    .topic-detail,
+    .theme-detail,
     .book-detail {
         padding-left: 14px;
     }

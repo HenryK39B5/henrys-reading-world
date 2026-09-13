@@ -6,22 +6,9 @@ function localSnapshot(): Snapshot {
     return {
         ...EMPTY_SNAPSHOT,
         visibility: 'local-only',
-        books: [{ id: 'b-001', title: 'Book One', author: 'Author One' }],
-        topics: [{ id: 't-001', title: 'Topic One' }],
-        highlights: [
-            {
-                id: 'h-001',
-                bookId: 'b-001',
-                text: 'passage',
-                year: 2020,
-                topicIds: ['t-001'],
-                qualityScore: 3,
-                standaloneReadable: true,
-                pinned: false,
-                openingCandidate: true,
-                surpriseCandidate: false,
-            },
-        ],
+        themes: [{ id: 't-001', title: 'Theme One' }],
+        books: [{ id: 'b-001', title: 'Book One', author: 'Author One', themeIds: ['t-001'] }],
+        highlights: [{ id: 'h-001', bookId: 'b-001', text: 'passage', year: 2020 }],
     };
 }
 

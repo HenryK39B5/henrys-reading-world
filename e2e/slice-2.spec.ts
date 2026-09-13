@@ -3,34 +3,27 @@ import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * Slice 2 browser acceptance for the curated sequence.
+ * Discovery browser acceptance.
  *
- * These assertions describe the experience the prototype promises on real data: the first screen is
- * a representative passage, the second deliberately contrasts, the third adds a mild surprise, and
- * passages do not repeat while unseen material remains. Which exact passage appears is not pinned:
- * the engine is allowed to sample.
+ * v1 validated a curated Opening → Contrast → Surprise sequence. docs/10 removed that narrative, so
+ * this spec now checks what the product actually promises on real data: the first screen is a
+ * readable passage, every draw avoids the book on screen, draws spread across the library instead of
+ * circling one big book, and nothing repeats while unseen material remains.
  */
-type Highlight = {
-    id: string;
-    text: string;
-    bookId: string;
-    year?: number;
-    topicIds: string[];
-    qualityScore: number;
-    standaloneReadable: boolean;
-    openingCandidate: boolean;
-    surpriseCandidate: boolean;
-};
+type Highlight = { id: string; text: string; bookId: string };
 
 const SNAPSHOT_PATH = join(process.cwd(), '.private/local-snapshot.json');
 const REVIEW_DIR = join(process.cwd(), '.private/review/slice-2');
 const hasSnapshot = existsSync(SNAPSHOT_PATH);
 
-type RealData = { byText: Map<string, Highlight> };
+type RealData = { highlights: Highlight[]; byText: Map<string, Highlight> };
 
 function loadSnapshot(): RealData {
     const parsed = JSON.parse(readFileSync(SNAPSHOT_PATH, 'utf8')) as { highlights: Highlight[] };
-    return { byText: new Map(parsed.highlights.map((item) => [item.text.trim(), item])) };
+    return {
+        highlights: parsed.highlights,
+        byText: new Map(parsed.highlights.map((item) => [item.text.trim(), item])),
+    };
 }
 
 function nonWhitespaceLength(text: string): number {
@@ -51,31 +44,27 @@ async function advance(page: Page): Promise<Highlight> {
     return shown(page);
 }
 
-test.describe('curated sequence', () => {
+test.describe('fair wandering', () => {
     test.skip(!hasSnapshot, 'private local snapshot is not available');
 
-    test('opens representatively, then contrasts, then surprises', async ({ page }) => {
+    test('opens with a readable passage instead of a wall of text', async ({ page }) => {
         await page.goto('/');
 
-        // Draw 1 — opening: flagged, independently readable, and a comfortable length.
         const opening = await shown(page);
-        expect(opening.openingCandidate, 'opening passage should be flagged in the data').toBe(true);
-        expect(nonWhitespaceLength(opening.text)).toBeGreaterThanOrEqual(20);
-        expect(nonWhitespaceLength(opening.text)).toBeLessThanOrEqual(120);
-        expect(opening.standaloneReadable).toBe(true);
+        const length = nonWhitespaceLength(opening.text);
+        expect(length).toBeGreaterThanOrEqual(20);
+        expect(length).toBeLessThanOrEqual(120);
         await page.screenshot({ path: join(REVIEW_DIR, 'draw-1-opening.png'), fullPage: true });
 
-        // Draw 2 — contrast: a different book, ideally with unrelated topics.
-        const contrast = await advance(page);
-        expect(contrast.id).not.toBe(opening.id);
-        expect(contrast.bookId, 'contrast should change the book').not.toBe(opening.bookId);
-        expect(contrast.topicIds.some((topicId) => opening.topicIds.includes(topicId))).toBe(false);
+        // Nothing about the opening is curated: it is simply one passage of the library.
+        const second = await advance(page);
+        expect(second.id).not.toBe(opening.id);
+        expect(second.bookId, 'the next draw changes the book').not.toBe(opening.bookId);
         await page.screenshot({ path: join(REVIEW_DIR, 'draw-2-contrast.png'), fullPage: true });
 
-        // Draw 3 — surprise: best effort on real material, never a fake time claim.
-        const surprise = await advance(page);
-        expect(surprise.id).not.toBe(contrast.id);
-        expect(surprise.bookId, 'surprise should change the book as well').not.toBe(contrast.bookId);
+        const third = await advance(page);
+        expect(third.id).not.toBe(second.id);
+        expect(third.bookId, 'the draw after that changes the book too').not.toBe(second.bookId);
         await page.screenshot({ path: join(REVIEW_DIR, 'draw-3-surprise.png'), fullPage: true });
     });
 
@@ -90,24 +79,34 @@ test.describe('curated sequence', () => {
         }
 
         expect(new Set(seen.map((item) => item.id)).size).toBe(seen.length);
-        expect(new Set(seen.map((item) => item.bookId)).size).toBeGreaterThan(1);
         await expect(page.locator('.stage')).toHaveAttribute('data-commit-count', '7');
     });
 
-    test('keeps a visible rhythm of books, not one book in a row', async ({ page }) => {
+    test('spreads draws across the library instead of circling one big book', async ({ page }) => {
+        const { highlights } = loadSnapshot();
+        const largestBook = highlights.reduce<Map<string, number>>((counts, item) => {
+            counts.set(item.bookId, (counts.get(item.bookId) ?? 0) + 1);
+            return counts;
+        }, new Map());
+        const biggest = [...largestBook.entries()].sort((left, right) => right[1] - left[1])[0];
+        expect(biggest, 'the snapshot should offer at least one book').toBeDefined();
+
         await page.goto('/');
         const books: string[] = [];
-
-        for (let index = 0; index < 6; index += 1) {
+        for (let index = 0; index < 12; index += 1) {
             books.push((await shown(page)).bookId);
-            await page.getByTestId('next-quote').click();
-            await expect(page.locator('.stage')).toHaveAttribute('data-phase', 'idle', { timeout: 3000 });
+            if (index < 11) {
+                await page.getByTestId('next-quote').click();
+                await expect(page.locator('.stage')).toHaveAttribute('data-phase', 'idle', { timeout: 3000 });
+            }
         }
 
-        // The material offers 18 books, so consecutive repeats are avoidable and should not happen.
+        // A book already seen this session is offered only after the unseen ones, so twelve draws on a
+        // library of this size should cover twelve different books — never the same book twice in a row.
         for (let index = 1; index < books.length; index += 1) {
             expect(books[index], `draw ${String(index + 1)} repeated the previous book`).not.toBe(books[index - 1]);
         }
-        expect(new Set(books).size).toBeGreaterThanOrEqual(4);
+        expect(new Set(books).size).toBeGreaterThanOrEqual(10);
+        expect(books.filter((bookId) => bookId === biggest?.[0]).length).toBeLessThanOrEqual(1);
     });
 });

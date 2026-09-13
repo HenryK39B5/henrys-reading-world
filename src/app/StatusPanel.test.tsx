@@ -11,22 +11,9 @@ function readySnapshot(): Snapshot {
     return {
         ...EMPTY_SNAPSHOT,
         visibility: 'local-only',
-        books: [{ id: 'b-001', title: 'Book & <One>', author: 'Author One' }],
-        topics: [{ id: 't-001', title: 'Topic One' }],
-        highlights: [
-            {
-                id: 'h-001',
-                bookId: 'b-001',
-                text: 'first passage',
-                year: 2023,
-                topicIds: ['t-001'],
-                qualityScore: 3,
-                standaloneReadable: true,
-                pinned: false,
-                openingCandidate: true,
-                surpriseCandidate: false,
-            },
-        ],
+        themes: [{ id: 't-001', title: 'Theme One' }],
+        books: [{ id: 'b-001', title: 'Book & <One>', author: 'Author One', themeIds: ['t-001'] }],
+        highlights: [{ id: 'h-001', bookId: 'b-001', text: 'first passage', year: 2023 }],
     };
 }
 
@@ -56,7 +43,7 @@ describe('StatusPanel', () => {
                 state={{ status: 'ready', snapshot: readySnapshot(), warnings: ['content: sample warning'] }}
             />,
         );
-        expect(html).toContain('1 条划线 · 1 本书 · 1 个主题 · 1 个年份');
+        expect(html).toContain('1 条划线 · 1 本书 · 1 个主题书架 · 1 个年份');
         expect(html).toContain('first passage');
         expect(html).toContain('Book &amp; &lt;One&gt;');
         expect(html).not.toContain('<One>');

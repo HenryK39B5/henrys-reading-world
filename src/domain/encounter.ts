@@ -4,6 +4,10 @@
  * Pure and synchronous: the reducer never schedules timers itself and never reads the clock, so
  * committing, ignoring rapid clicks and cancelling an in-flight transition are all testable
  * without a browser. The React layer only wires timer events into it.
+ *
+ * v2 note: the v1 counter that drove Opening/Contrast/Surprise is gone (docs/10 §3). The visitor asks
+ * for another passage and gets one; the machine only tracks what is on screen, what has been shown and
+ * whether the source panel is open.
  */
 import type { SelectionInput, SelectionResult, Selector } from './selection.ts';
 import type { Highlight } from './types.ts';
@@ -31,8 +35,6 @@ export type EncounterState = {
     historyIds: string[];
     /** Ids shown since the last cycle reset. */
     seenInCycle: string[];
-    /** Committed global-stage draws. */
-    globalDrawCount: number;
     /** Total committed changes, including direct opens; used to assert no double commits. */
     commitCount: number;
 };
@@ -63,11 +65,10 @@ export function createInitialState(highlights: Highlight[], initialId: string | 
         pending: null,
         pendingScope: null,
         sourceOpen: false,
-        // A valid deep link already counts as the first committed draw, so the next one is a contrast.
-        lastResult: currentId === null ? { kind: 'empty' } : { kind: 'selected', id: currentId, reason: 'opening' },
+        // A valid deep link is already a chosen record rather than a draw.
+        lastResult: currentId === null ? { kind: 'empty' } : { kind: 'selected', id: currentId, reason: 'fallback' },
         historyIds: currentId === null ? [] : [currentId],
         seenInCycle: currentId === null ? [] : [currentId],
-        globalDrawCount: currentId === null ? 0 : 1,
         commitCount: 0,
     };
 }
@@ -78,7 +79,6 @@ function selectionInput(state: EncounterState, context: EncounterContext, scope:
         currentId: state.currentId,
         historyIds: state.historyIds,
         seenInCycle: state.seenInCycle,
-        globalDrawCount: state.globalDrawCount,
         scope,
         rng: context.rng,
     };
@@ -89,7 +89,6 @@ function commit(
     choice: Extract<SelectionResult, { kind: 'selected' }>,
     context: EncounterContext,
     sourceOpen: boolean,
-    countsAsGlobalDraw: boolean,
 ): EncounterState {
     const seen = choice.cycleReset === true ? [choice.id] : [...state.seenInCycle, choice.id];
     return {
@@ -102,7 +101,6 @@ function commit(
         lastResult: choice,
         historyIds: [...state.historyIds, choice.id],
         seenInCycle: seen,
-        globalDrawCount: state.globalDrawCount + (countsAsGlobalDraw ? 1 : 0),
         commitCount: state.commitCount + 1,
     };
 }
@@ -121,7 +119,7 @@ export function encounterReducer(state: EncounterState, event: EncounterEvent, c
                 return { ...state, lastResult: result };
             }
             if (context.durations.exit === 0) {
-                return commit(state, result, context, false, true);
+                return commit(state, result, context, false);
             }
             return { ...state, phase: 'exiting', pending: result, pendingScope: 'global', sourceOpen: false };
         }
@@ -140,7 +138,7 @@ export function encounterReducer(state: EncounterState, event: EncounterEvent, c
                 return { ...state, lastResult: result };
             }
             if (context.durations.exit === 0) {
-                return commit(state, result, context, true, false);
+                return commit(state, result, context, true);
             }
             return { ...state, phase: 'exiting', pending: result, pendingScope: 'book', sourceOpen: true };
         }
@@ -150,7 +148,7 @@ export function encounterReducer(state: EncounterState, event: EncounterEvent, c
                 return state;
             }
             const keepOpen = state.pendingScope === 'book';
-            return commit(state, state.pending, context, keepOpen, state.pendingScope === 'global');
+            return commit(state, state.pending, context, keepOpen);
         }
 
         case 'TRANSITION_END': {
@@ -176,7 +174,7 @@ export function encounterReducer(state: EncounterState, event: EncounterEvent, c
             if (target.id === state.currentId && state.phase === 'idle') {
                 return state;
             }
-            // A direct open cancels any transition in flight and does not consume a global draw.
+            // A direct open cancels any transition in flight.
             return {
                 ...state,
                 phase: 'idle',

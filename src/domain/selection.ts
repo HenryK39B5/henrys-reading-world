@@ -1,14 +1,14 @@
 import type { Highlight } from './types.ts';
 
 /** Reason labels are for tests and diagnostics; they are never rendered to visitors. */
-export type SelectionReason = 'opening' | 'contrast' | 'surprise' | 'explore' | 'book' | 'fallback' | 'sequential';
+export type SelectionReason = 'all' | 'book' | 'fallback' | 'sequential';
 
 export type SelectionResult =
     | {
           kind: 'selected';
           id: string;
           reason: SelectionReason;
-          /** Set by the engine when the exposure cycle restarted; the reducer rebuilds the cycle set. */
+          /** Set by the selector when the exposure cycle restarted; the reducer rebuilds the cycle set. */
           cycleReset?: boolean;
       }
     | { kind: 'empty' }
@@ -18,8 +18,10 @@ export type SelectionResult =
 export type SelectionScope = { kind: 'global' } | { kind: 'book'; bookId: string };
 
 /**
- * Input contract shared by the Slice 1 placeholder ordering and the Slice 2 serendipity engine
- * (docs/04). Keeping it stable means the reducer and the UI do not change when the engine lands.
+ * Input contract shared by the deterministic reference ordering and the discovery selector.
+ *
+ * v2 dropped the editorial fields (quality, opening/surprise flags, per-passage topics): the stage no
+ * longer curates an impression, so selection only needs the real material plus session history.
  */
 export type SelectionInput = {
     highlights: Highlight[];
@@ -28,20 +30,9 @@ export type SelectionInput = {
     historyIds: string[];
     /** Ids already shown in the current cycle. */
     seenInCycle: string[];
-    /** Committed global-stage draws; drives the opening/contrast/surprise roles. */
-    globalDrawCount: number;
     scope: SelectionScope;
     /** Injected randomness: the same input and RNG always produce the same output. */
     rng: () => number;
-};
-
-/**
- * What this session has already shown. Surprise means a new territory for *this visit* — a topic the
- * visitor has not met yet — not an old date on a bookmark.
- */
-export type SessionTerritory = {
-    topicIds: Set<string>;
-    bookIds: Set<string>;
 };
 
 export type Selector = (input: SelectionInput) => SelectionResult;

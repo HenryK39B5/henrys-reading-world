@@ -187,7 +187,10 @@ scope -> eligible books -> choose book -> eligible highlights in book -> choose 
 
 ## 6. 施工切片
 
-### V2-A — 数据准备与 schema 2（先做）
+### V2-A — 数据准备与 schema 2（已完成）
+
+- 实际完成：稳定 ID map、书籍 dossier、14 个宽主题书架、schema 2 契约与全量 local-only 快照（4,663 条 / 130 本）；v1 的 46 条与 20 本 ID 原封保留；`verify:ids` 防守。执行记录见 `docs/08`。
+- 已知遗留：选择器仍是过渡实现（按划线条数加权），属 V2-B；主题展开与年份作用域属 V2-C。
 
 - 建 dossier、主题分配文件、稳定 ID map。
 - 建全量 local-only snapshot builder；升级类型、validator、index、公开空快照。

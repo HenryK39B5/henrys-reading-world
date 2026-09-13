@@ -4,14 +4,14 @@ import {
     bookCountText,
     filterBooksByYear,
     highlightsForBook,
-    highlightsForTopic,
+    highlightsForTheme,
     orderByRecentHighlight,
     summarizeBooks,
-    summarizeTopics,
-    topicCountText,
+    summarizeThemes,
+    themeCountText,
     yearOptions,
     type BookEntry,
-    type TopicEntry,
+    type ThemeEntry,
 } from '../../domain/world.ts';
 import { describeBookCollection, relativeYearLabel } from '../../domain/timeLabel.ts';
 import type { Highlight } from '../../domain/types.ts';
@@ -20,8 +20,8 @@ import type { CSSProperties } from 'react';
 import './world.css';
 
 const COLLAPSED_BOOK_COUNT = 5;
-const TOPIC_PREVIEW_COUNT = 4;
-const TOPIC_EXPANDED_COUNT = 12;
+const THEME_PREVIEW_COUNT = 4;
+const THEME_EXPANDED_COUNT = 12;
 
 export type WorldProps = {
     index: SnapshotIndex;
@@ -47,16 +47,16 @@ export function World({
     onOpenHighlight,
 }: WorldProps) {
     const [showAllBooks, setShowAllBooks] = useState(false);
-    const [expandedTopicId, setExpandedTopicId] = useState<string | null>(null);
+    const [expandedThemeId, setExpandedThemeId] = useState<string | null>(null);
 
     const allBooks = orderByRecentHighlight(summarizeBooks(index));
     const books = filterBooksByYear(allBooks, yearFilter);
     const visibleBooks = showAllBooks ? books : books.slice(0, COLLAPSED_BOOK_COUNT);
-    const topics = summarizeTopics(index, yearFilter);
+    const themes = summarizeThemes(index, yearFilter);
     const years = yearOptions(index);
 
     const openBook = openBookId === null ? null : (books.find((entry) => entry.book.id === openBookId) ?? null);
-    const isFilteredEmpty = yearFilter !== null && books.length === 0 && topics.every((entry) => entry.highlightCount === 0);
+    const isFilteredEmpty = yearFilter !== null && books.length === 0 && themes.every((entry) => entry.highlightCount === 0);
 
     return (
         <div className="world">
@@ -116,7 +116,7 @@ export function World({
                             entry={entry}
                             open={openBookId === entry.book.id}
                             onToggle={() => {
-                                setExpandedTopicId(null);
+                                setExpandedThemeId(null);
                                 onOpenBook(openBookId === entry.book.id ? null : entry.book.id);
                             }}
                         />
@@ -152,22 +152,26 @@ export function World({
                 )}
             </section>
 
-            <section id="topics" className="world-section" aria-labelledby="topics-heading">
-                <h2 id="topics-heading" className="section-heading">
-                    反复出现的问题
+            {/* id stays `topics` for the existing #topics navigation until the v2 information
+                architecture pass (docs/11 V2-C) revisits the anchors. */}
+            <section id="topics" className="world-section" aria-labelledby="themes-heading">
+                <h2 id="themes-heading" className="section-heading">
+                    主题书架
                 </h2>
-                <p className="section-note">这些主题由真实划线整理而成，只呈现材料，不替主人下结论。</p>
-                <ul className="topic-list" data-testid="topic-list">
-                    {topics.map((entry) => (
-                        <TopicRow
-                            key={entry.topic.id}
+                <p className="section-note">
+                    主题按书籍归档：点开看到的是这个书架上收录的书，以及其中若干划线。
+                </p>
+                <ul className="theme-list" data-testid="theme-list">
+                    {themes.map((entry) => (
+                        <ThemeRow
+                            key={entry.theme.id}
                             entry={entry}
-                            open={expandedTopicId === entry.topic.id}
+                            open={expandedThemeId === entry.theme.id}
                             index={index}
                             nowYear={nowYear}
                             onToggle={() => {
                                 onOpenBook(null);
-                                setExpandedTopicId(expandedTopicId === entry.topic.id ? null : entry.topic.id);
+                                setExpandedThemeId(expandedThemeId === entry.theme.id ? null : entry.theme.id);
                             }}
                             onOpenHighlight={onOpenHighlight}
                             onClearYearFilter={() => {
@@ -182,10 +186,10 @@ export function World({
 }
 
 /**
- * One topic row. Its dot takes the accent of the book it leads with, so the topic list has colour
- * tied to a real cover rather than to a palette picked by hand.
+ * One theme shelf. Its dot takes the accent of the book it leads with, so the list has colour tied
+ * to a real cover rather than to a palette picked by hand.
  */
-function TopicRow({
+function ThemeRow({
     entry,
     open,
     index,
@@ -194,7 +198,7 @@ function TopicRow({
     onOpenHighlight,
     onClearYearFilter,
 }: {
-    entry: TopicEntry;
+    entry: ThemeEntry;
     open: boolean;
     index: SnapshotIndex;
     nowYear: number;
@@ -207,35 +211,35 @@ function TopicRow({
     const accent = useCoverAccent(coverUrl(leadBook?.coverPath));
 
     return (
-        <li className="topic-item" style={{ '--book-accent': accent } as CSSProperties}>
+        <li className="theme-item" style={{ '--book-accent': accent } as CSSProperties}>
             <button
                 type="button"
-                className="topic-button"
-                data-testid={`topic-${entry.topic.id}`}
+                className="theme-button"
+                data-testid={`theme-${entry.theme.id}`}
                 aria-expanded={open}
                 onClick={onToggle}
             >
-                <span className="topic-title">{entry.topic.title}</span>
-                <span className="topic-count">{topicCountText(entry)}</span>
+                <span className="theme-title">{entry.theme.title}</span>
+                <span className="theme-count">{themeCountText(entry)}</span>
             </button>
-            {entry.topic.description === undefined ? null : <p className="topic-description">{entry.topic.description}</p>}
+            {entry.theme.description === undefined ? null : <p className="theme-description">{entry.theme.description}</p>}
             {!open ? null : (
-                <div className="topic-detail" data-testid={`topic-detail-${entry.topic.id}`}>
+                <div className="theme-detail" data-testid={`theme-detail-${entry.theme.id}`}>
                     {entry.highlightCount === 0 ? (
                         <p className="world-empty">
-                            这一年里没有与这个主题相关的划线。
+                            这一年里没有这个书架中书籍的划线。
                             <button type="button" className="link-button" onClick={onClearYearFilter}>
                                 清除筛选
                             </button>
                         </p>
                     ) : (
                         <>
-                            <ul className="topic-highlights">
-                                {highlightsForTopic(
+                            <ul className="theme-highlights">
+                                {highlightsForTheme(
                                     entry,
-                                    entry.highlightCount > TOPIC_PREVIEW_COUNT ? TOPIC_EXPANDED_COUNT : TOPIC_PREVIEW_COUNT,
+                                    entry.highlightCount > THEME_PREVIEW_COUNT ? THEME_EXPANDED_COUNT : THEME_PREVIEW_COUNT,
                                 ).map((highlight) => (
-                                    <TopicPassage
+                                    <ThemePassage
                                         key={highlight.id}
                                         highlight={highlight}
                                         index={index}
@@ -244,9 +248,9 @@ function TopicRow({
                                     />
                                 ))}
                             </ul>
-                            {entry.highlightCount > TOPIC_EXPANDED_COUNT ? (
+                            {entry.highlightCount > THEME_EXPANDED_COUNT ? (
                                 <p className="section-note">
-                                    这里显示前 {TOPIC_EXPANDED_COUNT} 处，共 {entry.highlightCount} 处。
+                                    这里显示前 {THEME_EXPANDED_COUNT} 处，共 {entry.highlightCount} 处。
                                 </p>
                             ) : null}
                         </>
@@ -281,7 +285,7 @@ function BookRow({ entry, open, onToggle }: { entry: BookEntry; open: boolean; o
     );
 }
 
-function TopicPassage({
+function ThemePassage({
     highlight,
     index,
     nowYear,
@@ -295,11 +299,11 @@ function TopicPassage({
     const book = index.booksById.get(highlight.bookId);
     const timeLabel = relativeYearLabel(highlight.year, nowYear);
     return (
-        <li className="topic-passage">
+        <li className="theme-passage">
             <button
                 type="button"
                 className="passage-button"
-                data-testid={`topic-passage-${highlight.id}`}
+                data-testid={`theme-passage-${highlight.id}`}
                 onClick={() => {
                     onOpenHighlight(highlight.id);
                 }}

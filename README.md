@@ -4,10 +4,10 @@
 
 ## 当前状态
 
-- 阶段：v1 的 **Slice 0–4 已完成**；Critique #1 后已确定 v2 方向，下一步按 V2-A～V2-E 迁移（全量数据 → 公平发现算法 → 主题舞台 → 全量浏览 → 分享打磨）。
+- 阶段：v1 的 **Slice 0–4 已完成**；**V2-A 已完成**（schema 2、全量 4,663 条 / 130 本 / 14 个书籍主题书架）。下一步 V2-B（公平两阶段抽样）→ V2-C（主题舞台与 IA）→ V2-D（全量浏览）→ V2-E（分享与打磨）。
 - 产品方向：`PRODUCT_BRIEF.md` 是历史基线；最新决定见 `docs/10-PRODUCT-DIRECTION-V2.md`，施工路线见 `docs/11-V2-IMPLEMENTATION-PLAN.md`。
 - 硬约束：所有开发只使用 Henry 本人的真实划线，不使用 fake / demo 数据；主题属于书籍，不做逐句人格标签。
-- 当前页面仍是 v1 local-only 快照：**46 条真实划线 · 20 本书 · 5 个主题 · 3 个年份**。v2 目标是让约 4,663 条 / 130 本全部可到达，但不同时渲染。
+- 当前页面数据（local-only）：**4,663 条真实划线 · 130 本书 · 14 个主题书架 · 2024–2026**；首屏只渲染当前一句与折叠列表，全部内容通过舞台 / 主题书架 / 单书路径可达。
 - 原始数据与快照只存在于本机 `.private/`，已被 `.gitignore` 排除，不进入前端包。
 - 公开快照 `src/data/public-snapshot.json` 仍为空 → 当前页面在本机显示真实内容，公开发布仍待审核。
 
@@ -15,8 +15,17 @@
 
 ```powershell
 npm ci                      # 首次：按锁文件安装依赖（已安装过则跳过）
-npm run snapshot:local      # 由已抓取的原始数据生成 .private/local-snapshot.json
+npm run snapshot:local      # 由已抓取的原始数据生成 .private/local-snapshot.json（schema 2，全量）
 npm run dev:local           # 打开 http://127.0.0.1:5173
+```
+
+重建数据管线（仅在需要重新生成 ID / 主题 / 快照时）：
+
+```powershell
+npm run idmap:v2            # 稳定 ID 映射（保留已发布 ID，只追加）
+npm run dossiers:v2         # 每本书的等距样本 dossier（供书架分类）
+npm run verify:ids          # 校验已发布 ID 仍指向同一条真实划线
+npm run snapshot:local      # 生成全量 local-only 快照
 ```
 
 `dev:local` 是**唯一能看到真实划线的开发模式**：它读取 `.private/local-snapshot.json`，并在页面顶部标出“仅本机 · 未公开审核”。
@@ -25,7 +34,7 @@ npm run dev:local           # 打开 http://127.0.0.1:5173
 
 ```powershell
 npm run check:local         # typecheck + lint + 单测 + 快照校验（开发主校验）
-npm run test:e2e            # Playwright，真实 Chromium，23 个用例
+npm run test:e2e            # Playwright，真实 Chromium，24 个用例
 npm run capture:review      # 生成评审截图 + 可读数字，输出到 .private/review/critique-1/
 npm run covers:fetch        # 下载真实书封到 .private/covers/（只由 dev:local 服务）
 npm run smoke:local         # 用真实快照做渲染冒烟检查
@@ -50,13 +59,13 @@ npm run snapshot:local                    # 挑选结果 → 开发快照
 
 `dev:local` 使用 Vite 模式名 `local-private`（Vite 保留 `local` 用于 `.env` 后缀，不能作为模式名）。端口固定 5173 且 `strictPort`，被占用时会直接失败而不是换端口。
 
-### 当前 v1 体验路径
+### 当前体验路径
 
 1. 首屏读一句话 → 点 `再来一句`。
 2. 点书名（出处行）→ 展开面板 → `再看一处`（同书）→ `查看这本书`。
-3. 向下查看当前书籍、主题与年份区域。
+3. 向下查看书籍列表、主题书架与年份工具。
 
-注意：当前仍是迁移前 v1。v2 将取消前三句 Opening/Contrast/Surprise 编排，改为先公平选书再选句，并增加持久的 `随便看看 / 主题书架` 舞台范围。
+注意：选择器目前会在整个书库中抽取，并按划线条数加权；两阶段公平抽样、主题舞台与“主题作为舞台范围”仍待 V2-B / V2-C。
 
 ## 数据与发布边界
 
@@ -99,12 +108,13 @@ npm run snapshot:local                    # 挑选结果 → 开发快照
 
 - 笔记本概览全部分页：132 本有笔记的书；已抓取 130 本划线，共约 4,700 行（`.private/weread/highlights/`）。
 - 候选池：4,663 条（去重、长度 8–400 字）；其中短 1,054 / 中 2,626 / 长 983。
-- 已入选 46 条，来自 20 本书，覆盖 2024–2026。
-- **已知数据缺口（真实情况，未用假数据补齐）**：Henry 的真实划线中没有带原始换行的样本；年份只跨 2024–2026，无法呈现"来自 4 年前"这类更长的时间纵深。校验器会持续报告该覆盖警告。
+- v2 快照：**4,663 条划线 · 130 本书 · 14 个主题书架**，127 本有本地封面。
+- 每本书的 1–3 个书架标签由 Agent 依据书名、作者与等距样本一次性生成（`.private/curation/book-themes.json`），未使用 embedding 或逐句分类。
+- **已知数据缺口（真实情况，未用假数据补齐）**：Henry 的真实划线中没有带原始换行的样本；年份只跨 2024–2026，无法呈现"来自 4 年前"这类更长的时间纵深。校验器会持续报告前者。
 
 ## 两个不同的完成标准
 
-1. **工程原型可评审**：真实划线在本机可用，工程检查与浏览器验证通过。（Slice 0–4 已达成）
+1. **工程原型可评审**：真实划线在本机可用，工程检查与浏览器验证通过。（Slice 0–4 与 V2-A 已达成）
 2. **Prototype Gate 通过**：需要 Henry 确认可对评审访客展示的内容范围，并完成真实访客体验评审。
 
 不要因为第 1 项完成就声称第 2 项成立。本机许可不等于公开发布许可；上传与部署尚未授权。

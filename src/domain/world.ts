@@ -1,12 +1,15 @@
 /**
- * Read model for the world layer: books, topics, years and the about line.
+ * Read model for the world layer: books, theme shelves, years and the about line.
  *
  * All of it is derived from the snapshot; nothing is stored twice and nothing is invented. Ordering
  * is deterministic so the same snapshot always renders the same page.
+ *
+ * v2 note: a theme shelf owns books, not passages. Theme counts are therefore the counts of the
+ * books filed on that shelf, and the UI must say so ("这个书架里的书").
  */
 import { describeCollection, type SnapshotIndex } from './snapshot.ts';
 import { describeBookCollection } from './timeLabel.ts';
-import type { Book, Highlight, Topic } from './types.ts';
+import type { Book, Highlight, Theme } from './types.ts';
 
 export type BookEntry = {
     book: Book;
@@ -16,12 +19,12 @@ export type BookEntry = {
     years: number[];
 };
 
-export type TopicEntry = {
-    topic: Topic;
+export type ThemeEntry = {
+    theme: Theme;
     highlightCount: number;
     bookCount: number;
     years: number[];
-    /** One passage per book first, so a topic does not turn into a single book list. */
+    /** One passage per book first, so a shelf preview is not a single-book list. */
     leads: Highlight[];
 };
 
@@ -82,9 +85,9 @@ export function filterBooksByYear(entries: BookEntry[], year: number | null): Bo
     return entries.filter((entry) => entry.years.includes(year));
 }
 
-export function summarizeTopics(index: SnapshotIndex, year: number | null = null): TopicEntry[] {
-    return index.topicsInUse.map((topic) => {
-        const all = index.highlightsByTopic.get(topic.id) ?? [];
+export function summarizeThemes(index: SnapshotIndex, year: number | null = null): ThemeEntry[] {
+    return index.themesInUse.map((theme) => {
+        const all = index.highlightsByTheme.get(theme.id) ?? [];
         const matching = year === null ? all : all.filter((highlight) => highlight.year === year);
         const ordered = [...matching].sort(byId);
         const seenBooks = new Set<string>();
@@ -102,7 +105,7 @@ export function summarizeTopics(index: SnapshotIndex, year: number | null = null
             }
         }
         return {
-            topic,
+            theme,
             highlightCount: matching.length,
             bookCount: new Set(matching.map((highlight) => highlight.bookId)).size,
             years: yearsOf(matching),
@@ -111,8 +114,8 @@ export function summarizeTopics(index: SnapshotIndex, year: number | null = null
     });
 }
 
-/** Passages of one topic: one per book first, then the rest, capped by `limit`. */
-export function highlightsForTopic(entry: TopicEntry, limit: number): Highlight[] {
+/** Passages of one shelf: one per book first, then the rest, capped by `limit`. */
+export function highlightsForTheme(entry: ThemeEntry, limit: number): Highlight[] {
     return entry.leads.slice(0, limit);
 }
 
@@ -122,8 +125,8 @@ export function highlightsForBook(index: SnapshotIndex, bookId: string, year: nu
     return [...matching].sort(byId);
 }
 
-export function topicCountText(entry: TopicEntry): string {
-    return `${entry.highlightCount} 处划线 · ${entry.bookCount} 本书`;
+export function themeCountText(entry: ThemeEntry): string {
+    return `${String(entry.highlightCount)} 处划线 · ${String(entry.bookCount)} 本书`;
 }
 
 export function bookCountText(entry: BookEntry): string {

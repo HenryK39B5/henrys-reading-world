@@ -12,54 +12,33 @@ function makeSnapshot(overrides: Partial<Snapshot> = {}): Snapshot {
         schemaVersion: SNAPSHOT_SCHEMA_VERSION,
         visibility: 'public',
         owner: { displayName: 'Owner', siteTitle: 'Reading World' },
-        books: [
-            { id: 'b-001', title: 'Book One', author: 'Author One' },
-            { id: 'b-002', title: 'Book Two', author: 'Author Two' },
+        themes: [
+            { id: 't-001', title: 'Theme One' },
+            { id: 't-002', title: 'Theme Two' },
+            { id: 't-003', title: 'Theme Three' },
         ],
-        topics: [
-            { id: 't-001', title: 'Topic One' },
-            { id: 't-002', title: 'Topic Two' },
-            { id: 't-003', title: 'Topic Three' },
+        books: [
+            { id: 'b-001', title: 'Book One', author: 'Author One', themeIds: ['t-001'] },
+            { id: 'b-002', title: 'Book Two', author: 'Author Two', themeIds: ['t-001', 't-002'] },
         ],
         highlights: [
-            {
-                id: 'h-001',
-                bookId: 'b-001',
-                text: 'short passage',
-                year: 2021,
-                topicIds: ['t-001'],
-                qualityScore: 4,
-                standaloneReadable: true,
-                pinned: false,
-                openingCandidate: true,
-                surpriseCandidate: false,
-            },
-            {
-                id: 'h-002',
-                bookId: 'b-002',
-                text: 'second passage',
-                year: 2024,
-                topicIds: ['t-001', 't-002'],
-                qualityScore: 3,
-                standaloneReadable: true,
-                pinned: false,
-                openingCandidate: false,
-                surpriseCandidate: true,
-            },
+            { id: 'h-001', bookId: 'b-001', text: 'short passage', year: 2021 },
+            { id: 'h-002', bookId: 'b-002', text: 'second passage', year: 2024 },
         ],
         ...overrides,
     };
 }
 
 describe('validateSnapshot structure', () => {
-    it('accepts a well-formed snapshot and reports coverage warnings', () => {
+    it('accepts a well-formed snapshot and keeps shelves on books', () => {
         const result = validateSnapshot(makeSnapshot(), { currentYear: 2025 });
         expect(result.ok).toBe(true);
         if (!result.ok) {
             return;
         }
         expect(result.snapshot.books).toHaveLength(2);
-        expect(result.warnings.some((warning) => warning.includes('30-50'))).toBe(true);
+        expect(result.snapshot.themes).toHaveLength(3);
+        expect(result.snapshot.books[1]?.themeIds).toEqual(['t-001', 't-002']);
     });
 
     it('rejects unknown fields instead of silently ignoring them', () => {
@@ -71,7 +50,7 @@ describe('validateSnapshot structure', () => {
         }
     });
 
-    it('rejects unknown fields on a highlight', () => {
+    it('rejects raw capture fields on a highlight', () => {
         const snapshot = makeSnapshot();
         const raw = {
             ...snapshot,
@@ -84,20 +63,44 @@ describe('validateSnapshot structure', () => {
         }
     });
 
+    it('rejects the v1 per-passage editorial fields that v2 removed', () => {
+        const snapshot = makeSnapshot();
+        for (const field of ['topicIds', 'qualityScore', 'openingCandidate', 'surpriseCandidate', 'standaloneReadable', 'pinned']) {
+            const raw = {
+                ...snapshot,
+                highlights: [{ ...snapshot.highlights[0], [field]: field === 'topicIds' ? ['t-001'] : true }],
+            };
+            const result = validateSnapshot(raw, { currentYear: 2025 });
+            expect(result.ok, `highlight field ${field} must be rejected`).toBe(false);
+        }
+    });
+
+    it('rejects a book with more than one primary plus two secondary shelves', () => {
+        const snapshot = makeSnapshot();
+        const raw = {
+            ...snapshot,
+            books: [{ ...snapshot.books[0], themeIds: ['t-001', 't-002', 't-003', 't-004'] }],
+            themes: [...snapshot.themes, { id: 't-004', title: 'Theme Four' }],
+        };
+        const result = validateSnapshot(raw, { currentYear: 2025 });
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+            expect(result.errors.join(' ')).toContain('at most 3');
+        }
+    });
+
     it('rejects dangling references and duplicate ids', () => {
         const snapshot = makeSnapshot();
         const raw = {
             ...snapshot,
-            highlights: [
-                { ...snapshot.highlights[0], topicIds: ['t-404'] },
-                { ...snapshot.highlights[1], id: 'h-001', bookId: 'b-404' },
-            ],
+            books: [{ ...snapshot.books[0], themeIds: ['t-404'] }],
+            highlights: [{ ...snapshot.highlights[0], id: 'h-001', bookId: 'b-404' }, { ...snapshot.highlights[1], id: 'h-001' }],
         };
         const result = validateSnapshot(raw, { currentYear: 2025 });
         expect(result.ok).toBe(false);
         if (!result.ok) {
             const joined = result.errors.join(' ');
-            expect(joined).toContain('unknown topic t-404');
+            expect(joined).toContain('unknown theme t-404');
             expect(joined).toContain('unknown book b-404');
             expect(joined).toContain('duplicate id h-001');
         }
@@ -113,6 +116,19 @@ describe('validateSnapshot structure', () => {
         expect(result.ok).toBe(false);
         if (!result.ok) {
             expect(result.errors.join(' ')).toContain('covers/ asset path');
+        }
+    });
+
+    it('rejects local-only cover art in a public snapshot', () => {
+        const snapshot = makeSnapshot();
+        const raw = {
+            ...snapshot,
+            books: [{ ...snapshot.books[0], coverPath: 'local-covers/p001.jpg' }],
+        };
+        const result = validateSnapshot(raw, { currentYear: 2025, expectedVisibility: 'public' });
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+            expect(result.errors.join(' ')).toContain('only valid in a local-only snapshot');
         }
     });
 
@@ -138,69 +154,105 @@ describe('validateSnapshot structure', () => {
         }
     });
 
-    it('rejects a wrong schema version', () => {
-        const raw = { ...makeSnapshot(), schemaVersion: 2 };
+    it('rejects the superseded v1 schema version', () => {
+        const raw = { ...makeSnapshot(), schemaVersion: 1 };
         const result = validateSnapshot(raw, { currentYear: 2025 });
         expect(result.ok).toBe(false);
+    });
+
+    it('accepts the intentionally empty public snapshot without warnings', () => {
+        const raw: Snapshot = {
+            schemaVersion: SNAPSHOT_SCHEMA_VERSION,
+            visibility: 'public',
+            owner: { displayName: 'Owner', siteTitle: 'Reading World' },
+            themes: [],
+            books: [],
+            highlights: [],
+        };
+        const result = validateSnapshot(raw, { currentYear: 2025, expectedVisibility: 'public' });
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+            expect(result.warnings).toEqual([]);
+        }
     });
 });
 
 describe('coverage warnings', () => {
-    it('flags a topic that only connects one book and one passage', () => {
-        const snapshot = makeSnapshot();
-        const raw = {
-            ...snapshot,
-            highlights: [{ ...snapshot.highlights[0], topicIds: ['t-003'] }],
-        };
-        const result = validateSnapshot(raw, { currentYear: 2025 });
-        expect(result.ok).toBe(true);
-        if (result.ok) {
-            const joined = result.warnings.join(' ');
-            expect(joined).toContain('topic t-003 connects 1 highlight');
-            expect(joined).toContain('topic t-003 connects 1 book');
-        }
-    });
-
-    it('flags a missing length band and missing cross-year range', () => {
+    it('flags a shelf that carries fewer than two books', () => {
         const result = validateSnapshot(makeSnapshot(), { currentYear: 2025 });
         expect(result.ok).toBe(true);
         if (result.ok) {
             const joined = result.warnings.join(' ');
-            expect(joined).toContain('no medium passage');
-            expect(joined).toContain('no long passage');
+            expect(joined).toContain('theme t-002 connects 1 book');
+            expect(joined).toContain('theme t-003 has no book');
         }
     });
 
-    it('warns when a listed book has no highlights', () => {
+    it('flags a book with no shelf and a book with no passages', () => {
         const snapshot = makeSnapshot();
         const raw = {
             ...snapshot,
-            books: [...snapshot.books, { id: 'b-003', title: 'Book Three', author: 'Author Three' }],
+            books: [
+                { id: 'b-001', title: 'Book One', author: 'Author One', themeIds: [] },
+                { id: 'b-002', title: 'Book Two', author: 'Author Two', themeIds: ['t-001'] },
+                { id: 'b-003', title: 'Book Three', author: 'Author Three', themeIds: ['t-001'] },
+            ],
+            highlights: [
+                { id: 'h-001', bookId: 'b-002', text: 'short passage', year: 2021 },
+                { id: 'h-002', bookId: 'b-003', text: 'second passage', year: 2024 },
+            ],
         };
         const result = validateSnapshot(raw, { currentYear: 2025 });
         expect(result.ok).toBe(true);
         if (result.ok) {
-            expect(result.warnings.join(' ')).toContain('book b-003 has no highlights');
+            const joined = result.warnings.join(' ');
+            expect(joined).toContain('book b-001 has no highlights');
+            expect(joined).toContain('1 book(s) have no theme shelf');
+        }
+    });
+
+    it('flags a shelf count outside the broad browsing range', () => {
+        const result = validateSnapshot(makeSnapshot(), { currentYear: 2025 });
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+            expect(result.warnings.join(' ')).toContain('theme shelves; 8-15 are expected');
+        }
+    });
+
+    it('flags a missing length band and a missing cross-year range', () => {
+        const snapshot = makeSnapshot();
+        const raw = {
+            ...snapshot,
+            highlights: [{ ...snapshot.highlights[0], year: 2024 }, { ...snapshot.highlights[1], year: 2024 }],
+        };
+        const result = validateSnapshot(raw, { currentYear: 2025 });
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+            const joined = result.warnings.join(' ');
+            expect(joined).toContain('no medium passage');
+            expect(joined).toContain('1 distinct year(s)');
         }
     });
 });
 
 describe('indexSnapshot', () => {
-    it('derives book, topic, year and band coverage without mutating the snapshot', () => {
+    it('derives coverage from books and never mutates the snapshot', () => {
         const snapshot = makeSnapshot();
         const before = JSON.stringify(snapshot);
         const index = indexSnapshot(snapshot);
         expect(JSON.stringify(snapshot)).toBe(before);
         expect(index.coverage.highlightCount).toBe(2);
         expect(index.coverage.bookCount).toBe(2);
-        expect(index.coverage.topicCount).toBe(2);
+        expect(index.coverage.themeCount).toBe(2);
         expect(index.years).toEqual([2021, 2024]);
         expect(index.highlightsByBook.get('b-001')).toHaveLength(1);
-        expect(index.highlightsByTopic.get('t-001')).toHaveLength(2);
+        // t-001 is carried by both books, so both passages are on that shelf.
+        expect(index.highlightsByTheme.get('t-001')).toHaveLength(2);
+        expect(index.highlightsByTheme.get('t-003')).toBeUndefined();
     });
 
     it('reports an empty snapshot honestly', () => {
-        const index = indexSnapshot({ ...makeSnapshot(), books: [], topics: [], highlights: [] });
+        const index = indexSnapshot({ ...makeSnapshot(), themes: [], books: [], highlights: [] });
         expect(index.coverage.highlightCount).toBe(0);
         expect(index.booksInUse).toHaveLength(0);
         expect(index.years).toEqual([]);

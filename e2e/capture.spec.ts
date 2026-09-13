@@ -136,8 +136,8 @@ test.describe('review capture', () => {
         }
         console.log(`bands captured: ${[...bands].sort().join(', ')}`);
 
-        // World layer, with a topic expanded and a year filter applied.
-        await page.getByTestId('topic-t-001').click();
+        // World layer, with a theme shelf expanded and a year filter applied.
+        await page.getByTestId('theme-t-001').click();
         await page.waitForTimeout(200);
         await page.screenshot({ path: join(OUT_DIR, 'desktop-world-topics.png'), fullPage: true });
         await page.getByTestId('year-2024').click();
@@ -183,6 +183,10 @@ test.describe('review capture', () => {
             images: document.querySelectorAll('img').length,
             landmarks: document.querySelectorAll('header, main, nav, section').length,
             stageTextNodes: document.querySelectorAll('.stage-text').length,
+            passageNodes: document.querySelectorAll('.passage-button').length,
+            bookRows: document.querySelectorAll('.book-item').length,
+            themeRows: document.querySelectorAll('.theme-item').length,
+            totalElements: document.querySelectorAll('*').length,
         }));
         console.log(`structure: ${JSON.stringify(structure, null, 1)}`);
 
@@ -199,7 +203,7 @@ test.describe('review capture', () => {
             );
             if (width === 390) {
                 await page.screenshot({ path: join(OUT_DIR, 'mobile-390-opening.png'), fullPage: true });
-                await page.getByTestId('topic-t-001').click();
+                await page.getByTestId('theme-t-001').click();
                 await page.waitForTimeout(200);
                 await page.screenshot({ path: join(OUT_DIR, 'mobile-390-world.png'), fullPage: true });
             }
@@ -221,6 +225,18 @@ test.describe('review capture', () => {
         await expect(page.locator('.stage')).toHaveAttribute('data-phase', 'idle');
 
         console.log(`highlights in snapshot: ${String(highlights.length)}`);
+        // The library is reachable but never rendered at once (docs/10 §7).
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.goto('/');
+        // The snapshot arrives asynchronously; measure after the world layer has rendered.
+        await expect(page.getByTestId('book-list')).toBeVisible();
+        const density = await page.evaluate(() => ({
+            passageNodes: document.querySelectorAll('.passage-button').length,
+            bookRows: document.querySelectorAll('.book-item').length,
+            themeRows: document.querySelectorAll('.theme-item').length,
+            totalElements: document.querySelectorAll('*').length,
+        }));
+        console.log(`first paint density: ${JSON.stringify(density)}`);
         console.log(`screenshots written to .private/review/critique-1/`);
     });
 });

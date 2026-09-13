@@ -1,19 +1,26 @@
 /**
- * Assemble the local-only development snapshot from the curation pool plus an editorial selection.
+ * Assemble the local-only development snapshot (schema v2) from the authorized real captures.
  *
- * Inputs (both private):
- *   - .private/curation/candidate-pool.json : real passages with stable candidate ids
- *   - .private/curation/selection.json      : hand-made selection (topics, flags, ordering)
+ * v1 built a hand-picked 46-passage sample. v2 puts the whole real library on the page: every
+ * structurally valid, de-duplicated candidate passage, with theme shelves owned by books.
+ *
+ * Inputs (private):
+ *   .private/curation/candidate-pool.json - every usable real passage with a stable candidate id
+ *   .private/curation/fetch-plan.json     - the real book list; titles and authors come from here
+ *   .private/curation/id-map-v2.json      - permanent project-local ids for books and passages
+ *   .private/curation/book-themes.json    - broad theme shelves, assigned per book (docs/11 §3)
+ *   .private/curation/covers.json         - index of locally downloaded cover art
  *
  * Outputs (private):
- *   - .private/local-snapshot.json            : what dev:local serves
- *   - .private/curation/selection-source-map.json : highlight id -> source ids, for traceability
+ *   .private/local-snapshot.json                  - what dev:local serves
+ *   .private/curation/snapshot-source-map.json    - highlight id -> source ids, for traceability
  *
- * Book titles and authors always come from the real capture, never from typed-in values.
+ * Book titles and authors always come from the real capture, never from typed-in values. Passage text
+ * is never printed. Original book/bookmark ids stay in the private source map.
  *
  * Usage: npm run snapshot:local
  */
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import {
     SNAPSHOT_SCHEMA_VERSION,
@@ -21,7 +28,7 @@ import {
     type Book,
     type Highlight,
     type Snapshot,
-    type Topic,
+    type Theme,
 } from '../src/domain/types.ts';
 import { validateSnapshot } from '../src/domain/validate.ts';
 
@@ -30,8 +37,6 @@ type Candidate = {
     planIndex: number;
     sourceBookId: string;
     sourceBookmarkId: string;
-    title: string;
-    author: string;
     text: string;
     year: number | null;
 };
@@ -39,10 +44,12 @@ type Candidate = {
 const ROOT = process.cwd();
 const POOL_PATH = join(ROOT, '.private/curation/candidate-pool.json');
 const PLAN_PATH = join(ROOT, '.private/curation/fetch-plan.json');
+const ID_MAP_PATH = join(ROOT, '.private/curation/id-map-v2.json');
+const THEMES_PATH = join(ROOT, '.private/curation/book-themes.json');
 const COVERS_PATH = join(ROOT, '.private/curation/covers.json');
-const SELECTION_PATH = join(ROOT, '.private/curation/selection.json');
+const COVERS_DIR = join(ROOT, '.private/covers');
 const SNAPSHOT_PATH = join(ROOT, '.private/local-snapshot.json');
-const MAP_PATH = join(ROOT, '.private/curation/selection-source-map.json');
+const MAP_PATH = join(ROOT, '.private/curation/snapshot-source-map.json');
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -68,20 +75,6 @@ function requireString(value: unknown, where: string): string {
     return value;
 }
 
-function requireBoolean(value: unknown, where: string): boolean {
-    if (typeof value !== 'boolean') {
-        throw new Error(`${where}: expected a boolean`);
-    }
-    return value;
-}
-
-function requireScore(value: unknown, where: string): 1 | 2 | 3 | 4 | 5 {
-    if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > 5) {
-        throw new Error(`${where}: expected an integer from 1 to 5`);
-    }
-    return value as 1 | 2 | 3 | 4 | 5;
-}
-
 function asArray(value: unknown, where: string): unknown[] {
     if (!Array.isArray(value)) {
         throw new Error(`${where}: expected an array`);
@@ -98,6 +91,12 @@ function asRecordArray(value: unknown, where: string): Record<string, unknown>[]
     });
 }
 
+/** Highest id first, so the numbering never collides with an existing assignment. */
+function highlightNumber(id: string): number {
+    const match = /^h-(\d+)$/u.exec(id);
+    return match === null ? Number.MAX_SAFE_INTEGER : Number(match[1]);
+}
+
 async function main(): Promise<void> {
     const pool = await requireJson(
         POOL_PATH,
@@ -106,20 +105,14 @@ async function main(): Promise<void> {
     if (!isRecord(pool)) {
         throw new Error('candidate pool must be an object');
     }
-    const candidates = new Map<string, Candidate>();
-    for (const entry of asRecordArray(pool['entries'], 'entries')) {
-        const candidate: Candidate = {
-            candidateId: requireString(entry['candidateId'], 'candidateId'),
-            planIndex: Number(entry['planIndex']),
-            sourceBookId: requireString(entry['sourceBookId'], 'sourceBookId'),
-            sourceBookmarkId: String(entry['sourceBookmarkId'] ?? ''),
-            title: String(entry['title'] ?? ''),
-            author: String(entry['author'] ?? ''),
-            text: requireString(entry['text'], 'text'),
-            year: typeof entry['year'] === 'number' ? entry['year'] : null,
-        };
-        candidates.set(candidate.candidateId, candidate);
-    }
+    const candidates: Candidate[] = asRecordArray(pool['entries'], 'entries').map((entry, index) => ({
+        candidateId: requireString(entry['candidateId'], `entries[${index}].candidateId`),
+        planIndex: Number(entry['planIndex']),
+        sourceBookId: String(entry['sourceBookId'] ?? ''),
+        sourceBookmarkId: String(entry['sourceBookmarkId'] ?? ''),
+        text: requireString(entry['text'], `entries[${index}].text`),
+        year: typeof entry['year'] === 'number' ? entry['year'] : null,
+    }));
 
     const plan = asRecordArray(
         await requireJson(PLAN_PATH, '先运行 scripts/weread-fetch-highlights.ps1 -BuildPlan 生成取数计划。'),
@@ -130,37 +123,48 @@ async function main(): Promise<void> {
         planById.set(Number(entry['index']), entry);
     }
 
-    const selection = await requireJson(
-        SELECTION_PATH,
-        '这是人工挑选文件，缺少时无法生成快照；可从 .private/curation/candidate-shortlist.md 重新挑选。',
+    const idMap = await requireJson(ID_MAP_PATH, '先运行 npm run idmap:v2 生成稳定 ID 映射（docs/11 §2）。');
+    if (!isRecord(idMap)) {
+        throw new Error('id map must be an object');
+    }
+    const bookIdByPlanIndex = new Map<number, string>();
+    for (const entry of asRecordArray(idMap['books'], 'idMap.books')) {
+        bookIdByPlanIndex.set(Number(entry['planIndex']), requireString(entry['id'], 'idMap.books[].id'));
+    }
+    const highlightIdByCandidateId = new Map<string, string>();
+    for (const entry of asRecordArray(idMap['highlights'], 'idMap.highlights')) {
+        highlightIdByCandidateId.set(requireString(entry['candidateId'], 'idMap.highlights[].candidateId'), requireString(entry['id'], 'idMap.highlights[].id'));
+    }
+
+    const themeSource = await requireJson(
+        THEMES_PATH,
+        '缺少书籍主题分配。先运行 npm run dossiers:v2 生成 book-dossiers.json，再据此写 book-themes.json（docs/11 §3）。',
     );
-    if (!isRecord(selection)) {
-        throw new Error('selection must be an object');
+    if (!isRecord(themeSource)) {
+        throw new Error('book-themes must be an object');
     }
-
-    const ownerRaw = selection['owner'];
-    if (!isRecord(ownerRaw)) {
-        throw new Error('selection.owner is required');
-    }
-    const ownerAbout = ownerRaw['about'] === undefined ? undefined : requireString(ownerRaw['about'], 'owner.about');
-    const owner = {
-        displayName: requireString(ownerRaw['displayName'], 'owner.displayName'),
-        siteTitle: requireString(ownerRaw['siteTitle'], 'owner.siteTitle'),
-        ...(ownerAbout === undefined ? {} : { about: ownerAbout }),
-    };
-
-    const topics: Topic[] = asRecordArray(selection['topics'], 'topics').map((entry, index) => {
-        const description = entry['description'] === undefined ? undefined : requireString(entry['description'], `topics[${index}].description`);
+    const themes: Theme[] = asRecordArray(themeSource['themes'], 'themes').map((entry, index) => {
+        const description = entry['description'] === undefined ? undefined : requireString(entry['description'], `themes[${index}].description`);
         return {
-            id: requireString(entry['id'], `topics[${index}].id`),
-            title: requireString(entry['title'], `topics[${index}].title`),
+            id: requireString(entry['id'], `themes[${index}].id`),
+            title: requireString(entry['title'], `themes[${index}].title`),
             ...(description === undefined ? {} : { description }),
         };
     });
-    const topicIds = new Set(topics.map((topic) => topic.id));
-
-    const books: Book[] = [];
-    const bookIdByPlanIndex = new Map<number, string>();
+    const themeIds = new Set(themes.map((theme) => theme.id));
+    const themeIdsByPlanIndex = new Map<number, string[]>();
+    for (const entry of asRecordArray(themeSource['books'], 'book themes')) {
+        const planIndex = Number(entry['planIndex']);
+        const ids = asArray(entry['themeIds'] ?? [], `book themes planIndex ${String(planIndex)}`).map((themeId, index) =>
+            requireString(themeId, `book themes planIndex ${String(planIndex)}[${index}]`),
+        );
+        for (const themeId of ids) {
+            if (!themeIds.has(themeId)) {
+                throw new Error(`planIndex ${String(planIndex)} 引用了未知主题 ${themeId}`);
+            }
+        }
+        themeIdsByPlanIndex.set(planIndex, ids);
+    }
 
     // Covers are optional: when present they are served by the local development endpoint, so a
     // public build still ships no cover art until the release decision is made.
@@ -170,8 +174,14 @@ async function main(): Promise<void> {
         if (isRecord(coverIndex)) {
             for (const entry of asRecordArray(coverIndex['entries'], 'cover entries')) {
                 const fileName = String(entry['fileName'] ?? '');
-                if (/^[a-z0-9][a-z0-9._-]*\.(?:jpg|jpeg|png|webp)$/u.test(fileName)) {
+                if (!/^[a-z0-9][a-z0-9._-]*\.(?:jpg|jpeg|png|webp)$/u.test(fileName)) {
+                    continue;
+                }
+                try {
+                    await access(join(COVERS_DIR, fileName));
                     coverByPlanIndex.set(Number(entry['planIndex']), fileName);
+                } catch {
+                    // Indexed but not on disk: fall back to the typeset title instead of a broken image.
                 }
             }
         }
@@ -179,81 +189,82 @@ async function main(): Promise<void> {
         console.log('note: no cover index found; run npm run covers:fetch to add real cover art');
     }
 
-    for (const [index, entry] of asRecordArray(selection['books'], 'books').entries()) {
-        const id = requireString(entry['id'], `books[${index}].id`);
-        const planIndex = Number(entry['planIndex']);
-        const planEntry = planById.get(planIndex);
-        if (planEntry === undefined) {
-            throw new Error(`books[${index}]: unknown planIndex ${String(planIndex)}`);
+    const candidatesByPlanIndex = new Map<number, Candidate[]>();
+    for (const candidate of candidates) {
+        const list = candidatesByPlanIndex.get(candidate.planIndex);
+        if (list === undefined) {
+            candidatesByPlanIndex.set(candidate.planIndex, [candidate]);
+        } else {
+            list.push(candidate);
         }
-        if (bookIdByPlanIndex.has(planIndex)) {
-            throw new Error(`books[${index}]: planIndex ${String(planIndex)} is already mapped`);
-        }
-        bookIdByPlanIndex.set(planIndex, id);
-        const title = requireString(planEntry['title'], `plan[${planIndex}].title`);
-        const authorRaw = String(planEntry['author'] ?? '').trim();
-        const description = entry['description'] === undefined ? undefined : requireString(entry['description'], `books[${index}].description`);
-        const coverFileName = coverByPlanIndex.get(planIndex);
-        books.push({
-            id,
-            title,
-            author: authorRaw.length > 0 ? authorRaw : UNKNOWN_AUTHOR_LABEL,
-            ...(description === undefined ? {} : { description }),
-            ...(coverFileName === undefined ? {} : { coverPath: `local-covers/${coverFileName}` }),
-        });
     }
 
+    const books: Book[] = [];
     const highlights: Highlight[] = [];
     const sourceMap: Record<string, unknown>[] = [];
-    for (const [index, entry] of asRecordArray(selection['highlights'], 'highlights').entries()) {
-        const candidateId = requireString(entry['candidateId'], `highlights[${index}].candidateId`);
-        const candidate = candidates.get(candidateId);
-        if (candidate === undefined) {
-            throw new Error(`highlights[${index}]: unknown candidate ${candidateId}`);
+    const warnings: string[] = [];
+    const bookIds = new Set<string>();
+
+    const planIndexes = [...candidatesByPlanIndex.keys()].sort((left, right) => left - right);
+    for (const planIndex of planIndexes) {
+        const planEntry = planById.get(planIndex);
+        if (planEntry === undefined) {
+            throw new Error(`planIndex ${String(planIndex)} 不在取数计划中`);
         }
-        const bookId = bookIdByPlanIndex.get(candidate.planIndex);
+        const bookId = bookIdByPlanIndex.get(planIndex);
         if (bookId === undefined) {
-            throw new Error(
-                `highlights[${index}]: book for planIndex ${String(candidate.planIndex)} is not listed in selection.books`,
-            );
+            throw new Error(`planIndex ${String(planIndex)} 没有分配到书籍 ID，先运行 npm run idmap:v2`);
         }
-        const highlightTopicIds = asArray(entry['topicIds'] ?? [], `highlights[${index}].topicIds`).map((topicId, topicIndex) =>
-            requireString(topicId, `highlights[${index}].topicIds[${topicIndex}]`),
-        );
-        for (const topicId of highlightTopicIds) {
-            if (!topicIds.has(topicId)) {
-                throw new Error(`highlights[${index}]: unknown topic ${topicId}`);
+        if (bookIds.has(bookId)) {
+            throw new Error(`书籍 ID ${bookId} 被多个 planIndex 使用`);
+        }
+        bookIds.add(bookId);
+
+        const authorRaw = String(planEntry['author'] ?? '').trim();
+        const assignedThemes = themeIdsByPlanIndex.get(planIndex) ?? [];
+        if (assignedThemes.length === 0) {
+            warnings.push(`book planIndex ${String(planIndex)} has no theme shelf assigned`);
+        }
+        const coverFileName = coverByPlanIndex.get(planIndex);
+
+        books.push({
+            id: bookId,
+            title: requireString(planEntry['title'], `plan[${String(planIndex)}].title`),
+            author: authorRaw.length > 0 ? authorRaw : UNKNOWN_AUTHOR_LABEL,
+            themeIds: assignedThemes,
+            ...(coverFileName === undefined ? {} : { coverPath: `local-covers/${coverFileName}` }),
+        });
+
+        for (const candidate of candidatesByPlanIndex.get(planIndex) ?? []) {
+            const highlightId = highlightIdByCandidateId.get(candidate.candidateId);
+            if (highlightId === undefined) {
+                throw new Error(`${candidate.candidateId} 没有分配到划线 ID，先运行 npm run idmap:v2`);
             }
+            highlights.push({
+                id: highlightId,
+                bookId,
+                text: candidate.text,
+                ...(candidate.year === null ? {} : { year: candidate.year }),
+            });
+            sourceMap.push({
+                highlightId,
+                candidateId: candidate.candidateId,
+                planIndex,
+                sourceBookId: candidate.sourceBookId,
+                sourceBookmarkId: candidate.sourceBookmarkId,
+            });
         }
-        const highlightId = `h-${String(index + 1).padStart(3, '0')}`;
-        highlights.push({
-            id: highlightId,
-            bookId,
-            text: candidate.text,
-            ...(candidate.year === null ? {} : { year: candidate.year }),
-            topicIds: highlightTopicIds,
-            qualityScore: requireScore(entry['qualityScore'], `highlights[${index}].qualityScore`),
-            standaloneReadable: requireBoolean(entry['standaloneReadable'], `highlights[${index}].standaloneReadable`),
-            pinned: requireBoolean(entry['pinned'], `highlights[${index}].pinned`),
-            openingCandidate: requireBoolean(entry['openingCandidate'], `highlights[${index}].openingCandidate`),
-            surpriseCandidate: requireBoolean(entry['surpriseCandidate'], `highlights[${index}].surpriseCandidate`),
-        });
-        sourceMap.push({
-            highlightId,
-            candidateId,
-            planIndex: candidate.planIndex,
-            sourceBookId: candidate.sourceBookId,
-            sourceBookmarkId: candidate.sourceBookmarkId,
-            reviewNote: entry['reviewNote'] === undefined ? null : String(entry['reviewNote']),
-        });
     }
 
+    highlights.sort((left, right) => highlightNumber(left.id) - highlightNumber(right.id));
+
+    const ownerAbout = '一个可以随便抽一句、按主题书架或按书闲逛的个人阅读空间。';
     const snapshot: Snapshot = {
         schemaVersion: SNAPSHOT_SCHEMA_VERSION,
         visibility: 'local-only',
-        owner,
+        owner: { displayName: 'Henry', siteTitle: "Henry's Reading World", about: ownerAbout },
+        themes,
         books,
-        topics,
         highlights,
     };
 
@@ -272,10 +283,13 @@ async function main(): Promise<void> {
     await writeFile(MAP_PATH, JSON.stringify({ generatedAt: new Date().toISOString(), entries: sourceMap }, null, 2), 'utf8');
 
     console.log(
-        `local snapshot written: ${String(result.snapshot.highlights.length)} highlights, ${String(result.snapshot.books.length)} books, ${String(result.snapshot.topics.length)} topics`,
+        `local snapshot written: ${String(result.snapshot.highlights.length)} highlights, ${String(result.snapshot.books.length)} books, ${String(result.snapshot.themes.length)} theme shelves`,
     );
-    console.log(`coverage warnings: ${String(result.warnings.length)}`);
-    for (const warning of result.warnings) {
+    const withCovers = result.snapshot.books.filter((book) => book.coverPath !== undefined).length;
+    console.log(`books with a local cover: ${String(withCovers)}; without: ${String(result.snapshot.books.length - withCovers)}`);
+    console.log(`source map entries: ${String(sourceMap.length)}`);
+    console.log(`coverage warnings: ${String(result.warnings.length + warnings.length)}`);
+    for (const warning of [...warnings, ...result.warnings]) {
         console.log(`  - ${warning}`);
     }
     console.log('next: npm run dev:local');

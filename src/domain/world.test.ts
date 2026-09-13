@@ -4,28 +4,18 @@ import { SNAPSHOT_SCHEMA_VERSION, type Highlight, type Snapshot } from './types.
 import {
     filterBooksByYear,
     highlightsForBook,
-    highlightsForTopic,
+    highlightsForTheme,
     orderByRecentHighlight,
     summarizeBooks,
-    summarizeTopics,
-    topicCountText,
+    summarizeThemes,
+    themeCountText,
     yearOptions,
     yearSpanText,
 } from './world.ts';
 
 /** Structural fixtures: they pin ordering and filtering, never real reading content. */
-function highlight(id: string, bookId: string, year: number | undefined, topicIds: string[]): Highlight {
-    const base: Highlight = {
-        id,
-        bookId,
-        text: `passage ${id}`,
-        topicIds,
-        qualityScore: 3,
-        standaloneReadable: true,
-        pinned: false,
-        openingCandidate: false,
-        surpriseCandidate: false,
-    };
+function highlight(id: string, bookId: string, year: number | undefined): Highlight {
+    const base: Highlight = { id, bookId, text: `passage ${id}` };
     return year === undefined ? base : { ...base, year };
 }
 
@@ -34,20 +24,21 @@ function snapshot(): Snapshot {
         schemaVersion: SNAPSHOT_SCHEMA_VERSION,
         visibility: 'local-only',
         owner: { displayName: 'Owner', siteTitle: 'Reading World' },
-        books: [
-            { id: 'b-001', title: 'Book One', author: 'Author One' },
-            { id: 'b-002', title: 'Book Two', author: 'Author Two' },
-            { id: 'b-003', title: 'Book Three', author: 'Author Three' },
+        themes: [
+            { id: 't-001', title: 'Theme One' },
+            { id: 't-002', title: 'Theme Two' },
         ],
-        topics: [
-            { id: 't-001', title: 'Topic One' },
-            { id: 't-002', title: 'Topic Two' },
+        books: [
+            { id: 'b-001', title: 'Book One', author: 'Author One', themeIds: ['t-001'] },
+            { id: 'b-002', title: 'Book Two', author: 'Author Two', themeIds: ['t-001', 't-002'] },
+            { id: 'b-003', title: 'Book Three', author: 'Author Three', themeIds: ['t-002'] },
+            { id: 'b-004', title: 'Book Four', author: 'Author Four', themeIds: [] },
         ],
         highlights: [
-            highlight('h-001', 'b-001', 2024, ['t-001']),
-            highlight('h-002', 'b-002', 2026, ['t-001', 't-002']),
-            highlight('h-003', 'b-002', undefined, ['t-002']),
-            highlight('h-004', 'b-003', 2025, []),
+            highlight('h-001', 'b-001', 2024),
+            highlight('h-002', 'b-002', 2026),
+            highlight('h-003', 'b-002', undefined),
+            highlight('h-004', 'b-003', 2025),
         ],
     };
 }
@@ -64,7 +55,7 @@ describe('book summaries', () => {
     it('orders by most recent highlight year and puts missing years last', () => {
         const index = indexSnapshot({
             ...snapshot(),
-            highlights: [highlight('h-001', 'b-001', 2024, []), highlight('h-002', 'b-002', undefined, [])],
+            highlights: [highlight('h-001', 'b-001', 2024), highlight('h-002', 'b-002', undefined)],
         });
         const ordered = orderByRecentHighlight(summarizeBooks(index)).map((entry) => entry.book.id);
         expect(ordered).toEqual(['b-001', 'b-002']);
@@ -85,48 +76,70 @@ describe('book summaries', () => {
     });
 });
 
-describe('topics', () => {
-    it('reports real counts and years per topic', () => {
-        const topics = summarizeTopics(indexSnapshot(snapshot()));
-        const first = topics.find((entry) => entry.topic.id === 't-001');
-        expect(first?.highlightCount).toBe(2);
+describe('theme shelves', () => {
+    it('reports the real counts of the books filed on a shelf', () => {
+        const themes = summarizeThemes(indexSnapshot(snapshot()));
+        const first = themes.find((entry) => entry.theme.id === 't-001');
+        expect(first?.highlightCount).toBe(3);
         expect(first?.bookCount).toBe(2);
         expect(first?.years).toEqual([2024, 2026]);
-        expect(first === undefined ? '' : topicCountText(first)).toBe('2 处划线 · 2 本书');
+        expect(first === undefined ? '' : themeCountText(first)).toBe('3 处划线 · 2 本书');
     });
 
-    it('leads with one passage per book so a topic is not a single book list', () => {
-        const topics = summarizeTopics(indexSnapshot(snapshot()));
-        const first = topics.find((entry) => entry.topic.id === 't-001');
-        expect(first).toBeDefined();
-        if (first === undefined) {
+    it('leads with one passage per book before any book repeats', () => {
+        const index = indexSnapshot({
+            ...snapshot(),
+            themes: [{ id: 't-001', title: 'Theme One' }],
+            books: [
+                { id: 'b-001', title: 'Book One', author: 'Author One', themeIds: ['t-001'] },
+                { id: 'b-002', title: 'Book Two', author: 'Author Two', themeIds: ['t-001'] },
+                { id: 'b-003', title: 'Book Three', author: 'Author Three', themeIds: ['t-001'] },
+            ],
+            highlights: [
+                highlight('h-001', 'b-001', 2025),
+                highlight('h-002', 'b-001', 2025),
+                highlight('h-003', 'b-002', 2025),
+                highlight('h-004', 'b-003', 2025),
+            ],
+        });
+        const theme = summarizeThemes(index).find((entry) => entry.theme.id === 't-001');
+        expect(theme).toBeDefined();
+        if (theme === undefined) {
             return;
         }
-        const leads = highlightsForTopic(first, 4).map((item) => item.bookId);
-        expect(new Set(leads).size).toBe(leads.length);
-        expect(leads).toEqual(['b-001', 'b-002']);
-    });
-
-    it('narrows a topic to one year and can legitimately be empty', () => {
-        const index = indexSnapshot(snapshot());
-        const in2024 = summarizeTopics(index, 2024).find((entry) => entry.topic.id === 't-002');
-        expect(in2024?.highlightCount).toBe(0);
-        expect(highlightsForTopic(in2024 ?? { leads: [] } as never, 4)).toEqual([]);
-        expect(summarizeTopics(index, 2026).find((entry) => entry.topic.id === 't-001')?.highlightCount).toBe(1);
+        const leads = highlightsForTheme(theme, 4).map((item) => item.bookId);
+        // Every book is represented before the second passage of any book appears.
+        expect(leads.slice(0, 3)).toEqual(['b-001', 'b-002', 'b-003']);
+        expect(leads).toHaveLength(4);
+        expect(leads[3]).toBe('b-001');
     });
 
     it('never drops a passage from the leads when a book repeats', () => {
         const index = indexSnapshot({
             ...snapshot(),
-            topics: [{ id: 't-001', title: 'Topic One' }],
-            highlights: [
-                highlight('h-001', 'b-001', 2025, ['t-001']),
-                highlight('h-002', 'b-001', 2025, ['t-001']),
-                highlight('h-003', 'b-002', 2025, ['t-001']),
+            themes: [{ id: 't-001', title: 'Theme One' }],
+            books: [
+                { id: 'b-001', title: 'Book One', author: 'Author One', themeIds: ['t-001'] },
+                { id: 'b-002', title: 'Book Two', author: 'Author Two', themeIds: ['t-001'] },
             ],
+            highlights: [highlight('h-001', 'b-001', 2025), highlight('h-002', 'b-001', 2025), highlight('h-003', 'b-002', 2025)],
         });
-        const topic = summarizeTopics(index).find((entry) => entry.topic.id === 't-001');
-        expect(topic?.leads.map((item) => item.id)).toEqual(['h-001', 'h-003', 'h-002']);
+        const theme = summarizeThemes(index).find((entry) => entry.theme.id === 't-001');
+        expect(theme?.leads.map((item) => item.id)).toEqual(['h-001', 'h-003', 'h-002']);
+    });
+
+    it('narrows a shelf to one year and can legitimately be empty', () => {
+        const index = indexSnapshot(snapshot());
+        const in2024 = summarizeThemes(index, 2024).find((entry) => entry.theme.id === 't-002');
+        expect(in2024?.highlightCount).toBe(0);
+        expect(highlightsForTheme(in2024 ?? ({ leads: [] } as never), 4)).toEqual([]);
+        expect(summarizeThemes(index, 2026).find((entry) => entry.theme.id === 't-001')?.highlightCount).toBe(1);
+    });
+
+    it('drops a shelf that no book on the page carries', () => {
+        const index = indexSnapshot({ ...snapshot(), themes: [...snapshot().themes, { id: 't-003', title: 'Unused' }] });
+        expect(index.themesInUse.map((theme) => theme.id)).toEqual(['t-001', 't-002']);
+        expect(summarizeThemes(index).map((entry) => entry.theme.id)).toEqual(['t-001', 't-002']);
     });
 });
 

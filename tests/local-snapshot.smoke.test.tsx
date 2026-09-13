@@ -34,7 +34,10 @@ describe.skipIf(!hasLocalSnapshot)('local snapshot smoke', () => {
             return;
         }
         expect(result.snapshot.visibility).toBe('local-only');
-        expect(result.snapshot.highlights.length).toBeGreaterThanOrEqual(30);
+        // The whole real library is on the page now, not a hand-picked sample (docs/10 §7).
+        expect(result.snapshot.highlights.length).toBeGreaterThanOrEqual(1000);
+        expect(result.snapshot.books.length).toBeGreaterThanOrEqual(100);
+        expect(result.snapshot.themes.length).toBeGreaterThanOrEqual(8);
 
         const html = renderToStaticMarkup(<StatusPanel state={result} />);
         const first = result.snapshot.highlights[0];
@@ -50,6 +53,23 @@ describe.skipIf(!hasLocalSnapshot)('local snapshot smoke', () => {
         const raw = await readFile(SNAPSHOT_PATH, 'utf8');
         for (const forbidden of ['planIndex', 'sourceBookId', 'bookmarkId', 'userVid', 'deepLink', 'secret']) {
             expect(raw).not.toContain(forbidden);
+        }
+    });
+
+    it('files every book on at least one theme shelf', async () => {
+        const parsed: unknown = JSON.parse(await readFile(SNAPSHOT_PATH, 'utf8'));
+        const result = await loadSnapshot('local', fileFetcher(parsed));
+        expect(result.status).toBe('ready');
+        if (result.status !== 'ready') {
+            return;
+        }
+        const untagged = result.snapshot.books.filter((book) => book.themeIds.length === 0);
+        expect(untagged.map((book) => book.id)).toEqual([]);
+        const themeIds = new Set(result.snapshot.themes.map((theme) => theme.id));
+        for (const book of result.snapshot.books) {
+            for (const themeId of book.themeIds) {
+                expect(themeIds.has(themeId)).toBe(true);
+            }
         }
     });
 });

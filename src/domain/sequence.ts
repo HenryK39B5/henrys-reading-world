@@ -1,10 +1,9 @@
 /**
- * Slice 1 placeholder ordering.
+ * Deterministic reference ordering.
  *
- * Kept as a deterministic, dependency-free reference implementation: it documents the sequence a
- * snapshot is authored in and is used by tests that need a predictable walk of the data. The stage
- * itself uses the curation engine in `serendipity.ts` (Slice 2), because both implement the same
- * `Selector` contract.
+ * Kept as a dependency-free reference implementation: it documents the sequence a snapshot is
+ * authored in and is used by tests that need a predictable walk of the data. The stage itself uses
+ * the discovery selector in `serendipity.ts`, because both implement the same `Selector` contract.
  */
 import type { SelectionInput, SelectionResult } from './selection.ts';
 import type { Highlight } from './types.ts';
@@ -31,11 +30,15 @@ export function selectSequential(input: SelectionInput): SelectionResult {
     return next === undefined ? { kind: 'empty' } : { kind: 'selected', id: next.id, reason: 'sequential' };
 }
 
-/** Deterministic first screen: prefer an independent passage that was marked as an opening candidate. */
+/**
+ * Deterministic first screen.
+ *
+ * v1 picked a passage flagged as an opening candidate, i.e. a curated first impression. That flag no
+ * longer exists: the first passage is merely one of the library, chosen for a readable length so the
+ * opening screen is not a 400-character wall. V2-B replaces it with the fair engine's first draw.
+ */
 export function selectInitialOpening(highlights: Highlight[]): string | null {
-    const preferred =
-        highlights.find((item) => item.openingCandidate && item.standaloneReadable) ??
-        highlights.find((item) => item.openingCandidate) ??
-        highlights[0];
-    return preferred?.id ?? null;
+    const preferred = highlights.find((item) => item.text.replace(/\s/gu, '').length >= 20 && item.text.replace(/\s/gu, '').length <= 120);
+    const chosen = preferred ?? highlights[0];
+    return chosen?.id ?? null;
 }

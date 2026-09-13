@@ -59,7 +59,7 @@ function DataReady({ state }: { readonly state: Extract<SnapshotLoad, { status: 
                 真实划线数据已就绪
             </h1>
             <p className="muted">
-                {coverage.highlightCount} 条划线 · {coverage.bookCount} 本书 · {coverage.topicCount} 个主题 ·{' '}
+                {coverage.highlightCount} 条划线 · {coverage.bookCount} 本书 · {coverage.themeCount} 个主题书架 ·{' '}
                 {coverage.yearCount} 个年份
             </p>
             <p className="muted">

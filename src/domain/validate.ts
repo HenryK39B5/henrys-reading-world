@@ -1,12 +1,12 @@
 import { countNonWhitespace, hasOriginalLineBreak, lengthBand } from './length.ts';
 import {
+    MAX_THEME_IDS_PER_BOOK,
     SNAPSHOT_SCHEMA_VERSION,
     type Book,
     type Highlight,
     type Owner,
-    type QualityScore,
     type Snapshot,
-    type Topic,
+    type Theme,
     type Visibility,
 } from './types.ts';
 
@@ -23,13 +23,16 @@ export type ValidateOptions = {
 
 const ID_PATTERNS = {
     book: /^b-\d{3,}$/u,
-    topic: /^t-\d{3,}$/u,
+    theme: /^t-\d{3,}$/u,
     highlight: /^h-\d{3,}$/u,
 };
 
 const COVER_PUBLIC_PATTERN = /^covers\/[a-z0-9][a-z0-9._-]*\.(?:jpg|jpeg|png|webp)$/u;
 /** Cover art that only exists locally until the release decision is made (see PUB-06). */
 const COVER_LOCAL_PATTERN = /^local-covers\/[a-z0-9][a-z0-9._-]*\.(?:jpg|jpeg|png|webp)$/u;
+
+/** Broad browsing shelves: fewer than this and browsing collapses, more and it becomes taxonomy. */
+const THEME_COUNT_RANGE = { min: 8, max: 15 };
 
 type Context = {
     errors: string[];
@@ -68,14 +71,6 @@ function readOptionalNonEmptyString(ctx: Context, where: string, value: unknown)
     return readNonEmptyString(ctx, where, value) ?? undefined;
 }
 
-function readBoolean(ctx: Context, where: string, value: unknown): boolean | null {
-    if (typeof value !== 'boolean') {
-        ctx.errors.push(`${where}: expected a boolean`);
-        return null;
-    }
-    return value;
-}
-
 function readArray(ctx: Context, where: string, value: unknown): unknown[] | null {
     if (!Array.isArray(value)) {
         ctx.errors.push(`${where}: expected an array`);
@@ -101,13 +96,34 @@ function validateOwner(ctx: Context, value: unknown): Owner | null {
     return about === undefined ? { displayName, siteTitle } : { displayName, siteTitle, about };
 }
 
+function validateTheme(ctx: Context, index: number, value: unknown): Theme | null {
+    const where = `themes[${index}]`;
+    if (!isRecord(value)) {
+        ctx.errors.push(`${where}: expected an object`);
+        return null;
+    }
+    if (!checkKeys(ctx, where, value, ['id', 'title', 'description'])) {
+        return null;
+    }
+    const id = readNonEmptyString(ctx, `${where}.id`, value['id']);
+    const title = readNonEmptyString(ctx, `${where}.title`, value['title']);
+    const description = readOptionalNonEmptyString(ctx, `${where}.description`, value['description']);
+    if (id !== null && !ID_PATTERNS.theme.test(id)) {
+        ctx.errors.push(`${where}.id: expected an id like t-001`);
+    }
+    if (id === null || title === null) {
+        return null;
+    }
+    return description === undefined ? { id, title } : { id, title, description };
+}
+
 function validateBook(ctx: Context, index: number, value: unknown): Book | null {
     const where = `books[${index}]`;
     if (!isRecord(value)) {
         ctx.errors.push(`${where}: expected an object`);
         return null;
     }
-    if (!checkKeys(ctx, where, value, ['id', 'title', 'author', 'description', 'coverPath'])) {
+    if (!checkKeys(ctx, where, value, ['id', 'title', 'author', 'description', 'coverPath', 'themeIds'])) {
         return null;
     }
     const id = readNonEmptyString(ctx, `${where}.id`, value['id']);
@@ -124,6 +140,28 @@ function validateBook(ctx: Context, index: number, value: unknown): Book | null 
     if (coverPath !== undefined && COVER_LOCAL_PATTERN.test(coverPath) && ctx.visibility !== 'local-only') {
         ctx.errors.push(`${where}.coverPath: local-covers assets are only valid in a local-only snapshot`);
     }
+
+    const themeIds: string[] = [];
+    const themeIdsRaw = readArray(ctx, `${where}.themeIds`, value['themeIds']);
+    if (themeIdsRaw !== null) {
+        for (const entry of themeIdsRaw) {
+            if (typeof entry !== 'string' || entry.length === 0) {
+                ctx.errors.push(`${where}.themeIds: expected theme id strings`);
+                continue;
+            }
+            if (themeIds.includes(entry)) {
+                ctx.errors.push(`${where}.themeIds: duplicate reference ${entry}`);
+                continue;
+            }
+            themeIds.push(entry);
+        }
+        if (themeIds.length > MAX_THEME_IDS_PER_BOOK) {
+            ctx.errors.push(
+                `${where}.themeIds: ${String(themeIds.length)} shelves; at most ${String(MAX_THEME_IDS_PER_BOOK)} (one primary plus two secondary)`,
+            );
+        }
+    }
+
     if (id === null || title === null || author === null) {
         return null;
     }
@@ -133,28 +171,8 @@ function validateBook(ctx: Context, index: number, value: unknown): Book | null 
         author,
         ...(description === undefined ? {} : { description }),
         ...(coverPath === undefined ? {} : { coverPath }),
+        themeIds,
     };
-}
-
-function validateTopic(ctx: Context, index: number, value: unknown): Topic | null {
-    const where = `topics[${index}]`;
-    if (!isRecord(value)) {
-        ctx.errors.push(`${where}: expected an object`);
-        return null;
-    }
-    if (!checkKeys(ctx, where, value, ['id', 'title', 'description'])) {
-        return null;
-    }
-    const id = readNonEmptyString(ctx, `${where}.id`, value['id']);
-    const title = readNonEmptyString(ctx, `${where}.title`, value['title']);
-    const description = readOptionalNonEmptyString(ctx, `${where}.description`, value['description']);
-    if (id !== null && !ID_PATTERNS.topic.test(id)) {
-        ctx.errors.push(`${where}.id: expected an id like t-001`);
-    }
-    if (id === null || title === null) {
-        return null;
-    }
-    return description === undefined ? { id, title } : { id, title, description };
 }
 
 function validateHighlight(ctx: Context, index: number, value: unknown): Highlight | null {
@@ -163,20 +181,7 @@ function validateHighlight(ctx: Context, index: number, value: unknown): Highlig
         ctx.errors.push(`${where}: expected an object`);
         return null;
     }
-    if (
-        !checkKeys(ctx, where, value, [
-            'id',
-            'bookId',
-            'text',
-            'year',
-            'topicIds',
-            'qualityScore',
-            'standaloneReadable',
-            'pinned',
-            'openingCandidate',
-            'surpriseCandidate',
-        ])
-    ) {
+    if (!checkKeys(ctx, where, value, ['id', 'bookId', 'text', 'year'])) {
         return null;
     }
 
@@ -197,60 +202,10 @@ function validateHighlight(ctx: Context, index: number, value: unknown): Highlig
         }
     }
 
-    const topicIdsRaw = readArray(ctx, `${where}.topicIds`, value['topicIds']);
-    const topicIds: string[] = [];
-    if (topicIdsRaw !== null) {
-        for (const entry of topicIdsRaw) {
-            if (typeof entry !== 'string' || entry.length === 0) {
-                ctx.errors.push(`${where}.topicIds: expected topic id strings`);
-                continue;
-            }
-            if (topicIds.includes(entry)) {
-                ctx.errors.push(`${where}.topicIds: duplicate reference ${entry}`);
-                continue;
-            }
-            topicIds.push(entry);
-        }
-    }
-
-    const scoreRaw = value['qualityScore'];
-    let qualityScore: QualityScore | null = null;
-    if (typeof scoreRaw !== 'number' || !Number.isInteger(scoreRaw) || scoreRaw < 1 || scoreRaw > 5) {
-        ctx.errors.push(`${where}.qualityScore: expected an integer from 1 to 5`);
-    } else {
-        qualityScore = scoreRaw as QualityScore;
-    }
-
-    const standaloneReadable = readBoolean(ctx, `${where}.standaloneReadable`, value['standaloneReadable']);
-    const pinned = readBoolean(ctx, `${where}.pinned`, value['pinned']);
-    const openingCandidate = readBoolean(ctx, `${where}.openingCandidate`, value['openingCandidate']);
-    const surpriseCandidate = readBoolean(ctx, `${where}.surpriseCandidate`, value['surpriseCandidate']);
-
-    if (
-        id === null ||
-        bookId === null ||
-        text === null ||
-        qualityScore === null ||
-        standaloneReadable === null ||
-        pinned === null ||
-        openingCandidate === null ||
-        surpriseCandidate === null
-    ) {
+    if (id === null || bookId === null || text === null) {
         return null;
     }
-
-    return {
-        id,
-        bookId,
-        text,
-        ...(year === undefined ? {} : { year }),
-        topicIds,
-        qualityScore,
-        standaloneReadable,
-        pinned,
-        openingCandidate,
-        surpriseCandidate,
-    };
+    return { id, bookId, text, ...(year === undefined ? {} : { year }) };
 }
 
 function pushDuplicateErrors(ctx: Context, label: string, ids: string[]): void {
@@ -264,28 +219,24 @@ function pushDuplicateErrors(ctx: Context, label: string, ids: string[]): void {
     }
 }
 
-/** Content coverage checks. These warn; they never relax the contract above. */
+/**
+ * Content coverage checks for the full library (v2 no longer caps the library at 30-50 passages).
+ * These warn; they never relax the contract above.
+ */
 function checkContentCoverage(ctx: Context, snapshot: Snapshot): void {
-    const { highlights, topics, books } = snapshot;
-
-    if (highlights.length < 30) {
-        ctx.warnings.push(`content: only ${highlights.length} highlights; the prototype target is 30-50`);
-    }
-    if (highlights.length > 50) {
-        ctx.warnings.push(`content: ${highlights.length} highlights exceeds the prototype target of 30-50`);
-    }
-    if (topics.length < 3) {
-        ctx.warnings.push(`content: ${topics.length} topics; at least 3 curated topics are expected`);
+    const { highlights, books, themes } = snapshot;
+    if (highlights.length === 0 && books.length === 0) {
+        // The public snapshot is intentionally empty until the release decision is made.
+        return;
     }
 
-    const highlightIdsByTopic = new Map<string, number>();
     const highlightsPerBook = new Map<string, number>();
-    const bookIdsByTopic = new Map<string, Set<string>>();
+    const booksPerTheme = new Map<string, Set<string>>();
+    const highlightsPerTheme = new Map<string, number>();
+    const booksById = new Map(books.map((book) => [book.id, book]));
     const years = new Set<number>();
     const bands = new Set<string>();
     let lineBreakSample = false;
-    let openingCandidates = 0;
-    let surpriseCandidates = 0;
 
     for (const highlight of highlights) {
         highlightsPerBook.set(highlight.bookId, (highlightsPerBook.get(highlight.bookId) ?? 0) + 1);
@@ -296,37 +247,45 @@ function checkContentCoverage(ctx: Context, snapshot: Snapshot): void {
         if (hasOriginalLineBreak(highlight.text)) {
             lineBreakSample = true;
         }
-        if (highlight.openingCandidate) {
-            openingCandidates += 1;
-        }
-        if (highlight.surpriseCandidate) {
-            surpriseCandidates += 1;
-        }
-        for (const topicId of highlight.topicIds) {
-            highlightIdsByTopic.set(topicId, (highlightIdsByTopic.get(topicId) ?? 0) + 1);
-            const set = bookIdsByTopic.get(topicId) ?? new Set<string>();
+        const book = booksById.get(highlight.bookId);
+        for (const themeId of book?.themeIds ?? []) {
+            highlightsPerTheme.set(themeId, (highlightsPerTheme.get(themeId) ?? 0) + 1);
+            const set = booksPerTheme.get(themeId) ?? new Set<string>();
             set.add(highlight.bookId);
-            bookIdsByTopic.set(topicId, set);
+            booksPerTheme.set(themeId, set);
         }
     }
 
-    for (const topic of topics) {
-        const count = highlightIdsByTopic.get(topic.id) ?? 0;
-        const bookCount = bookIdsByTopic.get(topic.id)?.size ?? 0;
-        if (count < 2) {
-            ctx.warnings.push(`content: topic ${topic.id} connects ${count} highlight(s); 2 or more are expected`);
-        }
-        if (bookCount < 2) {
-            ctx.warnings.push(`content: topic ${topic.id} connects ${bookCount} book(s); 2 or more are expected`);
+    if (themes.length < THEME_COUNT_RANGE.min || themes.length > THEME_COUNT_RANGE.max) {
+        ctx.warnings.push(
+            `content: ${String(themes.length)} theme shelves; ${String(THEME_COUNT_RANGE.min)}-${String(THEME_COUNT_RANGE.max)} are expected`,
+        );
+    }
+
+    for (const theme of themes) {
+        const bookCount = booksPerTheme.get(theme.id)?.size ?? 0;
+        if (bookCount === 0) {
+            ctx.warnings.push(`content: theme ${theme.id} has no book on its shelf`);
+        } else if (bookCount < 2) {
+            ctx.warnings.push(`content: theme ${theme.id} connects ${String(bookCount)} book; 2 or more are expected`);
         }
     }
 
-    if (openingCandidates < 3) {
-        ctx.warnings.push(`content: ${openingCandidates} opening candidate(s); 3 or more are expected`);
+    let untaggedBooks = 0;
+    let emptyBooks = 0;
+    for (const book of books) {
+        if (book.themeIds.length === 0) {
+            untaggedBooks += 1;
+        }
+        if ((highlightsPerBook.get(book.id) ?? 0) === 0) {
+            emptyBooks += 1;
+            ctx.warnings.push(`content: book ${book.id} has no highlights`);
+        }
     }
-    if (surpriseCandidates < 1) {
-        ctx.warnings.push('content: no surprise candidate is marked');
+    if (untaggedBooks > 0) {
+        ctx.warnings.push(`content: ${String(untaggedBooks)} book(s) have no theme shelf`);
     }
+
     for (const band of ['short', 'medium', 'long'] as const) {
         if (!bands.has(band)) {
             ctx.warnings.push(`content: no ${band} passage is present`);
@@ -336,13 +295,10 @@ function checkContentCoverage(ctx: Context, snapshot: Snapshot): void {
         ctx.warnings.push('content: no passage keeps an original line break');
     }
     if (years.size < 2) {
-        ctx.warnings.push(`content: ${years.size} distinct year(s); cross-year range is not demonstrated`);
+        ctx.warnings.push(`content: ${String(years.size)} distinct year(s); cross-year range is not demonstrated`);
     }
-
-    for (const book of books) {
-        if ((highlightsPerBook.get(book.id) ?? 0) === 0) {
-            ctx.warnings.push(`content: book ${book.id} has no highlights`);
-        }
+    if (emptyBooks + untaggedBooks === 0 && highlights.length < 30) {
+        ctx.warnings.push(`content: only ${String(highlights.length)} highlights; the v1 prototype target was 30-50`);
     }
 }
 
@@ -356,11 +312,11 @@ export function validateSnapshot(input: unknown, options: ValidateOptions = {}):
     if (!isRecord(input)) {
         return { ok: false, errors: ['snapshot: expected an object'], warnings: [] };
     }
-    if (!checkKeys(ctx, 'snapshot', input, ['schemaVersion', 'visibility', 'owner', 'books', 'topics', 'highlights'])) {
+    if (!checkKeys(ctx, 'snapshot', input, ['schemaVersion', 'visibility', 'owner', 'themes', 'books', 'highlights'])) {
         return { ok: false, errors: ctx.errors, warnings: ctx.warnings };
     }
     if (input['schemaVersion'] !== SNAPSHOT_SCHEMA_VERSION) {
-        ctx.errors.push(`snapshot.schemaVersion: expected ${SNAPSHOT_SCHEMA_VERSION}`);
+        ctx.errors.push(`snapshot.schemaVersion: expected ${String(SNAPSHOT_SCHEMA_VERSION)}`);
     }
 
     const visibility = input['visibility'];
@@ -373,6 +329,22 @@ export function validateSnapshot(input: unknown, options: ValidateOptions = {}):
     }
 
     const owner = validateOwner(ctx, input['owner']);
+
+    const themesRaw = readArray(ctx, 'themes', input['themes']);
+    const themes: Theme[] = [];
+    if (themesRaw !== null) {
+        themesRaw.forEach((entry, index) => {
+            const theme = validateTheme(ctx, index, entry);
+            if (theme !== null) {
+                themes.push(theme);
+            }
+        });
+        pushDuplicateErrors(
+            ctx,
+            'themes',
+            themes.map((theme) => theme.id),
+        );
+    }
 
     const booksRaw = readArray(ctx, 'books', input['books']);
     const books: Book[] = [];
@@ -387,22 +359,6 @@ export function validateSnapshot(input: unknown, options: ValidateOptions = {}):
             ctx,
             'books',
             books.map((book) => book.id),
-        );
-    }
-
-    const topicsRaw = readArray(ctx, 'topics', input['topics']);
-    const topics: Topic[] = [];
-    if (topicsRaw !== null) {
-        topicsRaw.forEach((entry, index) => {
-            const topic = validateTopic(ctx, index, entry);
-            if (topic !== null) {
-                topics.push(topic);
-            }
-        });
-        pushDuplicateErrors(
-            ctx,
-            'topics',
-            topics.map((topic) => topic.id),
         );
     }
 
@@ -423,15 +379,17 @@ export function validateSnapshot(input: unknown, options: ValidateOptions = {}):
     }
 
     const bookIds = new Set(books.map((book) => book.id));
-    const topicIds = new Set(topics.map((topic) => topic.id));
+    const themeIds = new Set(themes.map((theme) => theme.id));
+    for (const book of books) {
+        for (const themeId of book.themeIds) {
+            if (!themeIds.has(themeId)) {
+                ctx.errors.push(`books: ${book.id} references unknown theme ${themeId}`);
+            }
+        }
+    }
     for (const highlight of highlights) {
         if (!bookIds.has(highlight.bookId)) {
             ctx.errors.push(`highlights: ${highlight.id} references unknown book ${highlight.bookId}`);
-        }
-        for (const topicId of highlight.topicIds) {
-            if (!topicIds.has(topicId)) {
-                ctx.errors.push(`highlights: ${highlight.id} references unknown topic ${topicId}`);
-            }
         }
     }
 
@@ -443,8 +401,8 @@ export function validateSnapshot(input: unknown, options: ValidateOptions = {}):
         schemaVersion: SNAPSHOT_SCHEMA_VERSION,
         visibility: visibility as Visibility,
         owner,
+        themes,
         books,
-        topics,
         highlights,
     };
     checkContentCoverage(ctx, snapshot);
@@ -461,5 +419,5 @@ export function isPublishableVisibility(visibility: Visibility): boolean {
 }
 
 export function describeHighlightShape(highlight: Highlight): string {
-    return `${highlight.id} (${countNonWhitespace(highlight.text)} chars, ${lengthBand(highlight.text)})`;
+    return `${highlight.id} (${String(countNonWhitespace(highlight.text))} chars, ${lengthBand(highlight.text)})`;
 }

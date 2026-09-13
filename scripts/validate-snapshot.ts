@@ -70,7 +70,7 @@ async function main(): Promise<void> {
     const warnings = result.warnings;
     console.log(`OK ${target} (visibility: ${expectedVisibility})`);
     console.log(
-        `   highlights: ${String(result.snapshot.highlights.length)}, books: ${String(result.snapshot.books.length)}, topics: ${String(result.snapshot.topics.length)}`,
+        `   highlights: ${String(result.snapshot.highlights.length)}, books: ${String(result.snapshot.books.length)}, themes: ${String(result.snapshot.themes.length)}`,
     );
     if (warnings.length > 0) {
         console.log(`   coverage warnings (${String(warnings.length)}):`);

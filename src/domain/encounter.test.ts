@@ -17,12 +17,6 @@ function highlight(id: string, overrides: Partial<Highlight> = {}): Highlight {
         bookId: 'b-001',
         text: `passage ${id}`,
         year: 2025,
-        topicIds: [],
-        qualityScore: 3,
-        standaloneReadable: true,
-        pinned: false,
-        openingCandidate: false,
-        surpriseCandidate: false,
         ...overrides,
     };
 }
@@ -44,7 +38,6 @@ describe('encounter transitions', () => {
         const state = createInitialState(HIGHLIGHTS, 'h-001');
         expect(state.phase).toBe('idle');
         expect(state.currentId).toBe('h-001');
-        expect(state.globalDrawCount).toBe(1);
         expect(state.commitCount).toBe(0);
         expect(isBusy(state)).toBe(false);
     });
@@ -52,7 +45,6 @@ describe('encounter transitions', () => {
     it('ignores an unknown initial id instead of rendering it', () => {
         const state = createInitialState(HIGHLIGHTS, 'h-404');
         expect(state.currentId).toBeNull();
-        expect(state.globalDrawCount).toBe(0);
     });
 
     it('moves through exiting -> committing -> entering -> idle', () => {
@@ -67,7 +59,6 @@ describe('encounter transitions', () => {
         state = encounterReducer(state, { type: 'COMMIT_QUOTE' }, context);
         expect(state.phase).toBe('entering');
         expect(state.currentId).toBe('h-002');
-        expect(state.globalDrawCount).toBe(2);
         expect(state.commitCount).toBe(1);
 
         state = encounterReducer(state, { type: 'TRANSITION_END' }, context);
@@ -90,7 +81,6 @@ describe('encounter transitions', () => {
         state = encounterReducer(state, { type: 'COMMIT_QUOTE' }, context);
         expect(state.currentId).toBe('h-002');
         expect(state.commitCount).toBe(1);
-        expect(state.globalDrawCount).toBe(2);
     });
 
     it('commits immediately when transitions are disabled for reduced motion', () => {
@@ -128,7 +118,7 @@ describe('encounter transitions', () => {
         expect(next.currentId).toBeNull();
     });
 
-    it('opens a specific passage without consuming a global draw and cancels the transition', () => {
+    it('opens a specific passage, cancels the transition and keeps the history honest', () => {
         const context = makeContext();
         let state = createInitialState(HIGHLIGHTS, 'h-001');
         state = encounterReducer(state, { type: 'NEXT_GLOBAL' }, context);
@@ -137,7 +127,6 @@ describe('encounter transitions', () => {
         expect(state.phase).toBe('idle');
         expect(state.pending).toBeNull();
         expect(state.currentId).toBe('h-003');
-        expect(state.globalDrawCount).toBe(1);
         expect(state.commitCount).toBe(1);
         // Even after a cancelled transition, the next global draw is still based on the real history.
         const resumed = encounterReducer(state, { type: 'NEXT_GLOBAL' }, context);
@@ -162,9 +151,9 @@ describe('encounter transitions', () => {
         expect(JSON.stringify(HIGHLIGHTS)).toBe(highlightsBefore);
     });
 
-    it('records a cycle reset when the engine asks for one', () => {
+    it('records a cycle reset when the selector asks for one', () => {
         const context = makeContext({
-            selector: () => ({ kind: 'selected', id: 'h-002', reason: 'explore', cycleReset: true }),
+            selector: () => ({ kind: 'selected', id: 'h-002', reason: 'all', cycleReset: true }),
         });
         let state = createInitialState(HIGHLIGHTS, 'h-001');
         state = encounterReducer(state, { type: 'NEXT_GLOBAL' }, context);
@@ -174,7 +163,7 @@ describe('encounter transitions', () => {
     });
 });
 
-describe('slice 3 source reveal', () => {
+describe('source reveal', () => {
     it('opens and closes the source panel for the current passage', () => {
         const context = makeContext();
         let state = createInitialState(HIGHLIGHTS, 'h-001');
@@ -184,7 +173,6 @@ describe('slice 3 source reveal', () => {
         expect(state.sourceOpen).toBe(true);
         // Opening the source is not a draw: it must not disturb the exposure counters.
         expect(state.commitCount).toBe(0);
-        expect(state.globalDrawCount).toBe(1);
 
         expect(encounterReducer(state, { type: 'OPEN_SOURCE' }, context)).toBe(state);
 
@@ -207,7 +195,7 @@ describe('slice 3 source reveal', () => {
         expect(state.sourceOpen).toBe(false);
     });
 
-    it('moves inside one book, keeps the source open and does not consume a global draw', () => {
+    it('moves inside one book and keeps the source open', () => {
         const bookHighlights = [
             highlight('h-001', { bookId: 'b-001' }),
             highlight('h-002', { bookId: 'b-001' }),
@@ -221,7 +209,6 @@ describe('slice 3 source reveal', () => {
 
         expect(state.currentId).toBe('h-002');
         expect(state.sourceOpen).toBe(true);
-        expect(state.globalDrawCount).toBe(1);
         expect(state.commitCount).toBe(1);
         expect(state.phase).toBe('entering');
     });
@@ -230,7 +217,7 @@ describe('slice 3 source reveal', () => {
         const bookHighlights = [
             highlight('h-001', { bookId: 'b-001' }),
             highlight('h-002', { bookId: 'b-001' }),
-            highlight('h-003', { bookId: 'b-002', qualityScore: 5, pinned: true }),
+            highlight('h-003', { bookId: 'b-002' }),
         ];
         const context = makeContext({ highlights: bookHighlights, selector: selectNextQuote });
         let state = encounterReducer(createInitialState(bookHighlights, 'h-001'), { type: 'OPEN_SOURCE' }, context);
@@ -265,9 +252,10 @@ describe('slice 3 source reveal', () => {
     });
 });
 
-describe('slice 1 placeholder ordering', () => {
+describe('deterministic reference ordering', () => {
+    const base = { historyIds: [], seenInCycle: [], rng: () => 0 };
+
     it('walks the snapshot in order and wraps around', () => {
-        const base = { historyIds: [], seenInCycle: [], globalDrawCount: 1, rng: () => 0, nowYear: 2025 };
         expect(selectSequential({ ...base, highlights: HIGHLIGHTS, currentId: 'h-001', scope: { kind: 'global' } })).toEqual({
             kind: 'selected',
             id: 'h-002',
@@ -283,13 +271,10 @@ describe('slice 1 placeholder ordering', () => {
     it('stays inside one book when the scope is a book', () => {
         const highlights = [highlight('h-001'), highlight('h-002', { bookId: 'b-002' })];
         const result = selectSequential({
+            ...base,
             highlights,
             currentId: 'h-001',
-            historyIds: [],
-            seenInCycle: [],
-            globalDrawCount: 1,
             scope: { kind: 'book', bookId: 'b-001' },
-            rng: () => 0,
         });
         expect(result.kind).toBe('only-current');
     });

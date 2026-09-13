@@ -44,6 +44,29 @@ async function advance(page: Page): Promise<void> {
     await expect(page.locator('.stage')).toHaveAttribute('data-phase', 'idle', { timeout: 3000 });
 }
 
+/**
+ * Opens a specific book from the world layer and puts one of its passages on the stage.
+ *
+ * v1 could walk the global stage until a small book happened to appear. With the full library that
+ * walk is neither bounded nor deterministic, so these tests drive the same UI path the visitor has:
+ * expand the book list, open the book, pick a passage.
+ */
+async function stagePassageOfBook(page: Page, bookId: string): Promise<void> {
+    // The local snapshot arrives asynchronously, so wait for the world layer before driving it.
+    await expect(page.getByTestId('book-list')).toBeVisible();
+    const toggleAll = page.getByTestId('toggle-all-books');
+    if (await toggleAll.isVisible()) {
+        await toggleAll.click();
+    }
+    const row = page.getByTestId(`book-${bookId}`);
+    await expect(row).toBeVisible();
+    await row.click();
+    const detail = page.getByTestId(`book-detail-${bookId}`);
+    await expect(detail).toBeVisible();
+    await detail.locator('.passage-button').first().click();
+    await expect(page.getByTestId('stage-passage')).toBeVisible();
+}
+
 test.describe('source reveal', () => {
     test.skip(!hasSnapshot, 'private local snapshot is not available');
 
@@ -143,20 +166,27 @@ test.describe('source reveal', () => {
 
     test('explains exhaustion instead of silently moving to another book', async ({ page }) => {
         const { countByBook } = loadSnapshot();
-        await page.goto('/');
+        // A short book keeps the walk bounded and deterministic on the full library.
+        const small = [...countByBook.entries()]
+            .filter(([, count]) => count >= 2 && count <= 4)
+            .sort((left, right) => left[1] - right[1])[0];
+        test.skip(small === undefined, 'no small multi-passage book in the snapshot');
+        if (small === undefined) {
+            return;
+        }
+        const [bookId, bookCount] = small;
 
-        const before = await currentRecord(page);
-        const bookCount = countByBook.get(before.bookId) ?? 0;
+        await page.goto('/');
+        await stagePassageOfBook(page, bookId);
         await page.getByTestId('source-toggle').click();
 
-        // Walk through every passage of this book, then ask once more.
+        // Walk through every remaining passage of this book, then ask once more.
         for (let index = 1; index < bookCount; index += 1) {
             await page.getByTestId('next-in-book').click();
             await expect(page.locator('.stage')).toHaveAttribute('data-phase', 'idle', { timeout: 3000 });
         }
 
-        const last = await currentRecord(page);
-        expect(last.bookId).toBe(before.bookId);
+        expect((await currentRecord(page)).bookId).toBe(bookId);
         // The control explains itself before it is pressed; it never jumps to another book.
         await expect(page.getByTestId('next-in-book')).toHaveAttribute('aria-disabled', 'true');
         await expect(page.getByTestId('source-note')).toContainText('都看过了');
@@ -164,28 +194,17 @@ test.describe('source reveal', () => {
     });
 
     test('explains a single-passage book instead of offering a dead control', async ({ page }) => {
-        // Hunting for a specific book is a walk through many draws, so give the test room.
-        test.setTimeout(90_000);
         const { countByBook } = loadSnapshot();
         const single = [...countByBook.entries()].find(([, count]) => count === 1);
         test.skip(single === undefined, 'no single-passage book in the snapshot');
-
-        // Reduced motion makes each draw instant; the source panel behaves the same either way.
-        await page.emulateMedia({ reducedMotion: 'reduce' });
-        await page.goto('/');
-        // Walk the global stage until a book that holds a single passage is on screen.
-        for (let index = 0; index < 200; index += 1) {
-            const record = await currentRecord(page);
-            if (record.bookId === single?.[0]) {
-                break;
-            }
-            await advance(page);
+        if (single === undefined) {
+            return;
         }
 
-        const record = await currentRecord(page);
-        test.skip(record.bookId !== single?.[0], 'the single-passage book did not come up in 200 draws');
-
+        await page.goto('/');
+        await stagePassageOfBook(page, single[0]);
         await page.getByTestId('source-toggle').click();
+
         await expect(page.getByTestId('source-count')).toHaveText('这里收录了 1 处划线');
         await expect(page.getByTestId('next-in-book')).toHaveAttribute('aria-disabled', 'true');
         await expect(page.getByTestId('source-note')).toContainText('只收录了一处划线');
