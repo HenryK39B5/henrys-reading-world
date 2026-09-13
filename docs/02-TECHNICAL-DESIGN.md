@@ -79,12 +79,13 @@ e2e/                         # Playwright 浏览器验收
 
 UI 状态：出处开关、当前选书 / 主题 / 年份、分享预览的固定 `highlightId`。历史计数只在内容真正提交显示时更新；React StrictMode 二次调用不能消耗两次选句或注册重复计时器。
 
-- `NEXT_STAGE`：空闲才接受；用当前 `stageScope` 走两阶段抽样（先公平选书、再选句），立即进入 exiting，不提前计为曝光。
-- `NEXT_IN_BOOK`：只在该书内抽取，不改变 `stageScope`；耗尽时明确报告，不静默换书，也不重置 cycle 重复已看划线。
+- `NEXT_STAGE`：空闲才接受；用当前 `stageScope` 走两阶段抽样（先公平选书、再选句），立即进入 exiting，不提前计为曝光；提交时写入该范围的 cycle 与当个书的访问 cycle。
+- `NEXT_IN_BOOK`：只在该书内抽取，不改变 `stageScope`，也不消耗 `all` / `theme:<id>` 的 cycle（只推进该书自己的访问 cycle）；耗尽时明确报告，不静默换书，也不重置 cycle 重复已看划线。
 - `SET_STAGE_SCOPE(scope)`：原子切换范围并提交该范围内一条划线；无内容可显示时保留旧范围，避免标签与句子不一致。
 - `COMMIT_QUOTE`：原子更新当前句、历史、cycle、计数、来源层状态，再进入 entering。
 - `TRANSITION_END`：回 idle；计时器清理与 token 防止旧回调覆盖新状态。
-- `OPEN_HIGHLIGHT(id)`：取消正在进行的转场，直接切到指定有效记录，记曝光并开始该书的新的访问 cycle；不改变 `stageScope`。
+- `OPEN_HIGHLIGHT(id)`：取消正在进行的转场，直接切到指定有效记录，记入当前范围的 cycle（避免下一次 `再来一句` 立即抽回刚刚打开的一句）并开始该书的新的访问 cycle；不改变 `stageScope`。
+- 范围 cycle 只能由范围抽取与直接打开推进；长度偏好只在选中的书内部生效，不能先按句长筛选书籍。
 - `OPEN_SHARE`：固定当前 ID；后续换句不得改变已打开的分享内容（V2-E 实现）。
 
 出处在全局换句 / 跨书选择后关闭；同书“再看一处”保持打开。使用纯 reducer 或同等可测设计，避免散落多个互相竞态的 setTimeout。

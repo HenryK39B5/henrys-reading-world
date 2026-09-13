@@ -19,7 +19,7 @@ export function selectSequential(input: SelectionInput): SelectionResult {
             : scope.kind === 'theme'
               ? input.highlights.filter((highlight) => input.books.some((book) => book.id === highlight.bookId && book.themeIds.includes(scope.themeId)))
               : input.highlights.filter((highlight) => highlight.bookId === scope.bookId);
-    const reason = scope.kind === 'book' ? 'book' : 'all';
+    const reason = scope.kind === 'book' ? 'book' : scope.kind === 'theme' ? 'theme' : 'all';
 
     if (pool.length === 0) {
         return { kind: 'empty' };

@@ -54,6 +54,10 @@ function input(overrides: Partial<SelectionInput> = {}): SelectionInput {
     };
 }
 
+function textOf(highlights: Highlight[], id: string): string {
+    return highlights.find((highlight) => highlight.id === id)?.text ?? '';
+}
+
 /**
  * Walks the engine the way the session does: each draw feeds the next one's cycle, current passage and
  * recent ids. Cycle bookkeeping is the same shared helper the reducer uses.
@@ -191,18 +195,31 @@ describe('book-level fairness: passage count must not matter', () => {
         expect(new Set(drawn.map((step) => step.id)).size).toBe(4);
     });
 
-    it('keeps feeding unseen material instead of repeating a small book', () => {
+    it('keeps the big book off the screen while the small book can still be swapped in', () => {
         const books = [makeBook('b-big'), makeBook('b-small')];
         const highlights = [...countPassages(200, 'b-big'), ...countPassages(2, 'b-small')];
 
         const drawn = walk(books, highlights, 8, { rng: () => 0.5 });
-        // The small book shows both of its passages exactly once, and every draw is a new passage: the
-        // engine never pads the round by repeating a book it has already emptied.
-        expect(drawn.filter((step) => step.bookId === 'b-small')).toHaveLength(2);
-        expect(new Set(drawn.map((step) => step.id)).size).toBe(8);
+        // 200 passages and 2 passages: the two books alternate instead of the big one taking the session.
+        // The small book runs out after two draws, so its later turns return its own two passages — the
+        // price of never showing the same book twice in a row (docs/11 §4.2) in a library of two books.
+        expect(drawn.map((step) => step.bookId)).toEqual([
+            'b-small',
+            'b-big',
+            'b-small',
+            'b-big',
+            'b-small',
+            'b-big',
+            'b-small',
+            'b-big',
+        ]);
+        expect(new Set(drawn.filter((step) => step.bookId === 'b-small').map((step) => step.id)).size).toBe(2);
+        expect(drawn.filter((step) => step.bookId === 'b-big')).toHaveLength(4);
+        // The repeat is reported as a cycle restart, so the round is rebuilt instead of drifting.
+        expect(drawn[4]?.cycleReset).toBe(true);
     });
 
-    it('never circles back to the same book while another book has unseen material', () => {
+    it('never returns the book on screen while another book can serve', () => {
         const books = [makeBook('b-200'), makeBook('b-060')];
         const highlights = [...countPassages(200, 'b-200'), ...countPassages(60, 'b-060')];
         const drawn = walk(books, highlights, 12, { rng: () => 0.5 });
@@ -211,6 +228,7 @@ describe('book-level fairness: passage count must not matter', () => {
         for (let index = 1; index < drawn.length; index += 1) {
             expect(drawn[index]?.bookId).not.toBe(drawn[index - 1]?.bookId);
         }
+        // Both books hold far more passages than the session draws, so nothing repeats at all.
         expect(new Set(drawn.map((step) => step.id)).size).toBe(12);
     });
 
@@ -264,13 +282,21 @@ describe('book-level fairness: passage count must not matter', () => {
 });
 
 describe('exposure cycles', () => {
-    it('never repeats a passage while the scope still has unseen material', () => {
+    it('never repeats a passage while the round still has one to show', () => {
         const books = [makeBook('b-001'), makeBook('b-002'), makeBook('b-003')];
         const highlights = [...countPassages(4, 'b-001'), ...countPassages(3, 'b-002'), ...countPassages(2, 'b-003')];
 
-        const drawn = walk(books, highlights, 9, { rng: () => 0.5 });
-        expect(drawn).toHaveLength(9);
-        expect(new Set(drawn.map((step) => step.id)).size).toBe(9);
+        // Nine passages across three books (4 / 3 / 2). Rotation comes first, so eight draws can all be
+        // different passages; the 2-passage book would have to come back a third time for the ninth.
+        const drawn = walk(books, highlights, 8, { rng: () => 0.5 });
+        expect(drawn).toHaveLength(8);
+        expect(new Set(drawn.map((step) => step.id)).size).toBe(8);
+        for (let index = 1; index < drawn.length; index += 1) {
+            expect(drawn[index]?.bookId).not.toBe(drawn[index - 1]?.bookId);
+        }
+
+        // The ninth draw can only be a repeat, and the engine says so instead of hiding it.
+        expect(walk(books, highlights, 9, { rng: () => 0.5 })[8]?.cycleReset).toBe(true);
     });
 
     it('restarts the passage cycle when the scope has nothing unseen left', () => {
@@ -335,7 +361,7 @@ describe('exposure cycles', () => {
         }
     });
 
-    it('stays inside the book on screen when it is the only source of new passages', () => {
+    it('rotates to the other book instead of repeating the book on screen', () => {
         const books = [makeBook('b-001'), makeBook('b-002')];
         const highlights = [...countPassages(4, 'b-001'), ...countPassages(1, 'b-002')];
         const cycle = { bookIds: ['b-001', 'b-002'], highlightIds: ['b-002-h-0001', 'b-001-h-0001'] };
@@ -349,13 +375,26 @@ describe('exposure cycles', () => {
                 rng: () => 0.5,
             }),
         );
-        // b-002 is empty and b-001 has unseen passages: continuing in the book on screen beats showing a
-        // passage the visitor has already read.
+        // docs/11 §4.2 is a hard rule: while another book can serve, the book on screen stays out of the
+        // draw. The emptied 1-passage book comes back with its passage marked as a restart, instead of the
+        // book on screen appearing twice in a row because it happens to hold more passages.
         expect(result.kind).toBe('selected');
         if (result.kind === 'selected') {
-            expect(result.bookId).toBe('b-001');
-            expect(result.id).not.toBe('b-001-h-0001');
+            expect(result.bookId).toBe('b-002');
+            expect(result.id).toBe('b-002-h-0001');
+            expect(result.cycleReset).toBe(true);
         }
+    });
+
+    it('stays in the book on screen when it is the only book of the range', () => {
+        const books = [makeBook('b-001')];
+        const highlights = countPassages(4, 'b-001');
+        const drawn = walk(books, highlights, 4, { rng: () => 0.5 });
+
+        // A library of one book has nothing to rotate to, so unseen passages keep coming.
+        expect(drawn).toHaveLength(4);
+        expect(new Set(drawn.map((step) => step.id)).size).toBe(4);
+        expect(new Set(drawn.map((step) => step.bookId))).toEqual(new Set(['b-001']));
     });
 });
 
@@ -430,16 +469,41 @@ describe('mechanical length rule', () => {
         }
     });
 
-    it('prefers a shorter book for the opening when a book has only long passages', () => {
+    it('opens on the passage of the drawn book even when that book holds nothing readable', () => {
         const books = [makeBook('b-long'), makeBook('b-mixed')];
         const highlights = [...countPassages(30, 'b-long', LONG), passage('b-mixed', 1, READABLE)];
-        for (const value of [0, 0.3, 0.6, 0.99]) {
-            const result = selectOpening(books, highlights, () => value);
-            expect(result.kind).toBe('selected');
-            if (result.kind === 'selected') {
-                expect(result.bookId).toBe('b-mixed');
-            }
+
+        // Books are drawn in stable id order, so rng 0 draws the long-only book. Length is a preference
+        // inside the drawn book, never a filter over books.
+        const longOnly = selectOpening(books, highlights, () => 0);
+        expect(longOnly.kind).toBe('selected');
+        if (longOnly.kind === 'selected') {
+            expect(longOnly.bookId).toBe('b-long');
+            expect(lengthBand(textOf(highlights, longOnly.id))).toBe('long');
         }
+
+        // The same library still opens on the readable passage when it draws the other book.
+        const mixed = selectOpening(books, highlights, () => 0.99);
+        expect(mixed.kind === 'selected' && mixed.id).toBe('b-mixed-h-0001');
+    });
+
+    it('lets every book of the library reach the opening, readable band or not', () => {
+        const books = ['b-001', 'b-002', 'b-003', 'b-004', 'b-005'].map((id) => makeBook(id));
+        const highlights = [
+            ...countPassages(4, 'b-001', LONG),
+            ...countPassages(4, 'b-002', SHORT),
+            ...countPassages(4, 'b-003', READABLE),
+            ...countPassages(4, 'b-004', LONG),
+            ...countPassages(4, 'b-005', SHORT),
+        ];
+
+        const drawn = [0, 0.25, 0.5, 0.75, 0.99].map((value) => {
+            const result = selectOpening(books, highlights, () => value);
+            return result.kind === 'selected' ? result.bookId : 'none';
+        });
+        // Five evenly spaced draws over five books: the four books without a 20–120 character passage are
+        // still offered first, instead of being filtered out of the opening for having the wrong length.
+        expect(new Set(drawn)).toEqual(new Set(['b-001', 'b-002', 'b-003', 'b-004', 'b-005']));
     });
 
     it('still opens when the whole library is long', () => {

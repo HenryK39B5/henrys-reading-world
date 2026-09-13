@@ -134,7 +134,7 @@ scope -> eligible books -> choose book -> eligible highlights in book -> choose 
 - 选中书后优先该 scope cycle 未出现的划线；
 - 排除 currentId 和最近 ID，必要时逐级放宽；
 - pool 耗尽后明确 reset；空主题、单书、单句稳定降级；
-- 可在连续长句且有替代项时优先非长句，除此之外不做内容质量评分；
+- 可在连续长句且有替代项时优先非长句，除此之外不做内容质量评分；长度偏好只在选中书内部排序，**不得先按句长筛选候选书**；选中书没有任何 20–120 字划线时正常降级，显示它自己的划线。
 - 所有随机入口注入 RNG，候选按稳定 ID 排序后再抽取。
 
 建议将 cycle 状态按 scope key 保存，例如 `all / theme:<id> / book:<id>`；不能继续用单一 `seenInCycle` 让不同主题互相消耗。
@@ -214,8 +214,8 @@ About 是独立小房间，只显示真实范围和可选的 Henry 自写介绍�
 
 ### V2-B — Fair Discovery Engine
 
-- 实际完成：`discovery.ts` 取代 `serendipity.ts`；两阶段公平引擎（先选书、再选句）、`all / theme:<id> / book:<id>` 三套独立 cycle、持久 `stageScope`、原子 `SET_STAGE_SCOPE`、机械长度规则。真实数据首次 130 次抽完全部 130 本、600 次 0 重复；旧“按条数加权”的已知限制测试已由 45 条新性质测试取代。执行记录见 `docs/08`。
-- 已知遗留：主题/房间 UI 与 scope 控件属 V2-C1；首屏只做机械可读长度偏好。
+- 实际完成：`discovery.ts` 取代 `serendipity.ts`；两阶段公平引擎（先选书、再选句）、`all / theme:<id> / book:<id>` 三套独立 cycle、持久 `stageScope`、原子 `SET_STAGE_SCOPE`、机械长度规则。真实数据首次 130 次抽完全部 130 本、600 次 0 重复；旧“按条数加权”的已知限制测试已由 45 条新性质测试取代。执行记录与复核修复见 `docs/08`。
+- 已知遗留：主题/房间 UI 与 scope 控件属 V2-C1；首屏只做机械可读长度偏好，不做按长度预筛书。
 
 - 新两阶段选择器与 scope-aware cycle。
 - reducer/hook 接入 `stageScope / NEXT_STAGE / SET_STAGE_SCOPE`。

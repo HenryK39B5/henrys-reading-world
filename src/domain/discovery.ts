@@ -107,22 +107,20 @@ function drawablePools(input: SelectionInput): BookPool[] {
     return pools;
 }
 
-/** The opening screen prefers books that can offer a readable passage, when any can. */
-function openingPools(pools: BookPool[]): BookPool[] {
-    const readable = pools.filter((pool) => pool.passages.some((highlight) => isReadable(highlight.text)));
-    return readable.length > 0 ? readable : pools;
-}
-
 type BookChoice = { pool: BookPool; bookCycleReset: boolean };
 
 /**
  * Stage one: a book. Inside the chosen tier every book has the same chance, regardless of how many
  * passages it holds — this is the whole point of choosing a book before a passage.
+ *
+ * Length preference is deliberately absent here. Filtering books by "can it offer a readable line?"
+ * before the draw would hand the whole opening to the books whose passages happen to sit inside one
+ * length band, and the four books of the real library that hold nothing in that band would never open
+ * at all. The fair draw picks the book; only then does length re-order that book's passages.
  */
 function chooseBook(pools: BookPool[], input: SelectionInput, cycle: CycleState): BookChoice | null {
     const others = input.currentBookId === null ? pools : pools.filter((pool) => pool.book.id !== input.currentBookId);
-    const currentPool = pools.find((pool) => pool.book.id === input.currentBookId);
-    // Only when the scope holds nothing else may the book on screen supply the next passage.
+    // docs/11 §4.2: while more than one book can serve, stay off the book on screen.
     const candidates = others.length > 0 ? others : pools;
 
     const hasUnseen = (pool: BookPool): boolean =>
@@ -133,15 +131,10 @@ function chooseBook(pools: BookPool[], input: SelectionInput, cycle: CycleState)
     // Tiers, in the order this product needs them (docs/10 §6):
     //   1. a book not drawn yet in this round that still has something unseen — variety and freshness;
     //   2. a book already drawn in this round that still has something unseen — freshness;
-    //   3. the book on screen, when nothing else can offer a new passage — staying in a book beats
-    //      showing the visitor a passage twice;
-    //   4. a book not drawn yet in this round — variety;
-    //   5. any other book — an unavoidable repeat, reached only once everything has been shown.
-    const currentOnly = others.length > 0 && currentPool !== undefined && hasUnseen(currentPool) ? [currentPool] : [];
+    //   3. a book not drawn yet in this round — variety, on a round that has run out of new passages;
+    //   4. any other book — an unavoidable repeat, reached only once everything has been shown through.
     const tier =
-        [fresh.filter(hasUnseen), reused.filter(hasUnseen), currentOnly, fresh, reused].find(
-            (list) => list.length > 0,
-        ) ?? candidates;
+        [fresh.filter(hasUnseen), reused.filter(hasUnseen), fresh, reused].find((list) => list.length > 0) ?? candidates;
     const picked = pickUniform(tier, input.rng);
     if (picked === null) {
         return null;
@@ -224,8 +217,7 @@ export function selectNext(input: SelectionInput): SelectionResult {
             : selected(choice.passage.id, pool.book.id, 'book', scopeKey);
     }
 
-    const opening = input.currentId === null && input.currentBand === null;
-    const bookChoice = chooseBook(opening ? openingPools(pools) : pools, input, input.cycle);
+    const bookChoice = chooseBook(pools, input, input.cycle);
     if (bookChoice === null) {
         return { kind: 'empty' };
     }
@@ -247,7 +239,9 @@ export function selectNext(input: SelectionInput): SelectionResult {
  * The first screen.
  *
  * docs/11 replaced the v1 opening flag with a fair draw, so the opening is simply the first draw of
- * `all`: one book, then a readable passage when the book can offer one.
+ * `all`: one book drawn fairly from the whole library, then a readable passage of that book when it has
+ * one. A book that holds nothing in the readable band still opens — its own passage is shown instead of
+ * being filtered out of the draw.
  */
 export function selectOpening(books: Book[], highlights: Highlight[], rng: () => number): SelectionResult {
     return selectNext({

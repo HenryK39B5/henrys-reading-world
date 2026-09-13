@@ -6,9 +6,9 @@ import { expect, test, type Page } from '@playwright/test';
  * Discovery browser acceptance.
  *
  * v1 validated a curated Opening → Contrast → Surprise sequence. docs/10 removed that narrative, so
- * this spec now checks what the product actually promises on real data: the first screen is a
- * readable passage, every draw avoids the book on screen, draws spread across the library instead of
- * circling one big book, and nothing repeats while unseen material remains.
+ * this spec now checks what the product actually promises on real data: the first screen is one real
+ * passage of the library, every draw avoids the book on screen, draws spread across the library instead
+ * of circling one big book, and nothing repeats while unseen material remains.
  */
 type Highlight = { id: string; text: string; bookId: string };
 
@@ -18,16 +18,22 @@ const hasSnapshot = existsSync(SNAPSHOT_PATH);
 
 type RealData = { highlights: Highlight[]; byText: Map<string, Highlight> };
 
+function nonWhitespaceLength(text: string): number {
+    return [...text].filter((char) => !/\s/u.test(char)).length;
+}
+
+/** The mechanical band the opening screen prefers; it inspects character count only. */
+function readableBand(text: string): boolean {
+    const length = nonWhitespaceLength(text);
+    return length >= 20 && length <= 120;
+}
+
 function loadSnapshot(): RealData {
     const parsed = JSON.parse(readFileSync(SNAPSHOT_PATH, 'utf8')) as { highlights: Highlight[] };
     return {
         highlights: parsed.highlights,
         byText: new Map(parsed.highlights.map((item) => [item.text.trim(), item])),
     };
-}
-
-function nonWhitespaceLength(text: string): number {
-    return [...text].filter((char) => !/\s/u.test(char)).length;
 }
 
 async function shown(page: Page): Promise<Highlight> {
@@ -47,13 +53,23 @@ async function advance(page: Page): Promise<Highlight> {
 test.describe('fair wandering', () => {
     test.skip(!hasSnapshot, 'private local snapshot is not available');
 
-    test('opens with a readable passage instead of a wall of text', async ({ page }) => {
+    test('opens on a passage its own book can offer', async ({ page }) => {
         await page.goto('/');
 
         const opening = await shown(page);
         const length = nonWhitespaceLength(opening.text);
-        expect(length).toBeGreaterThanOrEqual(20);
-        expect(length).toBeLessThanOrEqual(120);
+        expect(length).toBeGreaterThan(0);
+
+        // The opening book is drawn fairly from the whole library, so length can only be preferred inside
+        // that book. Four real books hold nothing in the 20–120 band; when one of them is drawn, its own
+        // passage opens the world instead of the book being filtered out of the draw.
+        const bookHoldsSomethingReadable = loadSnapshot().highlights.some(
+            (item) => item.bookId === opening.bookId && readableBand(item.text),
+        );
+        if (bookHoldsSomethingReadable) {
+            expect(length).toBeGreaterThanOrEqual(20);
+            expect(length).toBeLessThanOrEqual(120);
+        }
         await page.screenshot({ path: join(REVIEW_DIR, 'draw-1-opening.png'), fullPage: true });
 
         // Nothing about the opening is curated: it is simply one passage of the library.

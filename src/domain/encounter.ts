@@ -8,7 +8,8 @@
  * v2 shape:
  *
  *   - `stageScope` is persistent (`随便看看` or `正在逛：<主题>`); every stage draw uses it;
- *   - a transient in-book move never changes it, so `再看一处` stays a local action;
+ *   - a transient in-book move never changes it and never spends its cycle, so `再看一处` stays a local
+ *     action that cannot hide a book from the range the visitor is actually browsing;
  *   - cycles are kept per scope key plus one visit cycle per book, so no scope consumes another's;
  *   - `SET_STAGE_SCOPE` switches the range and commits a passage of that range in one step.
  */
@@ -106,20 +107,28 @@ function selectionInput(state: EncounterState, context: EncounterContext, scope:
 }
 
 /**
- * Exposure bookkeeping for one shown passage: its scope's cycle, plus the visit cycle of the book it
- * belongs to. Arriving at another book starts a fresh visit, so "再看一处" always answers "another
- * passage of this book that I have not seen since I got here".
+ * Exposure bookkeeping for one shown passage: the cycle of the range the draw belongs to, plus the
+ * visit cycle of the book it belongs to. Arriving at another book starts a fresh visit, so "再看一处"
+ * always answers "another passage of this book that I have not seen since I got here".
+ *
+ * Only draws of the persistent range pass `stage: true`. A transient in-book move is a local action, so
+ * it must leave `all` / `theme:<id>` alone: otherwise a few "再看一处" clicks would silently consume the
+ * cycle of the range the visitor is browsing and hide the book from its own stage.
  */
 function withExposure(
     state: EncounterState,
     context: EncounterContext,
     passage: { id: string; bookId: string },
-    reset: { cycleReset: boolean; bookCycleReset: boolean },
-    stageScope: StageScope,
+    options: { stage: boolean; stageScope: StageScope; cycleReset: boolean; bookCycleReset: boolean },
 ): Record<CycleKey, CycleState> {
     const next = { ...state.cycles };
-    const stageKey = scopeKeyOf(stageScope);
-    next[stageKey] = withPassage(next[stageKey] ?? EMPTY_CYCLE, passage, reset);
+    if (options.stage) {
+        const stageKey = scopeKeyOf(options.stageScope);
+        next[stageKey] = withPassage(next[stageKey] ?? EMPTY_CYCLE, passage, {
+            cycleReset: options.cycleReset,
+            bookCycleReset: options.bookCycleReset,
+        });
+    }
 
     const previousBookId = findById(context.highlights, state.currentId)?.bookId ?? null;
     const visitKey = bookCycleKey(passage.bookId);
@@ -133,6 +142,8 @@ type ShowOptions = {
     sourceOpen: boolean;
     /** A visitor action counts; the opening draw and a deep link do not. */
     count: boolean;
+    /** Whether this passage belongs to the persistent range or only to a transient in-book move. */
+    stage: boolean;
     cycleReset: boolean;
     bookCycleReset: boolean;
     stageScope?: StageScope;
@@ -155,32 +166,41 @@ function showPassage(
         lastResult: choice,
         historyIds: [...state.historyIds, choice.id],
         stageScope,
-        cycles: withExposure(
-            state,
-            context,
-            choice,
-            { cycleReset: options.cycleReset, bookCycleReset: options.bookCycleReset },
+        cycles: withExposure(state, context, choice, {
+            stage: options.stage,
             stageScope,
-        ),
+            cycleReset: options.cycleReset,
+            bookCycleReset: options.bookCycleReset,
+        }),
         commitCount: options.count ? state.commitCount + 1 : state.commitCount,
     };
 }
+
+type CommitOptions = {
+    sourceOpen: boolean;
+    /** Defaults to a range draw; a transient in-book move passes false. */
+    stage?: boolean;
+    /** Set when the commit also changes the range (`SET_STAGE_SCOPE`). */
+    stageScope?: StageScope;
+};
 
 function commit(
     state: EncounterState,
     choice: SelectedPassage,
     context: EncounterContext,
-    sourceOpen: boolean,
-    stageScope?: StageScope,
+    options: CommitOptions,
 ): EncounterState {
-    const options: ShowOptions = {
+    const show: ShowOptions = {
         phase: context.durations.enter === 0 ? 'idle' : 'entering',
-        sourceOpen,
+        sourceOpen: options.sourceOpen,
         count: true,
+        stage: options.stage ?? true,
         cycleReset: choice.cycleReset === true,
         bookCycleReset: choice.bookCycleReset === true,
     };
-    return stageScope === undefined ? showPassage(state, context, choice, options) : showPassage(state, context, choice, { ...options, stageScope });
+    return options.stageScope === undefined
+        ? showPassage(state, context, choice, show)
+        : showPassage(state, context, choice, { ...show, stageScope: options.stageScope });
 }
 
 /**
@@ -210,7 +230,7 @@ export function createInitialState(context: EncounterContext, initialId: string 
             base,
             context,
             { kind: 'selected', id: known.id, bookId: known.bookId, reason: 'fallback', scopeKey: scopeKeyOf(ALL_SCOPE) },
-            { phase: 'idle', sourceOpen: false, count: false, cycleReset: false, bookCycleReset: false },
+            { phase: 'idle', sourceOpen: false, count: false, stage: true, cycleReset: false, bookCycleReset: false },
         );
     }
 
@@ -222,6 +242,7 @@ export function createInitialState(context: EncounterContext, initialId: string 
         phase: 'idle',
         sourceOpen: false,
         count: false,
+        stage: true,
         cycleReset: result.cycleReset === true,
         bookCycleReset: result.bookCycleReset === true,
     });
@@ -241,7 +262,7 @@ export function encounterReducer(state: EncounterState, event: EncounterEvent, c
                 return { ...state, lastResult: result };
             }
             if (context.durations.exit === 0) {
-                return commit(state, result, context, false);
+                return commit(state, result, context, { sourceOpen: false });
             }
             return { ...state, phase: 'exiting', pending: result, pendingKind: 'stage', sourceOpen: false };
         }
@@ -260,7 +281,8 @@ export function encounterReducer(state: EncounterState, event: EncounterEvent, c
                 return { ...state, lastResult: result };
             }
             if (context.durations.exit === 0) {
-                return commit(state, result, context, true);
+                // A transient move: it remembers the visit, never the persistent range.
+                return commit(state, result, context, { sourceOpen: true, stage: false });
             }
             return { ...state, phase: 'exiting', pending: result, pendingKind: 'book', sourceOpen: true };
         }
@@ -274,7 +296,7 @@ export function encounterReducer(state: EncounterState, event: EncounterEvent, c
             }
             const result = context.selector(selectionInput(state, context, event.scope));
             if (result.kind === 'selected') {
-                return commit(state, result, context, false, event.scope);
+                return commit(state, result, context, { sourceOpen: false, stageScope: event.scope });
             }
             if (result.kind === 'only-current') {
                 // The shelf's single passage is already on screen: change the range, draw nothing new.
@@ -295,8 +317,8 @@ export function encounterReducer(state: EncounterState, event: EncounterEvent, c
             if (state.phase !== 'exiting' || state.pending === null) {
                 return state;
             }
-            const keepOpen = state.pendingKind === 'book';
-            return commit(state, state.pending, context, keepOpen);
+            const isBookMove = state.pendingKind === 'book';
+            return commit(state, state.pending, context, { sourceOpen: isBookMove, stage: !isBookMove });
         }
 
         case 'TRANSITION_END': {
@@ -322,7 +344,9 @@ export function encounterReducer(state: EncounterState, event: EncounterEvent, c
             if (target.id === state.currentId && state.phase === 'idle') {
                 return state;
             }
-            // A direct open cancels any transition in flight and leaves the stage range untouched.
+            // A direct open cancels any transition in flight and leaves the stage range untouched. It is
+            // recorded in the range's cycle on purpose, so the passage the visitor deliberately picked is not
+            // drawn straight back at the next `再来一句`.
             return showPassage(
                 state,
                 context,
@@ -333,7 +357,7 @@ export function encounterReducer(state: EncounterState, event: EncounterEvent, c
                     reason: 'fallback',
                     scopeKey: scopeKeyOf(state.stageScope),
                 },
-                { phase: 'idle', sourceOpen: false, count: true, cycleReset: false, bookCycleReset: false },
+                { phase: 'idle', sourceOpen: false, count: true, stage: true, cycleReset: false, bookCycleReset: false },
             );
         }
 

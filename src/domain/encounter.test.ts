@@ -379,6 +379,47 @@ describe('cycles are kept per scope', () => {
         expect(next.pending?.id).not.toBe('h-003');
     });
 
+    it('spends the range cycle on range draws and on direct opens', () => {
+        const context = makeContext({ selector: selectNext });
+        let state = createInitialState(context, 'h-001');
+        expect(cycleOf(state, 'all').highlightIds).toEqual(['h-001']);
+
+        state = encounterReducer(state, { type: 'NEXT_STAGE' }, context);
+        state = encounterReducer(state, { type: 'COMMIT_QUOTE' }, context);
+        expect(cycleOf(state, 'all').highlightIds).toHaveLength(2);
+
+        // A direct open is a choice the visitor made, so it is remembered in the range they are in: the
+        // passage they picked is not handed straight back at the next 再来一句.
+        state = encounterReducer(state, { type: 'OPEN_HIGHLIGHT', id: 'h-004' }, context);
+        expect(cycleOf(state, 'all').highlightIds).toContain('h-004');
+    });
+
+    it('keeps a transient book move out of the persistent range cycle', () => {
+        const context = makeContext({ selector: selectNext });
+        let state = createInitialState(context, 'h-001');
+        state = encounterReducer(state, { type: 'SET_STAGE_SCOPE', scope: { kind: 'theme', themeId: 't-001' } }, context);
+        // The shelf now holds one shown passage (h-003 of b-003).
+        state = encounterReducer(state, { type: 'OPEN_HIGHLIGHT', id: 'h-001' }, context);
+        const shelfBefore = cycleOf(state, 'theme:t-001').highlightIds;
+        expect(shelfBefore).toEqual(['h-003', 'h-001']);
+
+        state = encounterReducer(state, { type: 'NEXT_IN_BOOK' }, context);
+        state = encounterReducer(state, { type: 'COMMIT_QUOTE' }, context);
+
+        // 再看一处 is a local action: it remembers the visit of that book and leaves the shelf the visitor
+        // is actually browsing untouched, so the book cannot hide from its own shelf by being read.
+        expect(state.currentId).toBe('h-004');
+        expect(state.stageScope).toEqual({ kind: 'theme', themeId: 't-001' });
+        expect(cycleOf(state, 'theme:t-001').highlightIds).toEqual(shelfBefore);
+        expect(cycleOf(state, 'book:b-001').highlightIds).toEqual(['h-001', 'h-004']);
+
+        // The shelf draw after the detour still comes from the shelf.
+        state = encounterReducer(state, { type: 'NEXT_STAGE' }, context);
+        state = encounterReducer(state, { type: 'COMMIT_QUOTE' }, context);
+        const bookId = HIGHLIGHTS.find((item) => item.id === state.currentId)?.bookId;
+        expect(['b-001', 'b-003']).toContain(bookId);
+    });
+
     it('counts only the unseen passages of the current visit', () => {
         const context = makeContext({ selector: selectNext });
         let state = createInitialState(context, 'h-001');
@@ -514,5 +555,15 @@ describe('deterministic reference ordering', () => {
             expect(result.id).toBe('h-004');
             expect(result.reason).toBe('book');
         }
+    });
+
+    it('labels a shelf walk as a theme draw', () => {
+        const result = selectSequential({
+            ...base,
+            currentId: 'h-001',
+            currentBookId: 'b-001',
+            scope: { kind: 'theme', themeId: 't-001' },
+        });
+        expect(result.kind === 'selected' && result.reason).toBe('theme');
     });
 });
