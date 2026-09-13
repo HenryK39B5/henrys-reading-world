@@ -34,10 +34,12 @@ npm run snapshot:local      # 生成全量 local-only 快照
 
 ```powershell
 npm run check:local         # typecheck + lint + 单测 + 快照校验（开发主校验）
-npm run test:e2e            # Playwright，真实 Chromium，24 个用例
-npm run capture:review      # 生成评审截图 + 可读数字，输出到 .private/review/critique-1/
+npm run verify:ids          # 20 本 / 46 条稳定 ID 指向同一真实材料
+npm run test:e2e            # Playwright，真实 Chromium，41 个用例（房间、现场记忆、分批、光环）
+npm run capture:review      # 生成评审截图 + 可读数字，输出到 .private/review/rooms-batch/
 npm run covers:fetch        # 下载真实书封到 .private/covers/（只由 dev:local 服务）
 npm run smoke:local         # 用真实快照做渲染冒烟检查
+npm run test:public         # 公开（空快照）模式下每个房间的诚实空状态
 ```
 
 公开路径（当前只用于验证构建，不展示真实内容）：

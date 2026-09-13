@@ -24,6 +24,7 @@
     "check": "npm run typecheck && npm run lint && npm run test && npm run validate:data && vite build",
     "preview": "vite preview",
     "test:e2e": "playwright test",
+    "test:public": "playwright test --config playwright.empty.config.ts",
     "capture:review": "playwright test --config playwright.capture.config.ts",
     "covers:fetch": "node scripts/fetch-covers.ts"
   },

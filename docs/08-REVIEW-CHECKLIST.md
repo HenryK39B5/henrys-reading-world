@@ -788,6 +788,7 @@ b-007 封面均值 rgb(95,114,151) → aura #546992
 | --- | --- |
 | `npm run check:local` | 149 用例 / 11 文件通过，typecheck + lint 无错 |
 | `npx playwright test` | **41/41 通过**（含 `e2e/aura.spec.ts` 6 条） |
+| `npm run test:public` | 公开（空快照）模式下六个房间 + 未知路径均有诚实空状态，无本机徽标 |
 | `npm run capture:review` | 六房间 1440 / 390、六本封面色、无封面书、398 字最长划线、reduced-motion、对比度 |
 
 **浏览器证据（私有）**
