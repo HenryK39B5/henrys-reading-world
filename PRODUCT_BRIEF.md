@@ -5,7 +5,7 @@
 > 日期：2026-09-12
 > 建议项目目录：`henrys-reading-world`
 >
-> **最新产品方向：** 用户在 2026-09-12 的 Critique #1 后明确取消“用前三句精心塑造印象”的策展目标，改为轻松、真实、公平的全量阅读漫游。`docs/10-PRODUCT-DIRECTION-V2.md` 是冲突事项的最新权威；施工路线见 `docs/11-V2-IMPLEMENTATION-PLAN.md`。本 Brief 的文字中心、真实材料、克制视觉、出处展开、非 Dashboard / 非人格分析等原则继续有效。
+> **最新产品方向：** 用户在 2026-09-12 的 Critique #1 后取消“用前三句精心塑造印象”的策展目标，改为轻松、真实、公平的全量阅读漫游；2026-09-13 的 Critique #2 又确认门厅 / 主题 / 书籍等房间式结构、Book Aura 色彩归属与轻盈呼吸动效。产品与算法见 `docs/10-PRODUCT-DIRECTION-V2.md`，最新空间/视觉权威见 `docs/12-ROOMS-COLOR-MOTION-DIRECTION.md`，施工路线见 `docs/11-V2-IMPLEMENTATION-PLAN.md`。本 Brief 的文字中心、真实材料、出处展开、非 Dashboard / 非人格分析等原则继续有效。
 
 ## 0. 这份文档的作用
 

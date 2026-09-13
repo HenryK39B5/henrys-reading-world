@@ -4,16 +4,16 @@
 
 本轮只实现 Henry's Reading World 的单人静态体验原型。
 
-阅读顺序：`PRODUCT_BRIEF.md` → **`docs/10-PRODUCT-DIRECTION-V2.md` → `docs/11-V2-IMPLEMENTATION-PLAN.md`** → `docs/01-SCOPE-AND-DECISIONS.md` → `docs/02-TECHNICAL-DESIGN.md` → `docs/03-DATA-CONTRACT.md` → `docs/04-SERENDIPITY-SPEC.md` → `docs/05-UX-SPEC.md` → `docs/06-IMPLEMENTATION-PLAN.md` → `docs/07-IMPLEMENTATION-HANDOFF.md`。`10/11` 是 Critique #1 后的最新决定，冲突时优先。
+阅读顺序：`PRODUCT_BRIEF.md` → **`docs/10-PRODUCT-DIRECTION-V2.md` → `docs/12-ROOMS-COLOR-MOTION-DIRECTION.md` → `docs/11-V2-IMPLEMENTATION-PLAN.md`** → `docs/01-SCOPE-AND-DECISIONS.md` → `docs/02-TECHNICAL-DESIGN.md` → `docs/03-DATA-CONTRACT.md` → `docs/04-SERENDIPITY-SPEC.md` → `docs/05-UX-SPEC.md` → `docs/06-IMPLEMENTATION-PLAN.md` → `docs/07-IMPLEMENTATION-HANDOFF.md`。`12` 是 Critique #2 后最新的空间/视觉决定；算法与数据语义以 `10/11` 为准，冲突时优先最新文件。
 
-用户后续明确要求：移植微信读书 skill，所有产品开发使用真实数据，不使用 fake data。此要求补充并收紧 `PRODUCT_BRIEF.md` 的样本边界。Critique #1 后用户又明确把方向从“前三句策展并塑造印象”调整为“全量真实划线的轻松漫游”：主题属于书籍、不是逐句人格标签；算法优化公平与防重复，不编排 Opening/Contrast/Surprise；约 4,663 条均应可到达但不同时渲染。具体以 `docs/10/11` 为准。真正出现新冲突时再请用户决定。
+用户后续明确要求：移植微信读书 skill，所有产品开发使用真实数据，不使用 fake data。此要求补充并收紧 `PRODUCT_BRIEF.md` 的样本边界。Critique #1 后用户把方向从“前三句策展并塑造印象”调整为“全量真实划线的轻松漫游”：主题属于书籍、不是逐句人格标签；算法优化公平与防重复，不编排 Opening/Contrast/Surprise；约 4,663 条均应可到达但不同时渲染。Critique #2 后用户又确认房间式结构、Book Aura 色彩归属与轻盈呼吸动效：门厅 / 主题书架 / 主题房间 / 所有书 / 书籍房间 / About 使用稳定 URL，返回时保留现场；具体以 `docs/10/11/12` 为准。真正出现新冲突时再请用户决定。
 
 开始数据工作前，额外完整阅读 `docs/09-WEREAD-DATA-WORKFLOW.md`、`.agents/skills/weread-skills/SKILL.md`、`PROJECT-ADAPTATION.md` 与所调用能力文件。不依赖客户端自动加载 skill。
 
 ## 执行规则
 
 - 先检查目录、现有实现及 Git 状态；保护既有工作，不因为本交接写着“无代码”就覆盖后续代码。
-- 当前 Slice 0–4 已完成。下一阶段按 `docs/11` 的 V2-A → V2-E 逐个迁移、验证、汇报；不一次生成全部功能后才测试。
+- 当前 Slice 0–4 与 V2-A 已完成。下一阶段按 `docs/11` 的 V2-B → V2-C1 → V2-C2 → V2-D → V2-E 逐个迁移、验证、汇报；不一次生成全部功能后才测试。
 - 使用 Windows 原生 Node/npm/Git 与 PowerShell。不要混用 WSL 路径。
 - 不在非空项目根目录直接运行可能覆盖文档的脚手架；优先逐文件建立 Vite 配置。
 - 版本首次安装时选择彼此兼容的稳定版本并提交 npm 锁文件，不凭空声称某版本是最新。
@@ -30,7 +30,7 @@
 ## 代码要求
 
 - TypeScript strict；数据和算法独立于 React；选择算法接收可注入 RNG 与时间。
-- 不使用 `dangerouslySetInnerHTML` 展示内容；不引入不必要的状态、动画、UI 或推荐框架。
+- 不使用 `dangerouslySetInnerHTML` 展示内容；不引入不必要的状态、动画、UI 或推荐框架。房间动效按 `docs/12` 约束，纯 CSS 能完成时不用动画库，reduced-motion 必须取消位移与长过渡。
 - 原生语义优先；键盘、移动端、长文本和 reduced-motion 是主路径要求。
 - 分享必须绑定稳定 highlight ID，不能依赖数组下标或当前随机位置。
 - 每片补充必要测试，不以“编译通过”替代交互验收。

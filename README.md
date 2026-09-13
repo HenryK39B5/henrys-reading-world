@@ -4,8 +4,8 @@
 
 ## 当前状态
 
-- 阶段：v1 的 **Slice 0–4 已完成**；**V2-A 已完成**（schema 2、全量 4,663 条 / 130 本 / 14 个书籍主题书架）。下一步 V2-B（公平两阶段抽样）→ V2-C（主题舞台与 IA）→ V2-D（全量浏览）→ V2-E（分享与打磨）。
-- 产品方向：`PRODUCT_BRIEF.md` 是历史基线；最新决定见 `docs/10-PRODUCT-DIRECTION-V2.md`，施工路线见 `docs/11-V2-IMPLEMENTATION-PLAN.md`。
+- 阶段：v1 的 **Slice 0–4 已完成**；**V2-A 已完成**（schema 2、全量 4,663 条 / 130 本 / 14 个书籍主题书架）。下一步 V2-B（公平两阶段抽样）→ V2-C1（房间路由与 IA）→ V2-C2（Book Aura 与呼吸动效）→ V2-D（全量浏览）→ V2-E（分享与打磨）。
+- 产品方向：`PRODUCT_BRIEF.md` 是历史基线；轻松漫游与公平原则见 `docs/10-PRODUCT-DIRECTION-V2.md`，最新房间/色彩/动效决定见 `docs/12-ROOMS-COLOR-MOTION-DIRECTION.md`，施工路线见 `docs/11-V2-IMPLEMENTATION-PLAN.md`。
 - 硬约束：所有开发只使用 Henry 本人的真实划线，不使用 fake / demo 数据；主题属于书籍，不做逐句人格标签。
 - 当前页面数据（local-only）：**4,663 条真实划线 · 130 本书 · 14 个主题书架 · 2024–2026**；首屏只渲染当前一句与折叠列表，全部内容通过舞台 / 主题书架 / 单书路径可达。
 - 原始数据与快照只存在于本机 `.private/`，已被 `.gitignore` 排除，不进入前端包。
@@ -65,7 +65,7 @@ npm run snapshot:local                    # 挑选结果 → 开发快照
 2. 点书名（出处行）→ 展开面板 → `再看一处`（同书）→ `查看这本书`。
 3. 向下查看书籍列表、主题书架与年份工具。
 
-注意：选择器目前会在整个书库中抽取，并按划线条数加权；两阶段公平抽样、主题舞台与“主题作为舞台范围”仍待 V2-B / V2-C。
+注意：选择器目前会在整个书库中抽取，并按划线条数加权；两阶段公平抽样待 V2-B。房间式结构与 Book Aura 已获用户确认，但分别待 V2-C1 / V2-C2，当前页面仍是 V2-A 兼容性长页面。
 
 ## 数据与发布边界
 
@@ -102,7 +102,9 @@ npm run snapshot:local                    # 挑选结果 → 开发快照
 | [08 — Review 记录](docs/08-REVIEW-CHECKLIST.md) | 执行记录与 Prototype Gate 检查 |
 | [09 — 微信读书流程](docs/09-WEREAD-DATA-WORKFLOW.md) | skill 移植、真实数据获取与发布边界 |
 | [10 — Product Direction v2](docs/10-PRODUCT-DIRECTION-V2.md) | Critique #1 后的最新产品目标、主题语义与公平漫游原则 |
-| [11 — v2 施工计划](docs/11-V2-IMPLEMENTATION-PLAN.md) | schema 2、全量数据、算法、主题舞台与分片验收 |
+| [11 — v2 施工计划](docs/11-V2-IMPLEMENTATION-PLAN.md) | schema 2、公平算法、房间路由、色彩动效与分片验收 |
+| [12 — 房间、色彩与呼吸感](docs/12-ROOMS-COLOR-MOTION-DIRECTION.md) | Critique #2 后的空间结构、Book Aura、导航记忆与动效语言 |
+| [13 — V2-B 开工 Prompt](docs/13-V2-B-IMPLEMENTER-PROMPT.md) | 下一位实现模型只实施公平发现引擎的完整提示词 |
 
 ## 真实数据现状
 
