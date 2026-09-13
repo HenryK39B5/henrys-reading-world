@@ -916,6 +916,85 @@ V2-E（最终独立批次），不在本阶段开始。
 - 部署、上传、SEO、Web Share、PNG、二维码；
 - 真实首次访客评审与无法在当前 Windows/Chromium 环境完成的 Safari/真机验证。
 
+## V2-E3 最终响应式、键盘与工程 Gate（2026-09-13）
+
+```text
+日期 / 执行者：2026-09-13 / 实现 Agent（DeepSeek v4.1 Flash）
+范围：V2-E3 — 200% 缩放、320/360/390/768/1440 响应式、完整键盘旅程、错误与封面失败回退、网络与隐私
+状态：verified（本机 Chromium）；真机与 Safari 未验证
+数据模式与许可依据：真实数据 local-only
+代码基线：672c424
+```
+
+### 完成内容
+
+1. **真实缺口修复：封面加载失败**。新增 `src/app/CoverImage.tsx`，四处真实封面（出处面板、书籍房间头部、书单行、主题书架缩略图）统一在 `onError` 时回退到真实书名排版框；之前封面文件缺失会留下 broken image。
+2. **200% 缩放**：六个房间在 1440×900 与 720×450（即 1440×900 的 200% 等价 CSS 像素视口）下逐一校验无横向溢出、控件不出视口、文字中心完整。
+3. **真实放大**：本机 Chromium 用 `Emulation.setPageScaleFactor(2)` 真实放大 2×（`visualViewport.scale=2`、可见宽度减半、布局宽度不变），断言关键控件仍可滚动到达、键盘仍可操作、分享 dialog 仍能打开关闭。
+4. **响应式矩阵**：320 / 360 / 390 / 768 / 1440 × 六个房间的全部组合，无横向溢出且控件不出视口；320px 下 398 字最长划线的分享卡片不裁剪、可关闭。
+5. **完整键盘旅程**（一条连续会话，不用鼠标）：门厅 → 出处展开 → 再看一处 → 查看这本书 → 单书年份筛选 → 单书批次 → 返回上一处（两级）→ 主题书架 → 主题房间 → 分享 dialog → Esc → 回门厅。每个 Tab 停留点都断言焦点可见（outline 不为 0），激活全部用真实 Enter/Space，并包含一次 Shift+Tab 校验。
+6. **错误态**：未知路径、不存在的主题/书籍、无结果的年份筛选、`showModal` 不存在时的非模态回退（`data-modal=false` 仍可打开/复制/关闭）。
+7. **网络与隐私**：走完六个房间 + 分享 dialog，全部请求均同源（0 外部请求）；local-only 快照的字段白名单逐层断言（快照/owner/book/theme/highlight 四层）；`.private`、`.agents`、`scripts`、`.env`、`/@fs/` 与编码变体全部不可经 HTTP 读取，且真实划线片段与 `WEREAD_API_KEY` 未出现在任何响应中。
+
+### 修改文件
+
+- `src/app/CoverImage.tsx`（新增）
+- `src/features/encounter/EncounterStage.tsx`、`src/features/rooms/BookRoom.tsx`、`BooksRoom.tsx`、`ThemesRoom.tsx`
+- `e2e/support/snapshot.ts`（新增，共享真实快照读取）
+- `e2e/zoom.spec.ts`、`e2e/keyboard.spec.ts`、`e2e/errors.spec.ts`、`e2e/privacy.spec.ts`（新增）
+- `e2e/capture-v2e.spec.ts`、`playwright.capture-v2e.config.ts`（新增）
+- `playwright.config.ts`、`package.json`（`capture:v2e` 脚本与忽略规则）
+- `README.md`、`docs/07/08/11`
+
+### 命令 → 实际结果
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run check:local` | **171 单测 / 12 文件**通过，typecheck + lint 干净 |
+| `npx playwright test` | **81 通过**（E2 后 62；新增 7 zoom / 3 keyboard / 5 errors / 4 privacy） |
+| `npm run test:public` | 1/1 通过 |
+| `npm run verify:ids` | 20 本 / 46 条稳定 ID 指向同一真实材料 |
+| `npm run smoke:local` | 3/3 通过 |
+| `npm run build` | 成功；dist 仅 3 个文件，**0 条真实划线、0 个书名**进入产物 |
+| `npx vite build --mode local-private` | 按预期拒绝：`Local mode cannot be used for a production build.` |
+| `npm run capture:review` | 通过（3.9 分钟），六房间 1440/390/320/768 溢出均 0px，最小点击目标 44px |
+| `npm run capture:v2e` | 通过，13 张截图写入 `.private/review/v2-e/` |
+
+### 浏览器证据（真实 Chromium，本机 local-only）
+
+证据目录：`.private/review/v2-e/`
+
+- `share-dialog-1440.png`、`share-dialog-390.png`：dialog 与 editorial 卡片，出处低权重、角落品牌、`仅本机 · 未公开审核` 徽标。
+- `card-shortest.png`（8 字）→ `data-extended=false`；`card-medium.png`（42 字）→ `false`；`card-299.png`、`card-longest.png`（398 字）→ `true`；四者溢出一律 0/0。
+- `zoom-200-hall.png`、`zoom-200-dialog.png`：720×450 下门厅与 dialog。
+- `magnified-2x-hall.png`：真实 2× 放大下的门厅。
+- `clipboard-failure-1440.png`：Clipboard 被拒时的 `自动复制失败，请手动复制` + 可全选只读文本。
+- `reduced-motion-1440.png`：reduced-motion 下房间与颜色直接到位。
+- `deep-link-unavailable-1440.png`：`/?h=<不存在>` 的轻提示 + 真实开局。
+- 对比度复测（capture:review）：正文 12.7–13.9、次要文字 4.9–5.3，六个房间均无横向溢出。
+
+### 两个真实技术发现
+
+1. **截图不能靠“等一会儿”**：首版 E3 截图拍在房间入场动画进行中，画面几乎是空白（两张不同页面的截图字节完全相同，这是发现它的线索）。改为等待页面**实际启动的动画**结束（`document.getAnimations()` → `finished`）并用 Playwright 的 `animations: 'disabled'` 冻结末态，之后截图才是稳定画面。
+2. **Playwright 在真实放大下不能用坐标点击**：`setPageScaleFactor(2)` 后可见区域小于布局视口，坐标命中不可靠。因此放大验证改为“可达性 + 键盘激活”，这本身就是放大用户真实的操作方式。
+
+### 未验证项（诚实列明）
+
+- **真机移动端 / iOS Safari / Android Chrome / 桌面 Safari 均未验证**：本机只有 Chromium。`<dialog>` 的 showModal、`svh`、`text-wrap: pretty/balance`、Canvas 取色与滚动恢复在 Safari 上的表现仍属未知。
+- **真实交互式浏览器缩放（Ctrl +/- 菜单）未手动执行**：自动化用的是“CSS 像素视口减半”的等价重排 + 真实 2× 放大两条独立证据，不能互相冒充。
+- `showModal` 不可用的非模态回退分支已由测试覆盖（移除原型方法），但真机上触发该分支的老浏览器未验证。
+
+### 偏差 / 设计判断
+
+- **200% 下 dialog 需要自身滚动**：720×450 时卡片 4:5 加动作区超过视口高度，dialog 内部滚动、关闭按钮需滚动到达（或按 Esc）。选择保持“卡片不裁剪、字号不缩水”，而不是把卡片压小。
+- **年份筛选是独立历史记录**：键盘旅程确认，从 `?year=` 的书籍房间返回一次回到同书未筛选列表，再返回一次才是门厅。这是 `docs/02 §6` “筛选属于 URL”的直接后果，并且与浏览器后退一致，不是额外逻辑。
+- **门厅会记住“再看一处”后的原句**：从书房间返回后显示的是离开时的句子，而不是深链原句；深链地址已在换句时按 `docs/15 §4.1` 清除。
+- **public 产物里的 `local-covers` / `__local_cover` 字符串**：它们是 `covers.ts` 与校验器里的运行时代码分支（拒绝非法 `coverPath`），不是数据；public 快照的 book 标题与划线在 dist 中出现次数均为 0。
+
+### 下一步
+
+V2-E1 → E2 → E3 全部完成，本机原型开发批次结束。下一阶段仅为 **Public Release Gate（PUB-01～PUB-07）**，需用户决定后才开始；不得自行公开导出、部署或上传。
+
 ## V2-E2 固定 ID 的复制、dialog 与分享预览（2026-09-13）
 
 ```text

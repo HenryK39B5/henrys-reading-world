@@ -1,4 +1,4 @@
-import { coverUrl } from '../../app/covers.ts';
+import { CoverImage } from '../../app/CoverImage.tsx';
 import type { SnapshotIndex } from '../../domain/snapshot.ts';
 import { PASSAGE_BATCH_STEP, batchLabel, hasMore, passagesOfBook } from '../../domain/reading.ts';
 import { describeBookCollection, relativeYearLabel } from '../../domain/timeLabel.ts';
@@ -56,7 +56,7 @@ export function BookRoom({ index, bookId, year, nowYear, batches, room, onBack, 
         );
     }
 
-    const cover = coverUrl(book.coverPath);
+    const cover = book.coverPath;
     const current = room.state.currentId === null ? undefined : index.highlightsById.get(room.state.currentId);
     const shelves = summarizeThemes(index).filter((entry) => book.themeIds.includes(entry.theme.id));
     const filtered = passagesOfBook(index, bookId, year);
@@ -71,11 +71,13 @@ export function BookRoom({ index, bookId, year, nowYear, batches, room, onBack, 
         <section className="room room-book" aria-labelledby="book-heading" data-room="book">
             <div className="book-head">
                 <span className="book-head-cover" aria-hidden="true">
-                    {cover === undefined ? (
-                        <span className="book-cover-fallback">{book.title}</span>
-                    ) : (
-                        <img src={cover} alt="" decoding="async" />
-                    )}
+                    <CoverImage
+                        title={book.title}
+                        coverPath={cover}
+                        className="book-head-cover-image"
+                        alt=""
+                        fallback={<span className="book-cover-fallback">{book.title}</span>}
+                    />
                 </span>
                 <div className="book-head-text">
                     <h1 id="book-heading" className="room-heading" data-testid="room-heading">

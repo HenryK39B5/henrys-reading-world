@@ -1,4 +1,4 @@
-import { coverUrl } from '../../app/covers.ts';
+import { CoverImage } from '../../app/CoverImage.tsx';
 import type { SnapshotIndex } from '../../domain/snapshot.ts';
 import { summarizeThemes, themeCountText } from '../../domain/world.ts';
 import type { Highlight } from '../../domain/types.ts';
@@ -25,14 +25,16 @@ function ShelfCovers({ index, leads }: { index: SnapshotIndex; leads: Highlight[
         <span className="shelf-covers" aria-hidden="true">
             {books.map((bookId) => {
                 const book = index.booksById.get(bookId);
-                const url = coverUrl(book?.coverPath);
                 return (
                     <span key={bookId} className="shelf-cover">
-                        {url === undefined ? (
-                            <span className="shelf-cover-fallback">{book?.title ?? ''}</span>
-                        ) : (
-                            <img src={url} alt="" loading="lazy" decoding="async" />
-                        )}
+                        <CoverImage
+                            title={book?.title ?? ''}
+                            coverPath={book?.coverPath}
+                            className="shelf-cover-image"
+                            alt=""
+                            loading="lazy"
+                            fallback={<span className="shelf-cover-fallback">{book?.title ?? ''}</span>}
+                        />
                     </span>
                 );
             })}

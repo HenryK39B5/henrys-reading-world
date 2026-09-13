@@ -1,4 +1,4 @@
-import { coverUrl } from '../../app/covers.ts';
+import { CoverImage } from '../../app/CoverImage.tsx';
 import type { SnapshotIndex } from '../../domain/snapshot.ts';
 import { BOOK_BATCH_STEP, batchLabel, hasMore } from '../../domain/reading.ts';
 import {
@@ -146,16 +146,18 @@ export function BooksRoom({ index, year, themeId, batches }: BooksRoomProps) {
 }
 
 function BookRow({ entry, year }: { entry: BookEntry; year: number | null }) {
-    const url = coverUrl(entry.book.coverPath);
     return (
         <li className="book-item">
             <a className="book-link" href={bookHref(entry.book.id, year)} data-testid={`book-${entry.book.id}`}>
                 <span className="book-cover" aria-hidden="true">
-                    {url === undefined ? (
-                        <span className="book-cover-fallback">{entry.book.title}</span>
-                    ) : (
-                        <img src={url} alt="" loading="lazy" decoding="async" />
-                    )}
+                    <CoverImage
+                        title={entry.book.title}
+                        coverPath={entry.book.coverPath}
+                        className="book-cover-image"
+                        alt=""
+                        loading="lazy"
+                        fallback={<span className="book-cover-fallback">{entry.book.title}</span>}
+                    />
                 </span>
                 <span className="book-text">
                     <span className="book-title">《{entry.book.title}》</span>

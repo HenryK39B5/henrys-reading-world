@@ -1,10 +1,10 @@
 # 15 — V2-E 最终收尾批次 Implementer Prompt
 
-> 状态：**下一批唯一开工提示词**。
+> 状态：**已执行的历史提示词**。V2-E1 / V2-E2 / V2-E3 已全部完成。本机原型开发批次结束，下一阶段是 Public Release Gate（PUB-01～PUB-07），需用户决定。
 >
 > 基线：`9e2d0af Fix review findings: year scope, aura travel, stable book order`。
 >
-> 执行顺序：**V2-E1 稳定深链与错误状态 → V2-E2 固定内容的复制与分享预览 → V2-E3 200% 缩放、完整键盘与最终工程 Gate**。
+> 执行顺序（已完成）：**V2-E1 稳定深链与错误状态 → V2-E2 固定内容的复制与分享预览 → V2-E3 200% 缩放、完整键盘与最终工程 Gate**。
 >
 > 工作方式：三个内部阶段分别测试、记录、commit；Gate 通过后直接继续，不停下等待。全部结束后统一汇报。不部署、不 push、不导出公开快照。
 

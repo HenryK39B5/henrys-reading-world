@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import type { CSSProperties } from 'react';
+import { CoverImage } from '../../app/CoverImage.tsx';
 import { coverUrl, useCoverAccent } from '../../app/covers.ts';
 import type { Phase } from '../../domain/encounter.ts';
 import { lengthBand } from '../../domain/length.ts';
@@ -136,13 +137,17 @@ export function EncounterStage({
             <div id={SOURCE_PANEL_ID} className="source-panel" hidden={!sourceOpen} data-testid="source-panel">
                 <div className="source-body">
                     <div className="cover-frame">
-                        {cover === undefined ? (
-                            <div className="cover-placeholder">
-                                <span className="cover-placeholder-title">{book?.title ?? '出处缺失'}</span>
-                            </div>
-                        ) : (
-                            <img className="cover-image" src={cover} alt={`《${book?.title ?? ''}》书封`} decoding="async" />
-                        )}
+                        <CoverImage
+                            title={book?.title ?? '出处缺失'}
+                            coverPath={book?.coverPath}
+                            className="cover-image"
+                            alt={`《${book?.title ?? ''}》书封`}
+                            fallback={
+                                <div className="cover-placeholder">
+                                    <span className="cover-placeholder-title">{book?.title ?? '出处缺失'}</span>
+                                </div>
+                            }
+                        />
                     </div>
                     <div className="source-meta">
                         <p className="source-book">
