@@ -141,8 +141,12 @@
 /* Source reveal: the panel opens in place, next to the sentence it belongs to. */
 .source-toggle {
     display: inline-flex;
+    /* A long title and its author wrap onto separate lines instead of being squeezed into a ragged pair
+       of columns on a phone. */
+    flex-wrap: wrap;
     align-items: baseline;
-    gap: 0;
+    column-gap: 6px;
+    row-gap: 2px;
     min-height: 44px;
     padding: 4px 0;
     background: none;
@@ -170,7 +174,6 @@
 
 .source-chevron {
     font-size: 12px;
-    margin-left: 6px;
 }
 
 .source-panel {

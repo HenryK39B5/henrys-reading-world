@@ -6,6 +6,7 @@ import {
     describeDeadEnd,
     encounterReducer,
     isBusy,
+    settleSession,
     unseenInBookCount,
     type EncounterContext,
 } from './encounter.ts';
@@ -218,6 +219,23 @@ describe('persistent stage scope', () => {
     it('starts in 随便看看', () => {
         const state = createInitialState(makeContext(), 'h-001');
         expect(state.stageScope).toEqual({ kind: 'all' });
+    });
+
+    it('opens a shelf room inside that shelf instead of the whole library', () => {
+        const context = makeContext({ selector: selectNext });
+        // t-002 holds b-002 only, so a theme-scoped opening must land there and keep its own cycle key.
+        const state = createInitialState(context, null, { kind: 'theme', themeId: 't-002' });
+        expect(state.stageScope).toEqual({ kind: 'theme', themeId: 't-002' });
+        expect(state.currentId).toBe('h-002');
+        expect(cycleOf(state, 'theme:t-002').highlightIds).toEqual(['h-002']);
+        expect(cycleOf(state, 'all')).toEqual(EMPTY_CYCLE);
+    });
+
+    it('opens a shelf room with no drawable passage without faking one', () => {
+        const context = makeContext({ selector: selectNext });
+        const state = createInitialState(context, null, { kind: 'theme', themeId: 't-404' });
+        expect(state.currentId).toBeNull();
+        expect(state.lastResult).toEqual({ kind: 'empty' });
     });
 
     it('switches the range and commits a passage of that range in one step', () => {
@@ -515,8 +533,32 @@ describe('source reveal', () => {
     });
 });
 
-describe('deterministic reference ordering', () => {
-    const base = {
+describe('leaving a room settles its own session', () => {
+    it('drops a transition in flight but keeps what was on screen', () => {
+        const context = makeContext();
+        const busy = encounterReducer(createInitialState(context, 'h-001'), { type: 'NEXT_STAGE' }, context);
+        expect(busy.phase).toBe('exiting');
+        expect(busy.pending).not.toBeNull();
+
+        // A room that is left must not hold a pending draw or a busy phase for its next visit.
+        const settled = settleSession(busy);
+        expect(settled.phase).toBe('idle');
+        expect(settled.pending).toBeNull();
+        expect(settled.pendingKind).toBeNull();
+        expect(settled.currentId).toBe('h-001');
+        expect(settled.cycles).toEqual(busy.cycles);
+        expect(settled.historyIds).toEqual(busy.historyIds);
+    });
+
+    it('leaves an already idle session untouched', () => {
+        const state = createInitialState(makeContext(), 'h-001');
+        expect(settleSession(state)).toBe(state);
+        const entering = { ...state, phase: 'entering' as const };
+        expect(settleSession(entering).phase).toBe('idle');
+    });
+});
+
+describe('deterministic reference ordering', () => {    const base = {
         books: BOOKS,
         highlights: HIGHLIGHTS,
         currentBookId: null,

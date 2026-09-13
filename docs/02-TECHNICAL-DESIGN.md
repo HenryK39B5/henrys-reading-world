@@ -92,14 +92,17 @@ UI 状态：出处开关、当前选书 / 主题 / 年份、分享预览的固�
 
 ## 6. URL 与分享
 
-> v2 待办（V2-C1，见 `docs/12 §3`）：当前仍是单页 `#random / #books / #topics / #about`；房间式路由（`/`、`/themes`、`/themes/:id`、`/books`、`/books/:id`、`/about`）与返回现场记忆在该片实现。以下深链规则继续有效。
+> v2 已实现（V2-C1，见 `docs/12 §3`）：六个房间使用 History API 真实路径；每个房间直接访问、刷新都能恢复；离开房间时记住滚动位置，返回时恢复。
 
-- 四个导航使用 `#random / #books / #topics / #about`，同时滚动至对应标题。
-- 精确划线链接使用当前 origin + 当前 pathname（保留子路径）+ `?h=<encodeURIComponent(id)>#random`。
+- 房间路径：`/` 门厅、`/themes` 主题书架、`/themes/:themeId` 主题房间、`/books` 所有书、`/books/:bookId` 书籍房间、`/about` 关于。
+- 筛选属于 URL：`?year=<四位年份>`（仅书籍空间）、`?theme=<themeId>`（书库只看某个书架）。无法解析的值不会进入界面，地址栏会被规范化为实际房间。
+- 站点内链接都是真实 `<a href>`，可以新标签页打开、书签、无 JavaScript 也能跟随；router 只接管点击。
+- 页面“返回上一处”与浏览器后退使用同一个 `history.back()`，不另建一套返回逻辑。
+- 未知路径、无效 theme / book ID 显示安静可返回的错误态，不回退到旧房间伪装成功。
+- 精确划线链接（V2-E）沿用现有 `?h=<encodeURIComponent(id)>`，房间与 scope 是上下文，内容身份仍是稳定 highlight ID。
 - 分享 URL 不复制其他 query 参数，避免传播追踪或敏感参数。
 - 初次加载 `h` 有效则优先展示该条，记曝光（v2：作为 `fallback`，不参与舞台抽取）；`h` 无效则显示轻提示 `这条划线暂不可用` 并按 `docs/11 §4` 公平抽取首屏。
-- 每次普通换句不写 history，避免返回键要退几十步。分享时即时构造链接。
-- 内部点击某条进入舞台时 `replaceState` 更新 `h`；处理 `popstate` / `hashchange` 恢复外部导航，不让 hash 变化重新随机选句。
+- 普通换句不写 history，避免返回键要退几十步；改变房间与筛选才写一条历史。
 - 已删除或撤回的 ID 不可复用于其他内容。深链不可绕过当前快照审核边界。
 - 本机 `localhost` / `127.0.0.1` 链接明确标注仅本机有效；不声称已公开可访问。
 

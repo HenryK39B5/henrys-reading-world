@@ -14,21 +14,37 @@ const SNAPSHOT_PATH = join(process.cwd(), '.private/local-snapshot.json');
 const REVIEW_DIR = join(process.cwd(), '.private/review/slice-3');
 const hasSnapshot = existsSync(SNAPSHOT_PATH);
 
-type RealData = { byText: Map<string, Highlight>; countByBook: Map<string, number>; titles: Map<string, string> };
+type RealData = {
+    byText: Map<string, Highlight>;
+    countByBook: Map<string, number>;
+    titles: Map<string, string>;
+    /** How many books with passages a shelf holds; the bound for walking a shelf room. */
+    shelfSize: Map<string, number>;
+};
 
 function loadSnapshot(): RealData {
     const parsed = JSON.parse(readFileSync(SNAPSHOT_PATH, 'utf8')) as {
         highlights: Highlight[];
-        books: { id: string; title: string }[];
+        books: { id: string; title: string; themeIds: string[] }[];
     };
     const countByBook = new Map<string, number>();
     for (const highlight of parsed.highlights) {
         countByBook.set(highlight.bookId, (countByBook.get(highlight.bookId) ?? 0) + 1);
     }
+    const shelfSize = new Map<string, number>();
+    for (const book of parsed.books) {
+        if ((countByBook.get(book.id) ?? 0) === 0) {
+            continue;
+        }
+        for (const themeId of book.themeIds) {
+            shelfSize.set(themeId, (shelfSize.get(themeId) ?? 0) + 1);
+        }
+    }
     return {
         byText: new Map(parsed.highlights.map((item) => [item.text.trim(), item])),
         countByBook,
         titles: new Map(parsed.books.map((book) => [book.id, book.title])),
+        shelfSize,
     };
 }
 
@@ -45,26 +61,58 @@ async function advance(page: Page): Promise<void> {
 }
 
 /**
- * Opens a specific book from the world layer and puts one of its passages on the stage.
+ * Opens a shelf room that holds the book and asks for the shelf's next passage until that book appears.
  *
- * v1 could walk the global stage until a small book happened to appear. With the full library that
- * walk is neither bounded nor deterministic, so these tests drive the same UI path the visitor has:
- * expand the book list, open the book, pick a passage.
+ * v1 drove the old long page (expand the book list, open a book, pick a passage) and v2 made that page
+ * a room of its own. A visitor's route to "one passage of this book on a stage" is a shelf room, so the
+ * tests walk the same rooms a visitor does, bounded by the shelf's size.
  */
-async function stagePassageOfBook(page: Page, bookId: string): Promise<void> {
-    // The local snapshot arrives asynchronously, so wait for the world layer before driving it.
-    await expect(page.getByTestId('book-list')).toBeVisible();
-    const toggleAll = page.getByTestId('toggle-all-books');
-    if (await toggleAll.isVisible()) {
-        await toggleAll.click();
+async function stagePassageOfBook(page: Page, bookId: string, shelfId: string): Promise<boolean> {
+    const { byText, shelfSize } = loadSnapshot();
+    await page.goto(`/themes/${shelfId}`);
+    await expect(page.getByTestId('room-heading')).toContainText('正在逛');
+
+    const bookOf = async (): Promise<string | null> => {
+        const text = (await page.getByTestId('stage-passage').innerText()).trim();
+        return byText.get(text)?.bookId ?? null;
+    };
+
+    // A shelf draws book by book and never the same book twice in a row, so walking the shelf once
+    // reaches every book the shelf can offer.
+    const bound = (shelfSize.get(shelfId) ?? 1) + 2;
+    for (let step = 0; step < bound; step += 1) {
+        if ((await bookOf()) === bookId) {
+            return true;
+        }
+        await advance(page);
     }
-    const row = page.getByTestId(`book-${bookId}`);
-    await expect(row).toBeVisible();
-    await row.click();
-    const detail = page.getByTestId(`book-detail-${bookId}`);
-    await expect(detail).toBeVisible();
-    await detail.locator('.passage-button').first().click();
-    await expect(page.getByTestId('stage-passage')).toBeVisible();
+    return (await bookOf()) === bookId;
+}
+
+/**
+ * The book with the given passage counts whose smallest shelf is cheapest to walk.
+ *
+ * Walking a shelf room is how a visitor reaches one book's passage on a stage, so the tests pick the
+ * (book, shelf) pair with the fewest books on the shelf to keep the journey bounded.
+ */
+function bestSmallBook(min: number, max: number): { bookId: string; bookCount: number; shelfId: string } | null {
+    const { countByBook, shelfSize } = loadSnapshot();
+    const parsed = JSON.parse(readFileSync(SNAPSHOT_PATH, 'utf8')) as { books: { id: string; themeIds: string[] }[] };
+    const shelves = new Map(parsed.books.map((book) => [book.id, book.themeIds]));
+
+    const candidates = [...countByBook.entries()]
+        .filter(([, count]) => count >= min && count <= max)
+        .map(([bookId, bookCount]) => {
+            const best = (shelves.get(bookId) ?? [])
+                .map((themeId) => ({ themeId, size: shelfSize.get(themeId) ?? Number.MAX_SAFE_INTEGER }))
+                .sort((left, right) => left.size - right.size)[0];
+            return best === undefined ? null : { bookId, bookCount, shelfId: best.themeId, size: best.size };
+        })
+        .filter((item): item is { bookId: string; bookCount: number; shelfId: string; size: number } => item !== null)
+        .sort((left, right) => left.size - right.size);
+
+    const picked = candidates[0];
+    return picked === undefined ? null : { bookId: picked.bookId, bookCount: picked.bookCount, shelfId: picked.shelfId };
 }
 
 test.describe('source reveal', () => {
@@ -165,28 +213,23 @@ test.describe('source reveal', () => {
     });
 
     test('explains exhaustion instead of silently moving to another book', async ({ page }) => {
-        const { countByBook } = loadSnapshot();
-        // A short book keeps the walk bounded and deterministic on the full library.
-        const small = [...countByBook.entries()]
-            .filter(([, count]) => count >= 2 && count <= 4)
-            .sort((left, right) => left[1] - right[1])[0];
-        test.skip(small === undefined, 'no small multi-passage book in the snapshot');
-        if (small === undefined) {
+        const small = bestSmallBook(2, 4);
+        test.skip(small === null, 'no small multi-passage book in the snapshot');
+        if (small === null) {
             return;
         }
-        const [bookId, bookCount] = small;
 
-        await page.goto('/');
-        await stagePassageOfBook(page, bookId);
+        const reached = await stagePassageOfBook(page, small.bookId, small.shelfId);
+        expect(reached, `${small.bookId} did not come up while walking ${small.shelfId}`).toBe(true);
         await page.getByTestId('source-toggle').click();
 
         // Walk through every remaining passage of this book, then ask once more.
-        for (let index = 1; index < bookCount; index += 1) {
+        for (let index = 1; index < small.bookCount; index += 1) {
             await page.getByTestId('next-in-book').click();
             await expect(page.locator('.stage')).toHaveAttribute('data-phase', 'idle', { timeout: 3000 });
         }
 
-        expect((await currentRecord(page)).bookId).toBe(bookId);
+        expect((await currentRecord(page)).bookId).toBe(small.bookId);
         // The control explains itself before it is pressed; it never jumps to another book.
         await expect(page.getByTestId('next-in-book')).toHaveAttribute('aria-disabled', 'true');
         await expect(page.getByTestId('source-note')).toContainText('都看过了');
@@ -194,15 +237,14 @@ test.describe('source reveal', () => {
     });
 
     test('explains a single-passage book instead of offering a dead control', async ({ page }) => {
-        const { countByBook } = loadSnapshot();
-        const single = [...countByBook.entries()].find(([, count]) => count === 1);
-        test.skip(single === undefined, 'no single-passage book in the snapshot');
-        if (single === undefined) {
+        const single = bestSmallBook(1, 1);
+        test.skip(single === null, 'no single-passage book in the snapshot');
+        if (single === null) {
             return;
         }
 
-        await page.goto('/');
-        await stagePassageOfBook(page, single[0]);
+        const reached = await stagePassageOfBook(page, single.bookId, single.shelfId);
+        expect(reached, `${single.bookId} did not come up while walking ${single.shelfId}`).toBe(true);
         await page.getByTestId('source-toggle').click();
 
         await expect(page.getByTestId('source-count')).toHaveText('这里收录了 1 处划线');

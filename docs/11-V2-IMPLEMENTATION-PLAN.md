@@ -217,7 +217,7 @@ About 是独立小房间，只显示真实范围和可选的 Henry 自写介绍�
 ### V2-B — Fair Discovery Engine（已完成并通过复验）
 
 - 实际完成：`discovery.ts` 取代 `serendipity.ts`；两阶段公平引擎（先选书、再选句）、`all / theme:<id> / book:<id>` 三套独立 cycle、持久 `stageScope`、原子 `SET_STAGE_SCOPE`、机械长度规则。真实数据首次 130 次抽完全部 130 本、600 次 0 重复；旧“按条数加权”的已知限制测试已由 45 条新性质测试取代。执行记录与复核修复见 `docs/08`。
-- 已知遗留：主题/房间 UI 与 scope 控件属 V2-C1；首屏只做机械可读长度偏好，不做按长度预筛书。
+- 已知遗留：主题/房间 UI 已在 V2-C1 实现；首屏只做机械可读长度偏好，不做按长度预筛书。
 
 - 新两阶段选择器与 scope-aware cycle。
 - reducer/hook 接入 `stageScope / NEXT_STAGE / SET_STAGE_SCOPE`。
@@ -225,7 +225,10 @@ About 是独立小房间，只显示真实范围和可选的 Henry 自写介绍�
 
 验收：算法性质测试 + 快速点击/reduced-motion 回归；删除 Opening/Contrast/Surprise 的产品依赖和诊断文案。
 
-### V2-C1 — 房间路由、现场记忆与新 IA
+### V2-C1 — 房间路由、现场记忆与新 IA（已完成）
+
+- 实际完成：`router.ts`（History API 真实路径、纯函数解析、滚动记忆）、六个房间组件、每房间独立舞台会话、书籍随机与批次记忆；删除单页世界层。149 单测 / 34 Playwright。执行记录见 `docs/08`。
+- 已知遗留：Book Aura 与呼吸动效属 V2-C2。
 
 - 建立 `/`、`/themes`、`/themes/:id`、`/books`、`/books/:id`、`/about` 的稳定房间结构。
 - 门厅不再向下铺完整世界层；主题总览不再展开划线墙。

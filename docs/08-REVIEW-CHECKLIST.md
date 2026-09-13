@@ -37,7 +37,9 @@
 | V2-A 全量数据与 schema 2 | 已完成 | 4,663 条 / 130 本 / 14 个书籍主题书架；v1 的 46 条与 20 本 ID 原封保留；详见下方 V2-A 执行记录 |
 | V2-B 公平发现算法 | 已完成（含复核修复） | 两阶段公平引擎 + all/theme 持久 scope + 分 scope cycle；真实数据首次 130 次抽完全部 130 本且 0 重复；复核后收紧为“多书时排除当前书”硬规则；详见下方 V2-B 执行记录与复核修复 |
 | Product Critique #2 | 已完成方向评审 | 用户确认房间式结构、Book Aura 色彩归属、返回保留现场与轻盈呼吸动效；见 `docs/12` |
-| V2-C1 / V2-C2 | 已完成规划，未施工 | C1：房间路由与 IA；C2：色彩与动效；当前 UI 未接入 scope 控件，属 V2-C1 |
+| V2-C1 房间路由与现场记忆 | 已完成 | 六个真实路径、每房间独立舞台会话、批次与滚动记忆；149 单测 / 34 Playwright；详见下方 V2-C1 执行记录 |
+| V2-C2 Book Aura 与呼吸动效 | 待施工 | 结构已稳定（C1）；下一步接入真实封面环境色与轻盈过渡 |
+| V2-D 全量分批浏览 | 验收待补 | 批次基础设施与最大书路径已在 V2-C1 落地，尚缺专门验收记录 |
 | 真实访客 Gate | 未进行 | 无真实访客结果，不宣称产品 Gate 通过 |
 
 原始返回、更新包、候选池、快照与截图全部留在 `.private/`，已被 `.gitignore` 排除，未进入前端包。
@@ -596,6 +598,80 @@ V2-C1：房间路由（`/`、`/themes`、`/themes/:id`、`/books`、`/books/:id`
 
 1. 公开 bundle 中保留 `local-covers/` 路径前缀字符串（本机封面路由分支）；无封面文件、无真实内容、无私人字段。
 2. 主题/房间 UI、全量分批浏览与 Book Aura 属下一连续批次 V2-C1 → V2-D → V2-C2。
+
+## V2-C1 执行记录（已完成）
+
+```text
+日期 / 执行者：2026-09-13 / 实现 Agent（连续房间批次第一段）
+Slice / task IDs：docs/11 §5.1–5.3 与 docs/12 §2–3 — V2-C1 房间路由、现场记忆、新 IA
+状态：verified（149 单测、34 Playwright、真实数据旅程、构建隔离）
+数据模式与许可依据：真实数据 local-only；公开快照仍为空
+```
+
+**完成内容**
+
+- 新增 `src/app/router.ts`：History API 真实路径、纯函数 `parseRoute` / `routePath` / `routeKey`、query 筛选（`?year=`、`?theme=`）、链接接管、`previousPath`、滚动位置记忆。无新增依赖。
+- 新 IA：`/` 门厅、`/themes` 主题书架、`/themes/:id` 主题房间、`/books` 所有书、`/books/:id` 书籍房间、`/about` 关于；未知路径与无效 ID 有安静可返回的错误态。
+- 房间组件 `src/features/rooms/*`：`HallRoom`、`ThemesRoom`、`ThemeRoom`、`BooksRoom`、`BookRoom`、`AboutRoom`、`UnknownRoom`、共用 `StageRoom`；删除旧的单页 `World.tsx` / `world.css` / `ReadingWorldPage.tsx`。
+- 现场记忆：`useStageSessions(sessionKey, roomKey, …)` 为每个舞台房间保留自己的 `EncounterState`（当前句、scope cycle、历史）；离开房间时 `settleSession` 丢弃在途转场；`useBookRooms` 给每本书自己的随机划线；`useBatches` 记住已展开批次；`useRoomMemory` + router 恢复滚动位置。
+- 门厅不再包含书目 / 主题 / About 长页：首次绘制 **70 个元素**（V2-A 为 193）。
+
+**修复的两个真实缺陷**
+
+1. **StrictMode 下会话与渲染不一致**：惰性初始化在开发模式下执行两次，store 里留下与屏幕上不同的一次随机抽（表现为返回房间后句子变了且 `data-commit-count` 为 0）。改为用 effect 将渲染中的会话镜像回 store。
+2. **离开非舞台房间时的在途转场**：`useStageSessions` 现在同时接收会话键与**房间键**，去 `/themes`、`/books` 等也会 settle 舞台，旧计不会被“在别处”提交。
+
+**路由与现场记忆的数据结构**
+
+| 项目 | 实现 |
+| --- | --- |
+| 路由 | `parseRoute(pathname, search)` → `hall / themes / theme / books / book / about / unknown` |
+| 记忆键 | `routeKey(route)`：`/`、`/themes/:id`、`/books?year=…&theme=…` |
+| 舞台会话 | `Map<sessionKey, EncounterState>`，`sessionKey` = 门厅 `/` 或主题房间 `/themes/:id` |
+| 书籍随机 | `Map<bookId, { currentId, seen, cycle }>`，与任何舞台 cycle 无关 |
+| 批次 | `Map<"year|theme|bookId", loaded>`，初始 12（书库）/ 10（单书） |
+| 滚动 | router 在改变 URL 前记录离开路径的 `scrollY`（pushState 会把滚动重置为 0） |
+
+**浏览器旅程（Chromium，真实数据）**
+
+- 六个路径直接访问 + 刷新均回到原房间；导航 `aria-current` 正确。
+- 主题房间连抽 3 次 → 进书架 → 返回：原句保留、commit 计数不变、后续换句仍在该书架。
+- 书架 A → 书架总览 → 书架 B → 后退 ×2 回到 A，原句仍在。
+- 书库筛选年份 + 展开两批 + 滚动 → 进书 → 后退：筛选、批次标签、滚动位置（979px）都回来。
+- 书籍房间随机换一处不越界；回门厅句子未变。
+- 同一任务内“换一句 + 离开房间”：回来后仍是原句、`data-phase=idle`、commit 计数不变。
+
+**实际命令 → 结果**
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run check:local` | 149 用例 / 11 文件通过（V2-B 为 120），typecheck + lint 无错误 |
+| `npx playwright test` | **34/34 通过**（V2-B 为 24） |
+| `npm run capture:review` | 六房间 1440 / 390 截图；320/390/768/1440 无横向溢出；最小触控目标 44px |
+| 对比度（实测） | 正文 14.6、出处与出口 5.62（相对纸色） |
+
+**视图与无障碍**
+
+- 320 / 390 / 768 / 1440 无横向溢出；最小交互高度 44px（含品牌链接、年份与书架 chip）。
+- 修复移动端出处排版：长书名与作者改为换行而非挤成两列。
+- 房间切换后焦点落到主内容（`preventScroll`，不打断滚动恢复），不劫持 Tab 顺序。
+- reduced-motion：commit 74ms、跳过转场阶段、无位移。
+
+**偏差 / 判断**
+
+1. **未引入路由依赖**：自写约 200 行 router（纯函数可测）而不是加 react-router；`docs/11 §5.1` 允许最多一个专用依赖，不用也符合要求。
+2. **书籍房间顺序列表提前到 C1 实现**：批次基础设施与书库共用，先做避免返工；V2-D 只额外补全量可达证明与最大书验收。
+3. **`?theme=` 书架筛选**：`docs/12 §2.3` 要求主题房间提供“看看书架里的书”入口，用书库的 query 筛选实现，保持六条路由不变。
+4. 门厅改为只有一句与三个轻出口；总收藏量只在 About 出现，避免与 `docs/10 §8` 重复两个位置。
+
+**未验证 / 缺口**
+
+- Book Aura 色彩与呼吸动效（V2-C2）；分享、深链、200% 缩放（V2-E）。
+- 真机移动端与 Safari 仍未验证。
+
+**下一步**
+
+V2-D（全量分批浏览验收）→ V2-C2（色彩与动效）。
 
 ## Critique #2 产品结论：从单页平面进入一个个房间（2026-09-13）
 

@@ -8,7 +8,9 @@ import { expect, test } from '@playwright/test';
 test('renders real authorized data in local development mode', async ({ page }) => {
     await page.goto('/');
 
-    await expect(page.getByRole('heading', { name: "Henry's Reading World", level: 1 })).toBeVisible();
+    // The shell is the reading world itself: a brand link and the hall's own heading.
+    await expect(page.getByRole('link', { name: "Henry's Reading World" })).toBeVisible();
+    await expect(page.getByTestId('room-heading')).toHaveText('随便看看');
     await expect(page.getByText('仅本机 · 未公开审核')).toBeVisible();
 
     // A real passage from the local snapshot reaches the stage; nothing is hard-coded copy.

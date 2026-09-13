@@ -85,6 +85,14 @@ export function filterBooksByYear(entries: BookEntry[], year: number | null): Bo
     return entries.filter((entry) => entry.years.includes(year));
 }
 
+/** Books filed on one shelf; a shelf owns books, so this is a book filter (docs/10 §4). */
+export function filterBooksByTheme(entries: BookEntry[], themeId: string | null): BookEntry[] {
+    if (themeId === null) {
+        return entries;
+    }
+    return entries.filter((entry) => entry.book.themeIds.includes(themeId));
+}
+
 export function summarizeThemes(index: SnapshotIndex, year: number | null = null): ThemeEntry[] {
     return index.themesInUse.map((theme) => {
         const all = index.highlightsByTheme.get(theme.id) ?? [];

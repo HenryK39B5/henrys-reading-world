@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { selectNext, selectOpening } from './discovery.ts';
+import { selectNext, selectOpening, selectRandomFromBook } from './discovery.ts';
 import { lengthBand } from './length.ts';
 import { advanceCycle, EMPTY_CYCLE, type SelectedPassage, type SelectionInput, type SelectionScope } from './selection.ts';
 import type { Book, Highlight, LengthBand } from './types.ts';
@@ -546,8 +546,7 @@ describe('mechanical length rule', () => {
     });
 });
 
-describe('reason labels stay inside the agreed vocabulary', () => {
-    it('labels all, theme and book draws distinctly', () => {
+describe('reason labels stay inside the agreed vocabulary', () => {    it('labels all, theme and book draws distinctly', () => {
         const books = [makeBook('b-001', ['t-001'])];
         const highlights = [passage('b-001', 1), passage('b-001', 2)];
         const all = selectNext(input({ books, highlights, rng: () => 0 }));
@@ -566,5 +565,84 @@ describe('reason labels stay inside the agreed vocabulary', () => {
         expect(all.kind === 'selected' && all.reason).toBe('all');
         expect(theme.kind === 'selected' && theme.reason).toBe('theme');
         expect(book.kind === 'selected' && book.reason).toBe('book');
+    });
+});
+
+describe('a book room draws only from its own book', () => {
+    const books = [makeBook('b-001'), makeBook('b-002')];
+    const highlights = [...countPassages(3, 'b-001'), ...countPassages(3, 'b-002')];
+
+    function fromBook(bookId: string, overrides: Partial<Parameters<typeof selectRandomFromBook>[0]> = {}) {
+        return selectRandomFromBook({
+            books,
+            highlights,
+            bookId,
+            currentId: null,
+            recentIds: [],
+            cycle: EMPTY_CYCLE,
+            rng: () => 0.5,
+            ...overrides,
+        });
+    }
+
+    it('never leaves the book it was asked for', () => {
+        const drawn = Array.from({ length: 20 }, (_, index) => fromBook('b-001', { rng: seededRng([index / 20]) }));
+        for (const result of drawn) {
+            expect(result.kind).toBe('selected');
+            if (result.kind === 'selected') {
+                expect(result.bookId).toBe('b-001');
+                expect(result.id.startsWith('b-001-')).toBe(true);
+                expect(result.reason).toBe('book');
+            }
+        }
+    });
+
+    it('reports an empty book instead of inventing a passage', () => {
+        expect(fromBook('b-404')).toEqual({ kind: 'empty' });
+    });
+
+    it('reports a single-passage book that is already on screen instead of repeating it', () => {
+        const single = [passage('b-001', 1)];
+        const result = selectRandomFromBook({
+            books,
+            highlights: single,
+            bookId: 'b-001',
+            currentId: 'b-001-h-0001',
+            recentIds: [],
+            cycle: { bookIds: ['b-001'], highlightIds: ['b-001-h-0001'] },
+            rng: () => 0.5,
+        });
+        expect(result).toEqual({ kind: 'only-current' });
+    });
+
+    it('prefers a passage that is neither current nor recent', () => {
+        const result = fromBook('b-001', {
+            currentId: 'b-001-h-0001',
+            recentIds: ['b-001-h-0002'],
+            cycle: { bookIds: ['b-001'], highlightIds: ['b-001-h-0001', 'b-001-h-0002'] },
+            rng: () => 0,
+        });
+        expect(result.kind === 'selected' && result.id).toBe('b-001-h-0003');
+    });
+
+    it('is reproducible for a fixed rng and cycle', () => {
+        const cycle = { bookIds: ['b-001'], highlightIds: ['b-001-h-0001'] };
+        const first = fromBook('b-001', { currentId: 'b-001-h-0001', cycle, rng: seededRng([0.7, 0.2]) });
+        const second = fromBook('b-001', { currentId: 'b-001-h-0001', cycle, rng: seededRng([0.7, 0.2]) });
+        expect(first).toEqual(second);
+    });
+
+    it('prefers a readable passage when the book has one', () => {
+        const mixed = [passage('b-001', 1, LONG), passage('b-001', 2, READABLE)];
+        const result = selectRandomFromBook({
+            books,
+            highlights: mixed,
+            bookId: 'b-001',
+            currentId: null,
+            recentIds: [],
+            cycle: EMPTY_CYCLE,
+            rng: () => 0.9,
+        });
+        expect(result.kind === 'selected' && result.id).toBe('b-001-h-0002');
     });
 });

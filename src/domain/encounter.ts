@@ -204,10 +204,17 @@ function commit(
 }
 
 /**
- * Opens a session. With no chosen passage the first screen is the engine's own fair opening draw; a
- * deep link is already a decision, so it is shown as it is instead of being replaced.
+ * Opens a session. With no chosen passage the first screen is the engine's own fair draw inside
+ * `scope`; a deep link is already a decision, so it is shown as it is instead of being replaced.
+ *
+ * A room passes its own scope (`正在逛：<主题>`), so the shelf's first sentence and every following draw
+ * come from that shelf's own cycle.
  */
-export function createInitialState(context: EncounterContext, initialId: string | null = null): EncounterState {
+export function createInitialState(
+    context: EncounterContext,
+    initialId: string | null = null,
+    scope: StageScope = ALL_SCOPE,
+): EncounterState {
     const base: EncounterState = {
         phase: 'idle',
         currentId: null,
@@ -216,7 +223,7 @@ export function createInitialState(context: EncounterContext, initialId: string 
         sourceOpen: false,
         lastResult: { kind: 'empty' },
         historyIds: [],
-        stageScope: ALL_SCOPE,
+        stageScope: scope,
         cycles: {},
         commitCount: 0,
     };
@@ -229,12 +236,12 @@ export function createInitialState(context: EncounterContext, initialId: string 
         return showPassage(
             base,
             context,
-            { kind: 'selected', id: known.id, bookId: known.bookId, reason: 'fallback', scopeKey: scopeKeyOf(ALL_SCOPE) },
+            { kind: 'selected', id: known.id, bookId: known.bookId, reason: 'fallback', scopeKey: scopeKeyOf(scope) },
             { phase: 'idle', sourceOpen: false, count: false, stage: true, cycleReset: false, bookCycleReset: false },
         );
     }
 
-    const result = context.selector(selectionInput(base, context, ALL_SCOPE));
+    const result = context.selector(selectionInput(base, context, scope));
     if (result.kind !== 'selected') {
         return { ...base, lastResult: result };
     }
@@ -246,6 +253,18 @@ export function createInitialState(context: EncounterContext, initialId: string 
         cycleReset: result.cycleReset === true,
         bookCycleReset: result.bookCycleReset === true,
     });
+}
+
+/**
+ * Drops a transition that belongs to a room the visitor has left.
+ *
+ * Each room keeps its own session, so a fade-in that was in flight must not be resumed later by a stale
+ * timer: leaving normalises the session to `idle` and discards the pending draw.
+ */
+export function settleSession(state: EncounterState): EncounterState {
+    return state.phase === 'idle' && state.pending === null
+        ? state
+        : { ...state, phase: 'idle', pending: null, pendingKind: null };
 }
 
 export function encounterReducer(state: EncounterState, event: EncounterEvent, context: EncounterContext): EncounterState {

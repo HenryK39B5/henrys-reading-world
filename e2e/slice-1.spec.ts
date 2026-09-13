@@ -59,7 +59,7 @@ test.describe('quote stage', () => {
         const { byText, titles } = loadSnapshot();
 
         await page.goto('/');
-        await expect(page.getByRole('heading', { name: "Henry's Reading World", level: 1 })).toBeVisible();
+        await expect(page.getByTestId('room-heading')).toHaveText('随便看看');
         await expect(page.getByRole('navigation', { name: '主要导航' })).toBeVisible();
         await expect(page.locator('.stage')).toHaveAttribute('data-phase', 'idle');
 

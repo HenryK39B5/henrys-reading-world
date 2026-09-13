@@ -5,11 +5,11 @@ import { expect, test, type Page } from '@playwright/test';
 /**
  * Review capture: screenshots plus the measurements that can be judged without seeing the page.
  *
- * Output goes to .private/review/critique-1/ because the page shows real, not-yet-public passages.
+ * Output goes to .private/review/rooms-batch/ because the rooms show real, not-yet-public passages.
  * Run with: npm run capture:review
  */
 const SNAPSHOT_PATH = join(process.cwd(), '.private/local-snapshot.json');
-const OUT_DIR = join(process.cwd(), '.private/review/critique-1');
+const OUT_DIR = join(process.cwd(), '.private/review/rooms-batch');
 const hasSnapshot = existsSync(SNAPSHOT_PATH);
 
 type Highlight = { id: string; text: string; bookId: string };
@@ -46,22 +46,27 @@ async function contrastRatios(page: Page) {
             return Math.round(((lighter + 0.05) / (darker + 0.05)) * 100) / 100;
         };
         const body = window.getComputedStyle(document.body);
+        const background = body.backgroundColor;
         const passage = document.querySelector('.stage-text');
         const attribution = document.querySelector('.stage-attribution');
-        const heading = document.querySelector('.section-heading');
+        const heading = document.querySelector('.room-heading');
+        const note = document.querySelector('.room-note');
+        const link = document.querySelector('.room-exit');
         return {
-            bodyOnPaper: ratio(body.color, body.backgroundColor),
-            passageOnPaper: passage === null ? null : ratio(window.getComputedStyle(passage).color, body.backgroundColor),
+            bodyOnPaper: ratio(body.color, background),
+            passageOnPaper: passage === null ? null : ratio(window.getComputedStyle(passage).color, background),
             attributionOnPaper:
-                attribution === null ? null : ratio(window.getComputedStyle(attribution).color, body.backgroundColor),
-            headingOnPaper: heading === null ? null : ratio(window.getComputedStyle(heading).color, body.backgroundColor),
+                attribution === null ? null : ratio(window.getComputedStyle(attribution).color, background),
+            headingOnPaper: heading === null ? null : ratio(window.getComputedStyle(heading).color, background),
+            noteOnPaper: note === null ? null : ratio(window.getComputedStyle(note).color, background),
+            exitOnPaper: link === null ? null : ratio(window.getComputedStyle(link).color, background),
         };
     });
 }
 
 /** Lines, font size and effective characters per line for the passage on screen. */
-async function passageMetrics(page: Page) {
-    return page.locator('.stage-text').evaluate((element) => {
+async function passageMetrics(page: Page, selector = '.stage-text') {
+    return page.locator(selector).first().evaluate((element) => {
         const style = window.getComputedStyle(element);
         const range = document.createRange();
         range.selectNodeContents(element);
@@ -93,34 +98,44 @@ async function smallestTarget(page: Page): Promise<number> {
     });
 }
 
+async function density(page: Page) {
+    return page.evaluate(() => ({
+        passageNodes: document.querySelectorAll('.passage-text').length,
+        bookRows: document.querySelectorAll('.book-item').length,
+        shelfRows: document.querySelectorAll('.shelf-item').length,
+        images: document.querySelectorAll('img').length,
+        totalElements: document.querySelectorAll('*').length,
+        text: document.body.innerText.length,
+    }));
+}
+
 async function advance(page: Page): Promise<void> {
     await page.getByTestId('next-quote').click();
     await expect(page.locator('.stage')).toHaveAttribute('data-phase', 'idle', { timeout: 3000 });
 }
 
+async function roomReady(page: Page): Promise<void> {
+    await expect(page.getByTestId('room-heading')).toBeVisible();
+    await page.waitForTimeout(250);
+}
+
 test.describe('review capture', () => {
     test.skip(!hasSnapshot, 'private local snapshot is not available');
 
-    test('captures the page and prints measurable facts', async ({ page }) => {
+    test('walks every room and prints measurable facts', async ({ page }) => {
+        // A deliberate, thorough review walk: every room, four viewports, motion preferences.
+        test.setTimeout(240_000);
         mkdirSync(OUT_DIR, { recursive: true });
         const highlights = loadHighlights();
 
         await page.setViewportSize({ width: 1440, height: 900 });
         await page.goto('/');
-        await page.waitForTimeout(400);
+        await roomReady(page);
 
-        // --- desktop screenshot set -------------------------------------------------
-        await page.screenshot({ path: join(OUT_DIR, 'desktop-opening.png'), fullPage: true });
-        await page.screenshot({ path: join(OUT_DIR, 'desktop-first-screen.png') });
-
-        await page.getByTestId('source-toggle').click();
-        await page.waitForTimeout(200);
-        await page.screenshot({ path: join(OUT_DIR, 'desktop-source-open.png'), fullPage: true });
-        await page.getByTestId('close-source').click();
-
-        // Walk until each length band has been captured.
+        // --- hall: length bands -----------------------------------------------------
+        await page.screenshot({ path: join(OUT_DIR, 'hall-1440.png'), fullPage: true });
         const bands = new Set<string>();
-        for (let step = 0; step < 220 && bands.size < 3; step += 1) {
+        for (let step = 0; step < 260 && bands.size < 3; step += 1) {
             const band = (await page.locator('.stage').getAttribute('data-band')) ?? '';
             if (band !== '' && !bands.has(band)) {
                 bands.add(band);
@@ -130,22 +145,70 @@ test.describe('review capture', () => {
                 console.log(
                     `band ${band}: font ${String(metrics.fontSize)}px / line-height ${metrics.lineHeight} / width ${String(metrics.width)}px / lines ${String(metrics.lines)} / ~${String(charsPerLine)} chars per line`,
                 );
-                await page.screenshot({ path: join(OUT_DIR, `band-${band}-first-screen.png`) });
+                await page.screenshot({ path: join(OUT_DIR, `band-${band}-1440.png`) });
             }
             await advance(page);
         }
         console.log(`bands captured: ${[...bands].sort().join(', ')}`);
+        console.log(`hall density: ${JSON.stringify(await density(page))}`);
+        console.log(`hall contrast: ${JSON.stringify(await contrastRatios(page))}`);
 
-        // World layer, with a theme shelf expanded and a year filter applied.
-        await page.getByTestId('theme-t-001').click();
-        await page.waitForTimeout(200);
-        await page.screenshot({ path: join(OUT_DIR, 'desktop-world-topics.png'), fullPage: true });
-        await page.getByTestId('year-2024').click();
-        await page.waitForTimeout(200);
-        await page.screenshot({ path: join(OUT_DIR, 'desktop-year-filter.png'), fullPage: true });
-        await page.getByTestId('year-all').click();
+        // --- the other rooms --------------------------------------------------------
+        await page.goto('/themes');
+        await roomReady(page);
+        await page.screenshot({ path: join(OUT_DIR, 'themes-1440.png'), fullPage: true });
+        console.log(`themes density: ${JSON.stringify(await density(page))}`);
 
-        // --- measured behaviour -----------------------------------------------------
+        await page.getByTestId('theme-list').locator('a.shelf-link').first().click();
+        await roomReady(page);
+        await page.screenshot({ path: join(OUT_DIR, 'theme-room-1440.png'), fullPage: true });
+        console.log(`theme room heading: ${await page.getByTestId('room-heading').innerText()}`);
+        console.log(`theme room note: ${await page.getByTestId('theme-note').innerText()}`);
+        await page.getByTestId('source-toggle').click();
+        await page.waitForTimeout(200);
+        await page.screenshot({ path: join(OUT_DIR, 'theme-room-source-1440.png'), fullPage: true });
+        await page.getByTestId('close-source').click();
+
+        await page.goto('/books');
+        await roomReady(page);
+        await page.screenshot({ path: join(OUT_DIR, 'books-1440.png'), fullPage: true });
+        console.log(`books density: ${JSON.stringify(await density(page))}`);
+        console.log(`books batch label: ${await page.getByTestId('books-batch-label').innerText()}`);
+
+        await page.getByTestId('book-list').locator('a.book-link').first().click();
+        await roomReady(page);
+        await page.screenshot({ path: join(OUT_DIR, 'book-room-1440.png'), fullPage: true });
+        console.log(`book room heading: ${await page.getByTestId('room-heading').innerText()}`);
+        console.log(`book room batch label: ${await page.getByTestId('book-batch-label').innerText()}`);
+        console.log(`book room density: ${JSON.stringify(await density(page))}`);
+        console.log(`book room contrast: ${JSON.stringify(await contrastRatios(page))}`);
+
+        await page.goto('/about');
+        await roomReady(page);
+        await page.screenshot({ path: join(OUT_DIR, 'about-1440.png'), fullPage: true });
+
+        // --- return journey: does a room come back the way it was left? -------------
+        await page.goto('/themes');
+        await roomReady(page);
+        const themeId = ((await page.getByTestId('theme-list').locator('a.shelf-link').first().getAttribute('data-testid')) ?? '').replace('theme-', '');
+        await page.getByTestId(`theme-${themeId}`).click();
+        await roomReady(page);
+        await advance(page);
+        await advance(page);
+        await advance(page);
+        const shelfSentence = (await page.getByTestId('stage-passage').innerText()).trim();
+        await page.getByTestId('open-book').count();
+        await page.getByTestId('source-toggle').click();
+        await page.getByTestId('open-book').click();
+        await roomReady(page);
+        await page.goBack();
+        await roomReady(page);
+        const returned = (await page.getByTestId('stage-passage').innerText()).trim();
+        console.log(`theme room restored: ${String(returned === shelfSentence)}`);
+
+        // --- measured behaviour on the hall ----------------------------------------
+        await page.goto('/');
+        await roomReady(page);
         const transitions: number[] = [];
         for (let index = 0; index < 5; index += 1) {
             const before = await page.getByTestId('stage-passage').innerText();
@@ -156,8 +219,7 @@ test.describe('review capture', () => {
                 before,
                 { timeout: 3000 },
             );
-            const elapsed = (await page.evaluate(() => performance.now())) - started;
-            transitions.push(Math.round(elapsed));
+            transitions.push(Math.round((await page.evaluate(() => performance.now())) - started));
             await expect(page.locator('.stage')).toHaveAttribute('data-phase', 'idle', { timeout: 3000 });
         }
         console.log(`commit latency over 5 clicks (ms): ${transitions.join(', ')}`);
@@ -170,49 +232,57 @@ test.describe('review capture', () => {
             }
         });
         await expect(page.locator('.stage')).toHaveAttribute('data-phase', 'idle', { timeout: 3000 });
-        const rapidEnd = await page.locator('.stage').getAttribute('data-commit-count');
-        console.log(`20 rapid clicks moved the commit counter from ${String(rapidStart)} to ${String(rapidEnd)}`);
-
-        const ratios = await contrastRatios(page);
-        console.log(`contrast ratios against paper: ${JSON.stringify(ratios)}`);
+        console.log(
+            `20 rapid clicks moved the commit counter from ${String(rapidStart)} to ${String(await page.locator('.stage').getAttribute('data-commit-count'))}`,
+        );
 
         const structure = await page.evaluate(() => ({
             liveRegions: document.querySelectorAll('[aria-live]').length,
-            headings: [...document.querySelectorAll('h1, h2, h3')].map((node) => `${node.tagName}:${node.textContent?.trim().slice(0, 14) ?? ''}`),
-            expandedControls: document.querySelectorAll('[aria-expanded]').length,
-            images: document.querySelectorAll('img').length,
+            headings: [...document.querySelectorAll('h1, h2, h3')].map((node) => `${node.tagName}:${node.textContent?.trim().slice(0, 16) ?? ''}`),
             landmarks: document.querySelectorAll('header, main, nav, section').length,
+            navCurrent: document.querySelector('[aria-current="page"]')?.textContent?.trim() ?? null,
             stageTextNodes: document.querySelectorAll('.stage-text').length,
-            passageNodes: document.querySelectorAll('.passage-button').length,
-            bookRows: document.querySelectorAll('.book-item').length,
-            themeRows: document.querySelectorAll('.theme-item').length,
             totalElements: document.querySelectorAll('*').length,
         }));
-        console.log(`structure: ${JSON.stringify(structure, null, 1)}`);
+        console.log(`hall structure: ${JSON.stringify(structure, null, 1)}`);
 
         // --- responsive probe -------------------------------------------------------
         for (const width of [320, 390, 768, 1440]) {
             await page.setViewportSize({ width, height: 900 });
             await page.goto('/');
-            await page.waitForTimeout(250);
-            const overflowPx = await overflow(page);
-            const target = await smallestTarget(page);
-            const stageMetrics = await passageMetrics(page);
+            await roomReady(page);
             console.log(
-                `viewport ${String(width)}px: horizontal overflow ${String(overflowPx)}px / smallest interactive height ${String(target)}px / stage font ${String(stageMetrics.fontSize)}px / lines ${String(stageMetrics.lines)}`,
+                `viewport ${String(width)}px hall: overflow ${String(await overflow(page))}px / smallest target ${String(await smallestTarget(page))}px / stage font ${String((await passageMetrics(page)).fontSize)}px`,
+            );
+            await page.goto('/books');
+            await roomReady(page);
+            console.log(
+                `viewport ${String(width)}px books: overflow ${String(await overflow(page))}px / smallest target ${String(await smallestTarget(page))}px`,
+            );
+            await page.goto('/books/b-013');
+            await roomReady(page);
+            console.log(
+                `viewport ${String(width)}px longest book room: overflow ${String(await overflow(page))}px / passage font ${String((await passageMetrics(page, '.book-random-text')).fontSize)}px`,
             );
             if (width === 390) {
-                await page.screenshot({ path: join(OUT_DIR, 'mobile-390-opening.png'), fullPage: true });
-                await page.getByTestId('theme-t-001').click();
-                await page.waitForTimeout(200);
-                await page.screenshot({ path: join(OUT_DIR, 'mobile-390-world.png'), fullPage: true });
+                await page.screenshot({ path: join(OUT_DIR, 'book-room-longest-390.png'), fullPage: true });
+                await page.goto('/');
+                await roomReady(page);
+                await page.screenshot({ path: join(OUT_DIR, 'hall-390.png'), fullPage: true });
+                await page.goto('/themes');
+                await roomReady(page);
+                await page.screenshot({ path: join(OUT_DIR, 'themes-390.png'), fullPage: true });
+                await page.goto('/books');
+                await roomReady(page);
+                await page.screenshot({ path: join(OUT_DIR, 'books-390.png'), fullPage: true });
             }
         }
 
-        // Reduced motion: the passage must change without any transition phase.
+        // --- reduced motion --------------------------------------------------------
         await page.emulateMedia({ reducedMotion: 'reduce' });
         await page.setViewportSize({ width: 1440, height: 900 });
         await page.goto('/');
+        await roomReady(page);
         const beforeText = await page.getByTestId('stage-passage').innerText();
         const motionStart = Date.now();
         await page.getByTestId('next-quote').click();
@@ -225,18 +295,6 @@ test.describe('review capture', () => {
         await expect(page.locator('.stage')).toHaveAttribute('data-phase', 'idle');
 
         console.log(`highlights in snapshot: ${String(highlights.length)}`);
-        // The library is reachable but never rendered at once (docs/10 §7).
-        await page.setViewportSize({ width: 1440, height: 900 });
-        await page.goto('/');
-        // The snapshot arrives asynchronously; measure after the world layer has rendered.
-        await expect(page.getByTestId('book-list')).toBeVisible();
-        const density = await page.evaluate(() => ({
-            passageNodes: document.querySelectorAll('.passage-button').length,
-            bookRows: document.querySelectorAll('.book-item').length,
-            themeRows: document.querySelectorAll('.theme-item').length,
-            totalElements: document.querySelectorAll('*').length,
-        }));
-        console.log(`first paint density: ${JSON.stringify(density)}`);
-        console.log(`screenshots written to .private/review/critique-1/`);
+        console.log(`screenshots written to ${OUT_DIR}`);
     });
 });

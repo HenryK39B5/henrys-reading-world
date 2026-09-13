@@ -18,6 +18,7 @@ import { countNonWhitespace, MEDIUM_MAX } from './length.ts';
 import {
     ALL_SCOPE,
     EMPTY_CYCLE,
+    bookCycleKey,
     bookInScope,
     scopeKeyOf,
     type CycleKey,
@@ -255,4 +256,55 @@ export function selectOpening(books: Book[], highlights: Highlight[], rng: () =>
         recentIds: [],
         rng,
     });
+}
+
+/**
+ * One random passage of one book, for a book room's `随机看一处`.
+ *
+ * This is deliberately not the stage contract: a visitor who opened a book wants another line *from
+ * that book*, so nothing new always beats a dead end, and a book with a single passage reports itself
+ * instead of pretending there is more.
+ */
+export function selectRandomFromBook(input: {
+    books: Book[];
+    highlights: Highlight[];
+    bookId: string;
+    currentId: string | null;
+    recentIds: string[];
+    cycle: CycleState;
+    rng: () => number;
+}): SelectionResult {
+    const passages = input.highlights.filter((highlight) => highlight.bookId === input.bookId).sort(byId);
+    if (passages.length === 0) {
+        return { kind: 'empty' };
+    }
+    const pool: BookPool = {
+        book: input.books.find((book) => book.id === input.bookId) ?? {
+            id: input.bookId,
+            title: '',
+            author: '',
+            themeIds: [],
+        },
+        passages,
+    };
+    const choice = choosePassage(
+        pool,
+        {
+            books: input.books,
+            highlights: input.highlights,
+            currentId: input.currentId,
+            currentBookId: input.bookId,
+            scope: { kind: 'book', bookId: input.bookId },
+            cycle: input.cycle,
+            currentBand: null,
+            recentIds: input.recentIds,
+            rng: input.rng,
+        },
+        input.cycle,
+        { repeatsAllowed: true },
+    );
+    if (choice === null) {
+        return { kind: 'only-current' };
+    }
+    return selected(choice.passage.id, input.bookId, 'book', bookCycleKey(input.bookId));
 }
