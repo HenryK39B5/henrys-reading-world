@@ -4,9 +4,9 @@
 
 ## 当前状态
 
-- 阶段：v1 的 **Slice 0–4**、**V2-A**（schema 2、全量 4,663 条 / 130 本 / 14 个书架）、**V2-B**（两阶段公平发现引擎）、**V2-C1**（房间路由与现场记忆）、**V2-D**（全量分批浏览）、**V2-C2**（Book Aura 与呼吸动效）与 **V2-E1/E2/E3**（稳定深链、固定 ID 分享、200% 缩放与最终无障碍）均已完成。
-- 下一阶段：用户已确认的窄范围 **V2-E4 分享卡片视觉修订**；只重做 CSS 预览并修复 dialog 偶发滚动锁，不导出图片、不显示书封。完成后才回到 Public Release Gate。
-- 产品方向：`PRODUCT_BRIEF.md` 是历史基线；轻松漫游与公平原则见 `docs/10-PRODUCT-DIRECTION-V2.md`，房间/Book Aura 见 `docs/12-ROOMS-COLOR-MOTION-DIRECTION.md`，施工路线见 `docs/11-V2-IMPLEMENTATION-PLAN.md`；下一批唯一开工 Prompt 是 `docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md`。
+- 阶段：v1 的 **Slice 0–4**、**V2-A**（schema 2、全量 4,663 条 / 130 本 / 14 个书架）、**V2-B**（两阶段公平发现引擎）、**V2-C1**（房间路由与现场记忆）、**V2-D**（全量分批浏览）、**V2-C2**（Book Aura 与呼吸动效）、**V2-E1/E2/E3**（稳定深链、固定 ID 分享、200% 缩放与最终无障碍）与 **V2-E4**（dialog 滚动锁、Book Aura 出版卡片）均已完成。
+- 下一阶段：**Public Release Gate**（PUB-01～PUB-07），需用户决定；尚未公开导出、部署或上传。
+- 产品方向：`PRODUCT_BRIEF.md` 是历史基线；轻松漫游与公平原则见 `docs/10-PRODUCT-DIRECTION-V2.md`，房间/Book Aura 见 `docs/12-ROOMS-COLOR-MOTION-DIRECTION.md`，施工路线见 `docs/11-V2-IMPLEMENTATION-PLAN.md`；V2-E4 开工 Prompt 是已执行的 `docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md`。
 - 硬约束：所有开发只使用 Henry 本人的真实划线，不使用 fake / demo 数据；主题属于书籍，不做逐句人格标签。
 - 当前页面数据（local-only）：**4,663 条真实划线 · 130 本书 · 14 个主题书架 · 2024–2026**；房间一次只渲染一个视觉中心，全部内容通过舞台、主题书架与单书房间分批可达。
 - 原始数据与快照只存在于本机 `.private/`，已被 `.gitignore` 排除，不进入前端包。
@@ -36,9 +36,10 @@ npm run snapshot:local      # 生成全量 local-only 快照
 ```powershell
 npm run check:local         # typecheck + lint + 单测 + 快照校验（开发主校验）
 npm run verify:ids          # 20 本 / 46 条稳定 ID 指向同一真实材料
-npm run test:e2e            # Playwright，真实 Chromium，81 个用例（房间、深链、分享、缩放、键盘、错误、隐私）
+npm run test:e2e            # Playwright，真实 Chromium，99 个用例（房间、深链、分享与卡片、滚动锁、缩放、键盘、错误、隐私）
 npm run capture:review      # 生成评审截图 + 可读数字，输出到 .private/review/rooms-batch/
 npm run capture:v2e         # 生成 V2-E 证据截图（dialog、卡片、200% 缩放、剪贴板失败），输出到 .private/review/v2-e/
+npm run capture:v2e4        # 生成 V2-E4 卡片证据（整张卡片、三本书的色域、200%、剪贴板失败），输出到 .private/review/v2-e4/
 npm run covers:fetch        # 下载真实书封到 .private/covers/（只由 dev:local 服务）
 npm run smoke:local         # 用真实快照做渲染冒烟检查
 npm run test:public         # 公开（空快照）模式下每个房间的诚实空状态
@@ -72,7 +73,7 @@ npm run snapshot:local                    # 挑选结果 → 开发快照
 3. `/themes` 主题书架 → 某个书架房间：`再来一句` 持续留在该书架。
 4. `/books` 所有书：初始 12 本、每次 +20，可按真实年份或书架筛选；点书进入 `/books/:id`，初始 10 处、每次 +20。
 5. 浏览器返回与 `返回上一处` 一致；回到房间时恢复原句、筛选、批次与滚动位置。
-6. 分享：`分享` 打开 dialog，锁定当时那一条的稳定 ID（换句不会改变它）；可复制原文与本机链接（剪贴板被拒时提供可全选的替代文本），并预览不裁剪的 4:5 卡片。
+6. 分享：`分享` 打开 dialog，锁定当时那一条的稳定 ID（换句不会改变它）；可复制原文与本机链接（剪贴板被拒时提供可全选的替代文本），并预览一张**属于这本书的卡片**：卡面是由该书真实封面 accent 派生的低饱和深色，暖米白正文，双细框与底部出处区；短/中句约 4:5，299/398 字自然增高并提示“长文预览已延长比例”，不裁剪、不缩字。
 
 稳定深链 `/?h=<highlightId>` 可直接打开某一条真实划线；刷新、书签、新标签页都指向同一条；从其他房间带 `h` 会被规范化为该房间地址。地址里的划线失效时页面提示 `这条划线暂不可用` 并正常公平开局。
 
@@ -118,7 +119,7 @@ npm run snapshot:local                    # 挑选结果 → 开发快照
 | [13 — V2-B 开工 Prompt](docs/13-V2-B-IMPLEMENTER-PROMPT.md) | 已执行的 V2-B 历史实现提示词 |
 | [14 — 连续房间开发 Prompt](docs/14-ROOMS-CONTINUOUS-IMPLEMENTER-PROMPT.md) | 已执行的 V2-C1 → V2-D → V2-C2 历史提示词 |
 | [15 — V2-E 最终收尾 Prompt](docs/15-V2-E-CONTINUOUS-IMPLEMENTER-PROMPT.md) | 已执行的 V2-E1 → V2-E2 → V2-E3 历史提示词 |
-| [16 — V2-E4 分享卡片视觉修订 Prompt](docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md) | 下一批唯一入口：滚动锁、Book Aura 出版卡片与视觉 Gate |
+| [16 — V2-E4 分享卡片视觉修订 Prompt](docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md) | 已执行的 V2-E4A → V2-E4B → V2-E4C 历史提示词 |
 
 ## 真实数据现状
 
@@ -130,7 +131,7 @@ npm run snapshot:local                    # 挑选结果 → 开发快照
 
 ## 两个不同的完成标准
 
-1. **工程原型可评审**：真实划线在本机可用，工程检查与浏览器验证通过。（Slice 0–4 与 V2-A～V2-E3 已达成；V2-E4 是进入发布讨论前的用户确认视觉修订）
+1. **工程原型可评审**：真实划线在本机可用，工程检查与浏览器验证通过。（Slice 0–4 与 V2-A～V2-E4 已达成）
 2. **Prototype Gate 通过**：需要 Henry 确认可对评审访客展示的内容范围，并完成真实访客体验评审。
 
 不要因为第 1 项完成就声称第 2 项成立。本机许可不等于公开发布许可；上传与部署尚未授权。

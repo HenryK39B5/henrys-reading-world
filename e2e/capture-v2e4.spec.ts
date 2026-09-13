@@ -164,10 +164,14 @@ test.describe('V2-E4 evidence', () => {
         const data = loadSnapshot();
         const long299 = data.highlights.find((item) => nonWhitespace(item.text) === 299) ?? data.medium;
 
-        // ---- the cards themselves: shortest, a medium one, the 299-character opening, the longest ----
+        // ---- the cards themselves: the shortest, an 18-character line, a medium one, 299 and the longest ----
+        // The 18-character sample is looked up rather than invented: it is one of the real boundaries this
+        // project has measured before, and the shortest passage in the snapshot is only 8 characters.
+        const short18 = data.highlights.find((item) => nonWhitespace(item.text) === 18) ?? data.shortest;
         await page.setViewportSize({ width: 1440, height: 900 });
         for (const [name, highlight] of [
             ['card-shortest', data.shortest],
+            ['card-18', short18],
             ['card-medium', data.medium],
             ['card-299', long299],
             ['card-longest', data.longest],

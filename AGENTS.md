@@ -4,7 +4,7 @@
 
 本轮只实现 Henry's Reading World 的单人静态体验原型。
 
-阅读顺序：`PRODUCT_BRIEF.md` → **`docs/10-PRODUCT-DIRECTION-V2.md` → `docs/12-ROOMS-COLOR-MOTION-DIRECTION.md` → `docs/11-V2-IMPLEMENTATION-PLAN.md` → `docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md`** → `docs/01-SCOPE-AND-DECISIONS.md` → `docs/02-TECHNICAL-DESIGN.md` → `docs/03-DATA-CONTRACT.md` → `docs/04-SERENDIPITY-SPEC.md` → `docs/05-UX-SPEC.md` → `docs/06-IMPLEMENTATION-PLAN.md` → `docs/07-IMPLEMENTATION-HANDOFF.md`。`12` 是 Critique #2 后的空间/Book Aura 权威，`16` 是当前分享卡片视觉修订的直接权威；算法与数据语义以 `10/11` 为准，冲突时优先最新文件。
+阅读顺序：`PRODUCT_BRIEF.md` → **`docs/10-PRODUCT-DIRECTION-V2.md` → `docs/12-ROOMS-COLOR-MOTION-DIRECTION.md` → `docs/11-V2-IMPLEMENTATION-PLAN.md`** → `docs/01-SCOPE-AND-DECISIONS.md` → `docs/02-TECHNICAL-DESIGN.md` → `docs/03-DATA-CONTRACT.md` → `docs/04-SERENDIPITY-SPEC.md` → `docs/05-UX-SPEC.md` → `docs/06-IMPLEMENTATION-PLAN.md` → `docs/07-IMPLEMENTATION-HANDOFF.md`。`12` 是 Critique #2 后的空间/Book Aura 权威；算法与数据语义以 `10/11` 为准，冲突时优先最新文件。
 
 用户后续明确要求：移植微信读书 skill，所有产品开发使用真实数据，不使用 fake data。此要求补充并收紧 `PRODUCT_BRIEF.md` 的样本边界。Critique #1 后用户把方向从“前三句策展并塑造印象”调整为“全量真实划线的轻松漫游”：主题属于书籍、不是逐句人格标签；算法优化公平与防重复，不编排 Opening/Contrast/Surprise；约 4,663 条均应可到达但不同时渲染。Critique #2 后用户又确认房间式结构、Book Aura 色彩归属与轻盈呼吸动效：门厅 / 主题书架 / 主题房间 / 所有书 / 书籍房间 / About 使用稳定 URL，返回时保留现场；具体以 `docs/10/11/12` 为准。真正出现新冲突时再请用户决定。
 
@@ -13,7 +13,7 @@
 ## 执行规则
 
 - 先检查目录、现有实现及 Git 状态；保护既有工作，不因为本交接写着“无代码”就覆盖后续代码。
-- 当前 Slice 0–4、V2-A、V2-B、V2-C1、V2-D、V2-C2 与 V2-E1/E2/E3 均已完成。用户体验后确认分享卡片功能成立但视觉过于苍白；下一批是窄范围 **V2-E4A dialog 滚动锁可靠性 → V2-E4B Book Aura 出版卡片 → V2-E4C 视觉与最终工程 Gate**，完整要求见 `docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md`。只重做 CSS 预览，不导出图片、不显示书封；内部每阶段必须测试、记录并做小步 commit，Gate 通过后连续进入下一阶段。V2-E4 后只剩 Public Release Gate，不得自行公开导出、部署或上传。
+- 当前 Slice 0–4、V2-A、V2-B、V2-C1、V2-D、V2-C2、V2-E1/E2/E3 与 V2-E4A/B/C 均已完成。下一阶段只有 **Public Release Gate**（PUB-01～PUB-07），需用户决定后才开始；不得自行公开导出、部署或上传。分享卡片与 dialog 滚动锁的完成记录见 `docs/08` 的 V2-E4A/E4B/E4C 三节。
 - 使用 Windows 原生 Node/npm/Git 与 PowerShell。不要混用 WSL 路径。
 - 不在非空项目根目录直接运行可能覆盖文档的脚手架；优先逐文件建立 Vite 配置。
 - 版本首次安装时选择彼此兼容的稳定版本并提交 npm 锁文件，不凭空声称某版本是最新。

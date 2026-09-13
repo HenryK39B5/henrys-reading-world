@@ -6,18 +6,18 @@
 >
 > 施工细节与切片：`docs/11-V2-IMPLEMENTATION-PLAN.md`。
 >
-> 下一批唯一开工提示词：`docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md`。`docs/15` 已执行完毕，只作历史记录。
+> 下一批唯一开工提示词：无。`docs/16` 已执行完毕（V2-E4A/B/C 全部完成），下一阶段是 Public Release Gate（PUB-01～PUB-07），需用户决定后才开始。
 
 ## 当前状态（2026-09-13）
 
-- 当前代码基线：`a8083ef V2-E3: final keyboard zoom and privacy gates`，React / TypeScript / Vite。
-- v1 Slice 0–4、V2-A、V2-B、V2-C1、V2-D、V2-C2 与 V2-E1/E2/E3 均已完成；V2-E4 为用户实际体验后确认的窄范围视觉修订。
+- 当前代码基线：V2-E4 三个阶段的提交（`c1c4e52` → `951ecc6` → 本批次收尾提交），React / TypeScript / Vite。
+- v1 Slice 0–4、V2-A、V2-B、V2-C1、V2-D、V2-C2、V2-E1/E2/E3 与 V2-E4A/B/C 均已完成。
 - schemaVersion 2；local-only 快照 **4,663 条真实划线 / 130 本书 / 14 个书籍主题书架**；127 本有本地封面。
 - v1 的 20 本 / 46 条项目稳定 ID 已保留；`npm run verify:ids` 提供永久回归防线。
-- 最近验证：171 单测 / 12 文件、81 local Playwright、1 public 空态 Playwright；实现 Agent 开工时仍须重跑，不照抄数字。
-- 用户已实际使用并确认核心体验与分享卡片风格的一致性成立，但指出卡片与 dialog 同为白色纸面，视觉过于苍白、单一；用户确认采用 Book Aura 深色出版卡片，只重做 CSS 预览、不导出图片、不显示书封。
-- GPT-5.6 Sol 独立验收中首次全量 E2E 为 80/81，dialog 背景滚动偶发到 210px；单用例 10/10、share spec 50/50、第二次全量 81/81。V2-E4A 必须修复滚动根与测试前置假设，不得按 flake 忽略。
-- 真机移动端与 Safari 仍未验证（见 `docs/08` 的 V2-E3 未验证项）。
+- 最近验证：195 单测 / 15 文件、99 local Playwright、1 public 空态 Playwright；实现 Agent 开工时仍须重跑，不照抄数字。
+- 用户已实际使用并确认核心体验与分享卡片风格的一致性成立；卡片现已改为锁定书籍 Book Aura 派生的深色出版卡片，正文与次要文字在真实卡面上实测 9.33–11.49 与 5.94–7.31。
+- GPT-5.6 Sol 独立验收中首次全量 E2E 为 80/81，dialog 背景滚动偶发到 210px；已在 V2-E4A 定位根因（聚焦把页面拉回顶部、`overflow:hidden` 不阻止程序化滚动、StrictMode 第二次锁录取到被钳制的 0）并修复。
+- 真机移动端与 Safari 仍未验证（见 `docs/08` 的 V2-E4C 未验证项）。
 - 公开快照仍为空；开发可使用全部真实内容，发布仍待 PUB-01～PUB-07 决定。
 
 ## 已确认的产品方向
@@ -35,8 +35,8 @@
 
 1. **连续房间批次：已完成并复核关闭**（V2-C1 → V2-D → V2-C2；修复提交 `9e2d0af`）。
 2. **V2-E 最终开发批次：已完成**（E1 稳定深链与错误状态 → E2 固定 ID 的复制与分享预览 → E3 200% 缩放、完整键盘与最终工程 Gate）。
-3. **V2-E4 分享卡片视觉修订：下一批**（E4A 滚动锁 → E4B Book Aura 出版卡片 → E4C 视觉与工程 Gate）。
-4. **Public Release Gate**：V2-E4 后才讨论 PUB-01～PUB-07；不得自动进入公开导出、部署或上传。
+3. **V2-E4 分享卡片视觉修订：已完成**（E4A 滚动锁 → E4B Book Aura 出版卡片 → E4C 视觉与工程 Gate）。
+4. **Public Release Gate**：PUB-01～PUB-07；不得自动进入公开导出、部署或上传。
 
 连续批次不是“一次写完再测试”：V2-E4 必须按 A → B → C 逐阶段测试、记录与 commit；Gate 通过后可直接继续，无需停下等待。
 
@@ -52,15 +52,15 @@
 - 不得回退 V2-B 公平规则、V2-C1 现场记忆、V2-D 全量可达或 V2-C2 色彩归属；不得修改快照与发布状态。
 - 不部署、不 push、不做公开快照。完整 Prompt：`docs/15-V2-E-CONTINUOUS-IMPLEMENTER-PROMPT.md`。
 
-## V2-E4 已确认边界
+## V2-E4 已实现的内容（完成记录）
 
-- dialog 保留浅色纸面；卡片改为锁定书籍 Book Aura 派生的低饱和深色出版卡片。
-- 卡片不显示书封，只使用真实封面色；无封面回退默认 accent。
+- dialog 保留浅色纸面；卡片为锁定书籍 Book Aura 派生的低饱和深色出版卡片（`src/domain/sharePalette.ts`）。
+- 卡片不显示书封，只使用真实封面色；无封面或封面加载失败回退默认 accent。
 - 只做 CSS DOM 预览，不下载/复制图片、不做 Canvas/SVG 导出、二维码或 Web Share。
-- 不加入头像、日期、统计、主题标签、随机模板、固定黑金或 flomo 黄。
-- 卡片文字、出处与 palette 都锁定 stable highlight ID，不能继承会变化的房间 Aura。
-- 参考图只在 `.private/reference/share-cards/`，不得导入产品或构建。
-- 完整 Prompt：`docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md`。
+- 未加入头像、日期、统计、主题标签、随机模板、固定黑金或 flomo 黄。
+- 卡片文字、出处与 palette 都锁定 stable highlight ID，不继承会变化的房间 Aura。
+- 参考图仍在 `.private/reference/share-cards/`，不可经 HTTP 读取，未进入产品或构建。
+- 执行记录：`docs/08` 的 V2-E4A/E4B/E4C 三节；Prompt：`docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md`。
 
 ## 实现边界
 

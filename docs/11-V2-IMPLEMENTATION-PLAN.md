@@ -275,15 +275,17 @@ About 是独立小房间，只显示真实范围和可选的 Henry 自写介绍�
 
 分享只锁定稳定 highlight ID；房间与临时 scope 是上下文，不替代内容身份。三个阶段的执行记录（含命令、数字、未验证项）见 `docs/08` 的 V2-E1/E2/E3 三节。
 
-### V2-E4 — 分享卡片视觉修订（下一批）
+### V2-E4 — 分享卡片视觉修订（已完成）
 
-> 用户实际体验确认：分享功能与整体风格一致，但当前卡片和 dialog 同为白色、只有文字，视觉过于苍白。用户同意：先只重做 CSS 预览，不导出图片；不显示书封，只使用锁定书籍的 Book Aura 色彩。执行 Prompt：`docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md`。
+> 用户实际体验确认：分享功能与整体风格一致，但当时卡片和 dialog 同为白色、只有文字，视觉过于苍白。用户同意：先只重做 CSS 预览，不导出图片；不显示书封，只使用锁定书籍的 Book Aura 色彩。执行 Prompt：`docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md`（已完成）。
 
-1. **V2-E4A — dialog 滚动锁可靠性**：修复独立验收中真实出现一次的背景滚动；同时防守 `html/body`，保留并恢复实际滚动位置与原 inline style；修正“初始必为 0”的脆弱测试。
-2. **V2-E4B — Book Aura 出版卡片**：浅色 dialog 中放置低饱和深色卡面；palette 从 locked highlight → locked book → real cover accent 派生；暖色文字、细框、出处分区；无封面回退默认 accent。
-3. **V2-E4C — 视觉与工程 Gate**：最短 8 字/中句/299/398 字、至少 6 本真实封面色、320/390/720/1440、200%、键盘、reduced-motion、privacy/public build；证据进入 `.private/review/v2-e4/`。
+三个内部阶段均已验收，执行记录见 `docs/08`：
 
-V2-E4 不增加图片导出、封面展示、头像、日期、统计、二维码、主题标签、模板选择、Web Share、部署或公开快照。完成后下一阶段才是 Public Release Gate。
+1. **V2-E4A — dialog 滚动锁可靠性**：定位并修复三个真实缺陷（聚焦把页面拉回顶部、`overflow:hidden` 不阻止程序化滚动、StrictMode 下第二次锁录取到被钳制的 0）；`body` 离开文档流使页面真正不可滚动，关闭时按快照逐项还原。
+2. **V2-E4B — Book Aura 出版卡片**：`sharePalette(accent)` 纯函数派生深色卡面与暖色文字（正文对比度 ≥7、次要文字 ≥4.6），颜色由 locked highlight → locked book → 真实封面 accent 得出；双细框、hairline 分区、底部出处区。
+3. **V2-E4C — 视觉与工程 Gate**：320/360/390/768/1440、200% 等价与真实 2×、键盘旅程含卡片断言、深链→分享的 accent 独立核对、网络与隐私（含参考图不可读）、public 空态与构建拒绝。
+
+V2-E4 未增加图片导出、封面展示、头像、日期、统计、二维码、主题标签、模板选择、Web Share、部署或公开快照。完成后下一阶段才是 Public Release Gate。
 
 ## 7. 连续批次交付要求
 

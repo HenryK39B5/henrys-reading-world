@@ -991,6 +991,79 @@ V2-E（最终独立批次），不在本阶段开始。
 
 DeepSeek v4.1 Flash 按 `docs/16` 连续完成 E4A → E4B → E4C。每阶段测试、记录、commit，Gate 通过后直接继续；全部完成后统一汇报。不部署、不 push、不生成 public snapshot。
 
+## V2-E4C 视觉与全量工程 Gate（2026-09-13）
+
+```text
+日期 / 执行者：2026-09-13 / 实现 Agent（DeepSeek v4.1 Flash）
+范围：V2-E4C — 分享卡片的浏览器矩阵、网络与隐私、全批次工程 Gate
+状态：verified（本机 Chromium）；真机与 Safari 未验证
+数据模式：真实数据 local-only；未修改快照、稳定 ID、主题或发布状态
+代码基线：951ecc6
+```
+
+### 完成内容
+
+1. **三个分享入口**：门厅 / 主题房间舞台与书籍房间顶部的分享入口均由 `share.spec.ts` 覆盖；每条都断言锁定的是当前视觉中心的稳定 ID。
+2. **深链 → 分享**：`share-card.spec.ts` 用 `/?h=<真实 id>` 打开后分享，卡片的 accent 由**独立计算**得出（在浏览器里重采样同一张真实封面的像素，再用项目自己的 `accentFromPixels` 算一遍），与卡片实际使用的 accent 必须相等，卡面也必须等于该 accent 的 palette。这是“颜色真的来自这本书”的证据，而不是“颜色看起来对”。
+3. **多媒体矩阵**：320 / 360 / 390 / 768 / 1440（`zoom.spec.ts`）、720×450 等价 200%、真实 2× 放大；分享卡片新增 200% 专项（卡片无溢出、正文与次要文字对比度均 ≥AA）。
+4. **键盘**：完整键盘旅程中新增卡片断言——预览持有真实文本、accent 是合法颜色、卡面等于该 accent 的 palette，复制成功后卡片状态**逐项不变**。
+5. **网络与隐私**：新增“彩色卡片只向本机要它采样的那张封面”，并将 `.private/reference/share-cards/`（用户提供的 8 张参考图）加入不可经 HTTP 读取的路径清单；Vite 的 allow-list 拒绝已实际出现在服务器日志中。
+6. **公共产物探针**：dist 共 3 个文件；真实划线 0 条、书名 0 个、封面路径 0 条、`share-cards` / `flomo` / `reference/` / 凭证名均不存在。
+
+### 命令 → 实际结果（全部实跑）
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run check:local` | **195 单测 / 15 文件**通过，typecheck + lint + 数据校验干净（唯一警告不变：无原始换行样本） |
+| `npm run verify:ids` | 20 本 / 46 条稳定 ID 指向同一真实材料；4,663 / 130 |
+| `npm run smoke:local` | 3/3 |
+| `npx playwright test` | **99 通过**（本批次开始时的 81 → 99） |
+| `npm run test:public` | 1/1 |
+| `npx playwright test e2e/share.spec.ts e2e/share-card.spec.ts --repeat-each=5` | **90/90** |
+| `npx playwright test e2e/scroll-lock.spec.ts --repeat-each=10` | **80/80**（E4A 已记） |
+| `npm run capture:review` | 通过（3.7 分钟）；六房间 1440/390/320/768 溢出均 0px，最小点击目标 44px |
+| `npm run capture:v2e` | 通过（19.9 秒），旧卡片证据集仍可重跑 |
+| `npm run capture:v2e4` | 通过（23.9 秒），13 张图写入 `.private/review/v2-e4/` |
+| `npm run build` | 成功；dist 仍为 3 个文件 |
+| `npx vite build --mode local-private` | 按预期拒绝：`Local mode cannot be used for a production build.` |
+
+### 卡片可读性实测（真实卡面，WCAG 公式）
+
+| 卡面（来自真实封面） | 正文 `#f1eadf` | 出处/品牌/徽标 `#c7bca8` |
+| --- | ---: | ---: |
+| `#3f2927`（b-013） | 11.28 | 7.18 |
+| `#362e38`（b-021） | 10.95 | 6.97 |
+| `#40262b`（b-017） | 11.49 | 7.31 |
+| `#38342e`（中句） | 10.35 | 6.59 |
+| `#26403d`（299 字） | 9.33 | 5.94 |
+| `#2d3932`（默认回退） | 10.08 | 6.42 |
+
+正文全部超过 AAA（7），次要文字全部超过 AA（4.5）——包括最暗的卡面。
+
+### 证据（`.private/review/v2-e4/`，13 张）
+
+`card-shortest` / `card-18` / `card-medium` / `card-299` / `card-longest`（整张卡片，元素级截图）、`card-aura-1/2/3`（三本真实封面的不同色域）、`share-dialog-1440` / `share-dialog-390` / `zoom-200-dialog` / `clipboard-failure-1440` / `reduced-motion-1440`。
+
+实测：8 / 18 / 42 字 `data-extended=false`，299 / 398 字 `true`，溢出一律 0/0。
+
+### 未验证项（诚实列明）
+
+- **真机移动端与 Safari 未验证**：本机只有 Chromium。新锁改写 `documentElement` / `body` 的 inline style，卡片使用 `aspect-ratio`、`outline` 偏移与 `svh`，这些在 Safari 上的实际表现仍未确认。
+- **真实交互式浏览器缩放（Ctrl +/-）未手动执行**：用的是“CSS 像素视口减半”的等价重排 + 真实 2× 放大两条独立证据。
+- **滚动条补值分支未在本机触发**：该环境槽宽为 0（`innerWidth === clientWidth`），仅由单测覆盖。
+- `showModal` 不可用的非模态回退已由测试覆盖，但触发该分支的真实旧浏览器未验证。
+
+### 偏差 / 设计判断
+
+- **长文卡片会让 dialog 自身滚动**：实测长文打开时 `dialog.scrollTop = 270`，因为浏览器把聚焦的 `复制文字` 滚入可见区域（`preventScroll` 只管文档，不管 dialog 内部滚动容器）。保留这个行为，因为“键盘访客立即能看到可操作的控件”优先于“预览从顶部开始”；代价是长文时 dialog 需滚动，卡片证据因此改用元素级截图，避免窗口截图裁掉卡片。
+- **短句卡片的留白是刻意的**：4:5 下短句必然有空白，但现在空白被色域、双细框与底部出处区组织，不再像空白文档。
+- **颜色是“到达”的**：冷缓存下先默认 palette、再 600ms 过渡到本书颜色；每一帧都是可读卡片，测试断言它**落定**的位置。
+- **参考图只做设计输入**：未复制、未裁切、未嵌入；`flomo` 黄、微信读书黑金、头像、二维码、日期与统计都没有进入产品。
+
+### 下一步
+
+V2-E4A → E4B → E4C 全部完成，本机原型开发批次再次结束。下一阶段仅为 **Public Release Gate（PUB-01～PUB-07）**，需用户决定后才开始；不得自行公开导出、部署或上传。
+
 ## V2-E4B Book Aura 出版卡片（2026-09-13）
 
 ```text

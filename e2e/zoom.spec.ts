@@ -1,5 +1,26 @@
 import { expect, test, type Page } from '@playwright/test';
+import { contrastRatio, hexToRgb, type Rgb } from '../src/domain/accent.ts';
+import { sharePalette } from '../src/domain/sharePalette.ts';
 import { hasSnapshot, loadSnapshot } from './support/snapshot.ts';
+
+/** An `rgb()` value the browser computed, back as channels. */
+function toRgb(colour: string): Rgb {
+    const channels = colour.match(/\d+/gu) ?? [];
+    const [r, g, b] = channels.slice(0, 3).map((part) => Number.parseInt(part, 10));
+    if (r === undefined || g === undefined || b === undefined) {
+        throw new Error(`not an rgb colour: ${colour}`);
+    }
+    return { r, g, b };
+}
+
+/** The `rgb()` string a browser reports for a hex colour. */
+function cssOf(hex: string): string {
+    const rgb = hexToRgb(hex);
+    if (rgb === null) {
+        throw new Error(`not a colour: ${hex}`);
+    }
+    return `rgb(${String(rgb.r)}, ${String(rgb.g)}, ${String(rgb.b)})`;
+}
 
 /**
  * Zoom and reflow acceptance (docs/12 §6, docs/15 §8.1).
@@ -82,6 +103,56 @@ test.describe('200% zoom equivalence', () => {
                 await expectNoOverflow(page, `${room.label} @ ${String(size.width)}×${String(size.height)}`);
             }
         }
+    });
+
+    test('the share card keeps its own colour and its readability at 200%', async ({ page }) => {
+        const data = loadSnapshot();
+        const bookId = data.coveredBookId;
+        const highlight = bookId === null ? undefined : data.firstOfBook.get(bookId);
+        test.skip(highlight === undefined, '需要一本有真实封面的书');
+        if (highlight === undefined) {
+            return;
+        }
+
+        await page.setViewportSize({ width: 720, height: 450 });
+        await page.goto(`/?h=${encodeURIComponent(highlight.id)}`);
+        await expect(page.getByTestId('stage-passage')).toBeVisible();
+        await page.getByTestId('share-open').click();
+        await expect(page.getByTestId('share-dialog')).toBeVisible();
+
+        // Reflowed to a narrow window, the card is still whole and still painted with its own book's colour.
+        const card = page.getByTestId('share-card');
+        // The surface arrives with the sampled cover, so the check waits for where it settles (docs/16 §5.3).
+        await expect
+            .poll(
+                async () => {
+                    const state = await card.evaluate((node) => ({
+                        accent: node.getAttribute('data-accent') ?? '',
+                        background: getComputedStyle(node).backgroundColor,
+                    }));
+                    return state.background === cssOf(sharePalette(state.accent).background);
+                },
+                { message: 'the card must settle on its own palette', timeout: 8000 },
+            )
+            .toBe(true);
+
+        const painted = await card.evaluate((node) => {
+            const meta = node.querySelector('.share-card-meta');
+            return {
+                accent: node.getAttribute('data-accent') ?? '',
+                background: getComputedStyle(node).backgroundColor,
+                text: getComputedStyle(node).color,
+                muted: meta === null ? '' : getComputedStyle(meta).color,
+                overflowY: node.scrollHeight - node.clientHeight,
+                overflowX: node.scrollWidth - node.clientWidth,
+            };
+        });
+        expect(painted.accent).toMatch(/^#[0-9a-f]{6}$/u);
+        // Nothing is cropped at 200%, and both the passage and the quieter lines stay readable on the card.
+        expect(painted.overflowY).toBe(0);
+        expect(painted.overflowX).toBe(0);
+        expect(contrastRatio(toRgb(painted.text), toRgb(painted.background))).toBeGreaterThanOrEqual(4.5);
+        expect(contrastRatio(toRgb(painted.muted), toRgb(painted.background))).toBeGreaterThanOrEqual(4.5);
     });
 
     test('the reading centre stays whole and readable at 200%', async ({ page }) => {

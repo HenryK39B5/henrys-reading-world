@@ -1,4 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
+import { hexToRgb } from '../src/domain/accent.ts';
+import { sharePalette } from '../src/domain/sharePalette.ts';
 import { hasSnapshot, loadSnapshot } from './support/snapshot.ts';
 
 /**
@@ -23,6 +25,52 @@ async function activeStop(page: Page): Promise<string> {
             `${active.tagName.toLowerCase()}:${(active.textContent ?? '').trim().slice(0, 14)}`
         );
     });
+}
+
+/** The card's committed state: what it says, what book it belongs to, and how it is painted. */
+async function cardState(
+    page: Page,
+): Promise<{ text: string; accent: string; background: string; muted: string }> {
+    return page.getByTestId('share-card').evaluate((node) => {
+        const meta = node.querySelector('.share-card-meta');
+        return {
+            text: (node.querySelector('[data-testid="share-card-text"]')?.textContent ?? '').trim(),
+            accent: node.getAttribute('data-accent') ?? '',
+            background: getComputedStyle(node).backgroundColor,
+            muted: meta === null ? '' : getComputedStyle(meta).color,
+        };
+    });
+}
+
+/**
+ * The card once it has stopped arriving.
+ *
+ * The surface is sampled from a real cover, so a dialog opened on a cold cache shows the default palette for a
+ * moment and then travels to the book's own colour (docs/16 §5.3). This reads the card the visitor ends up
+ * looking at, not the one on its way there.
+ */
+async function settledCard(
+    page: Page,
+): Promise<{ text: string; accent: string; background: string; muted: string }> {
+    await expect
+        .poll(
+            async () => {
+                const state = await cardState(page);
+                return state.background === cssOf(sharePalette(state.accent).background);
+            },
+            { message: 'the card must settle on its own palette', timeout: 8000 },
+        )
+        .toBe(true);
+    return cardState(page);
+}
+
+/** The `rgb()` string a browser reports for a hex colour. */
+function cssOf(hex: string): string {
+    const rgb = hexToRgb(hex);
+    if (rgb === null) {
+        throw new Error(`not a colour: ${hex}`);
+    }
+    return `rgb(${String(rgb.r)}, ${String(rgb.g)}, ${String(rgb.b)})`;
 }
 
 /**
@@ -173,9 +221,18 @@ test.describe('the full keyboard journey', () => {
         await expect(page.getByTestId('share-dialog')).toBeVisible();
         await expect(page.getByTestId('share-copy-text')).toBeFocused();
 
+        // The preview holds a real passage on a card whose colour belongs to that passage's own book, and
+        // both stay put while the visitor works the dialog by keyboard (docs/16 §4.2, §5).
+        const locked = await settledCard(page);
+        expect(locked.text.length).toBeGreaterThan(0);
+        expect(locked.accent).toMatch(/^#[0-9a-f]{6}$/u);
+        expect(locked.background).toBe(cssOf(sharePalette(locked.accent).background));
+
         await tabUntil(page, 'share-copy-link');
         await page.keyboard.press('Enter');
         await expect(page.getByTestId('share-status')).toHaveText(/已复制|自动复制失败，请手动复制/u);
+        // A copy result is not a reason for the card to change its mind about which book it is.
+        expect(await cardState(page)).toEqual(locked);
 
         // Shift+Tab walks back through the dialog's own controls, and never out into the page behind it.
         const back = await shiftTab(page);

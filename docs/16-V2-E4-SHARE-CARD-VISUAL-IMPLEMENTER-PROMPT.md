@@ -1,6 +1,8 @@
 # 16 — V2-E4 分享卡片视觉修订 Implementer Prompt
 
-> 状态：**下一批唯一开工提示词**。
+> 状态：**已执行的历史提示词**。V2-E4A（dialog 滚动锁）→ V2-E4B（Book Aura 出版卡片）→ V2-E4C（视觉与工程 Gate）已全部完成。本机原型开发批次再次结束，下一阶段是 Public Release Gate（PUB-01～PUB-07），需用户决定。
+>
+> 执行记录见 `docs/08` 的 V2-E4A/E4B/E4C 三节。
 >
 > 基线：`a8083ef V2-E3: final keyboard zoom and privacy gates`。
 >

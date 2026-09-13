@@ -125,6 +125,12 @@ test.describe('private files stay private', () => {
             `/@fs/${projectRoot}/.agents/skills/weread-skills/SKILL.md`,
             '/scripts/weread-request.ps1',
             '/.env',
+            // The share card design references the user provided for V2-E4 live under .private too: they are
+            // design material, not product assets, and must not be reachable from the app either.
+            '/.private/reference/share-cards/README.md',
+            `/@fs/${projectRoot}/.private/reference/share-cards/flomo/02-yellow-brand-signature.jpg`,
+            '/.private/reference/share-cards/flomo/01-classic-header-date.jpg',
+            '/.private/reference/share-cards/weread/01-dark-framed-profile-qr.jpeg',
         ];
 
         // A real fragment of a real passage: it must not be obtainable from any of these paths.
@@ -157,5 +163,35 @@ test.describe('private files stay private', () => {
         await expect(page.locator('.local-badge')).toHaveText('仅本机 · 未公开审核');
         // The public mode has no such badge; there the content itself is the reviewed subset (see test:public).
         expect(await page.evaluate(() => document.body.innerText.includes('仅本机'))).toBe(true);
+    });
+
+    test('a coloured card asks for nothing but the local cover it samples', async ({ page }) => {
+        const requests: string[] = [];
+        page.on('request', (request) => {
+            requests.push(request.url());
+        });
+        const data = loadSnapshot();
+        const bookId = data.coveredBookId;
+        const highlight = bookId === null ? undefined : data.firstOfBook.get(bookId);
+        test.skip(highlight === undefined, '需要一本有真实封面的书');
+        if (highlight === undefined) {
+            return;
+        }
+
+        await page.goto(`/?h=${encodeURIComponent(highlight.id)}`);
+        await expect(page.getByTestId('stage-passage')).toBeVisible();
+        await page.getByTestId('share-open').click();
+        await expect(page.getByTestId('share-dialog')).toBeVisible();
+        // The surface is derived from the book's own cover, which is the only image involved — and it is
+        // served by this machine. A card that needed a remote renderer, a CDN font or an uploader would show
+        // up here as a request that leaves the origin.
+        await page.getByTestId('share-copy-text').click();
+        await expect(page.getByTestId('share-status')).toHaveText(/已复制|自动复制失败，请手动复制/u);
+
+        const origin = new URL(page.url()).origin;
+        expect(requests.filter((url) => new URL(url).origin !== origin)).toEqual([]);
+        expect(requests.some((url) => url.includes('/__local_cover/'))).toBe(true);
+        // Nothing was posted anywhere either: a copy is a local clipboard write, not a card service.
+        expect(requests.every((url) => !url.startsWith('data:'))).toBe(true);
     });
 });
