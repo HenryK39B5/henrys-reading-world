@@ -91,6 +91,18 @@ describe('encounter transitions', () => {
         expect(createInitialState(context, 'h-404').currentId).toBeNull();
     });
 
+    it('opens a seeded session inside the room range without counting a commit', () => {
+        const context = makeContext();
+        const linked = createInitialState(context, 'h-003');
+        expect(linked.commitCount).toBe(0);
+        expect(cycleOf(linked, 'all').highlightIds).toEqual(['h-003']);
+
+        // A shelf room seeds inside its own shelf, so the first paint and the range already agree.
+        const shelf = createInitialState(context, 'h-002', { kind: 'theme', themeId: 't-002' });
+        expect(shelf.stageScope).toEqual({ kind: 'theme', themeId: 't-002' });
+        expect(cycleOf(shelf, 'theme:t-002').highlightIds).toEqual(['h-002']);
+    });
+
     it('moves through exiting -> committing -> entering -> idle', () => {
         const context = makeContext();
         let state = createInitialState(context, 'h-001');
@@ -190,6 +202,54 @@ describe('encounter transitions', () => {
         const state = createInitialState(context, 'h-001');
         expect(encounterReducer(state, { type: 'OPEN_HIGHLIGHT', id: 'h-404' }, context)).toBe(state);
         expect(encounterReducer(state, { type: 'OPEN_HIGHLIGHT', id: 'h-001' }, context)).toBe(state);
+    });
+
+    /**
+     * A deep link (`/?h=<id>`, docs/15 §6.1).
+     *
+     * It must show exactly the passage the address names and record it in the browsing range — the same
+     * exposure bookkeeping as a passage picked from a list — while staying out of `commitCount`, because
+     * opening a URL is not a move the visitor made. The two events therefore must not be merged.
+     */
+    it('follows a deep link without counting it as a visitor move', () => {
+        const context = makeContext();
+        const state = createInitialState(context, 'h-001');
+        const linked = encounterReducer(state, { type: 'OPEN_DEEP_LINK', id: 'h-003' }, context);
+
+        expect(linked.currentId).toBe('h-003');
+        expect(linked.commitCount).toBe(state.commitCount);
+        expect(linked.phase).toBe('idle');
+        expect(linked.stageScope).toEqual({ kind: 'all' });
+        // It is still a real exposure: `再来一句` must not hand back the very passage the link named.
+        expect(cycleOf(linked, 'all').highlightIds).toContain('h-003');
+        expect(encounterReducer(linked, { type: 'NEXT_STAGE' }, context).pending?.id).not.toBe('h-003');
+    });
+
+    it('leaves the user-picked open counting, so the two meanings stay distinct', () => {
+        const context = makeContext();
+        const state = createInitialState(context, 'h-001');
+        const picked = encounterReducer(state, { type: 'OPEN_HIGHLIGHT', id: 'h-003' }, context);
+        const linked = encounterReducer(state, { type: 'OPEN_DEEP_LINK', id: 'h-003' }, context);
+        expect(picked.currentId).toBe(linked.currentId);
+        expect(picked.commitCount).toBe(state.commitCount + 1);
+        expect(linked.commitCount).toBe(state.commitCount);
+    });
+
+    it('no-ops a deep link the snapshot cannot show and a repeated one', () => {
+        const context = makeContext();
+        const state = createInitialState(context, 'h-001');
+        expect(encounterReducer(state, { type: 'OPEN_DEEP_LINK', id: 'h-404' }, context)).toBe(state);
+        expect(encounterReducer(state, { type: 'OPEN_DEEP_LINK', id: 'h-001' }, context)).toBe(state);
+    });
+
+    it('keeps a deep link inside the range it was opened in', () => {
+        const context = makeContext();
+        const shelf = createInitialState(context, null, { kind: 'theme', themeId: 't-002' });
+        const linked = encounterReducer(shelf, { type: 'OPEN_DEEP_LINK', id: 'h-001' }, context);
+        expect(linked.currentId).toBe('h-001');
+        // The range is what the room is browsing, so it must survive a passage-level address.
+        expect(linked.stageScope).toEqual({ kind: 'theme', themeId: 't-002' });
+        expect(cycleOf(linked, 'theme:t-002').highlightIds).toContain('h-001');
     });
 
     it('does not mutate the state or the input list', () => {

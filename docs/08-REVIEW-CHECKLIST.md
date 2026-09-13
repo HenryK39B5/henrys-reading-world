@@ -916,6 +916,71 @@ V2-E（最终独立批次），不在本阶段开始。
 - 部署、上传、SEO、Web Share、PNG、二维码；
 - 真实首次访客评审与无法在当前 Windows/Chromium 环境完成的 Safari/真机验证。
 
+## V2-E1 稳定深链与错误状态（2026-09-13）
+
+```text
+日期 / 执行者：2026-09-13 / 实现 Agent（DeepSeek v4.1 Flash）
+范围：V2-E1 — `/?h=<stable highlight id>`、无效链接的诚实状态、地址规范化
+状态：verified
+数据模式与许可依据：真实数据 local-only；未新增或修改快照
+代码基线：b65d796
+```
+
+### 完成内容
+
+1. **唯一规范深链** `/?h=<stableHighlightId>`。`h` 只在门厅有意义；解析层拒绝空值与不存在的位置，未知 ID 仍会到达页面以获得诚实状态。
+2. **房间身份与内容定位分离**：新增 `roomPath()`。`routePath()` 输出含 h 的完整地址，但 `routeKey()` / 滚动键 / stage session 键 / Aura key / 聚焦依赖仍把 `/?h=…` 与 `/` 当作同一个门厅。
+3. **`OPEN_DEEP_LINK` 新事件**：从现有 `OPEN_HIGHLIGHT` 抽出共享 helper，深链以 `count: false` 到达 —— 记入 all cycle、不改持久 scope、不增加 `commitCount`；原有“用户直接选择”仍为 `count: true`。
+4. **首次直接加载不闪错句**：门厅 session 创建时用已校验 ID 做种子（`seedFor`），不再先画一条随机句再替换；无种子时保留原有 RNG 行为与 StrictMode 防守。
+5. **SPA 内到达深链**：同一个 id 只处理一次；重复渲染、StrictMode 双调用均为 no-op。
+6. **无效 / 撤回 ID**：显示 `这条划线暂不可用`，同时正常公平开局；不白屏、不泄露旧内容。
+7. **换句后用 replace 清除 h**：由 `commitCount` 增长驱动，不新增 history entry。只开关出处面板、开关分享弹窗不清除。
+8. **其他房间规范化移除 h**：`/themes`、`/themes/:id`、`/books`、`/books/:id` 保留房间与自身筛选，只丢掉不属于自己的 `h`。
+
+### 修改文件
+
+- `src/app/router.ts`、`src/app/router.test.ts`
+- `src/domain/encounter.ts`、`src/domain/encounter.test.ts`
+- `src/features/encounter/useStageSessions.ts`
+- `src/app/ReadingWorld.tsx`、`src/features/rooms/HallRoom.tsx`
+- `e2e/deep-link.spec.ts`（新增）
+- `docs/08-REVIEW-CHECKLIST.md`
+
+### 命令 → 实际结果
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run typecheck` / `npm run lint` | 通过 |
+| `npm run test` | **160 单测 / 11 文件**通过（V2-E1 前 151） |
+| `npx playwright test` | **52 通过**（原 44；新增 8 条深链用例） |
+| `npm run test:public` | 1/1 通过；公开空快照每个房间仍为诚实空状态 |
+| `npm run validate:data:local` | OK 4,663 / 130 / 14（唯一警告不变：无原始换行样本） |
+
+### 浏览器证据（真实 Chromium，本机 local-only）
+
+- `/?h=<真实id>`：精确显示该条原文；刷新、书签、新标签页仍指向同一条。
+- 出处面板展开后可见该书真实书名；开关面板不丢失 `h`。
+- 深链所在书的门厅 Aura 与该书自己的书籍房间 Aura **完全相等**（颜色归属随书，不随房间猜测）。
+- 深链是同一个门厅：Aura 层未被重建（DOM 探针存活）、`#room` 聚焦计数 0、`window.scrollTo` 调用计数 0。
+- `再来一句` 后地址变为 `/`，`history.length` 不变，焦点仍在刚按下的控件上。
+- 从 `/themes` 返回 `/?h=<id>`：原句与地址都恢复。
+- `/?h=h-does-not-exist`：提示 + 真实开局；下一步操作清提示并移除 query。
+- `/themes`、`/themes/:id`、`/books?year=2024`、`/books/:id` 收到 `h` 时只丢弃 `h`，房间与筛选不变。
+
+### 未验证项
+
+- 真机移动端、Safari 与 200% 缩放仍属 V2-E3。
+- 分享 dialog、复制与卡片仍属 V2-E2。
+
+### 偏差 / 设计判断
+
+- 清除 `h` 的口径：规格写“下一次操作清除”，实现选择在**用户真正换句/换书时**清除（`commitCount` 增长），而不是在加载阶段就规范化掉 —— 这样刷新前后地址一致，未知 ID 的提示也能稳定显示到用户动手为止。
+- 单元测试无需浏览器：深链的语义（是否计入 commit、是否写入范围、是否改变 scope）全部在 domain 层可验。
+
+### 下一步
+
+V2-E2（固定 ID 的复制、dialog 与分享预览），不在本阶段开始。
+
 ## Critique #2 产品结论：从单页平面进入一个个房间（2026-09-13）
 
 ### 用户反馈与决定

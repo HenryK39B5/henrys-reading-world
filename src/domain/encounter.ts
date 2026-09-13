@@ -74,7 +74,15 @@ export type EncounterEvent =
     | { type: 'TRANSITION_END' }
     | { type: 'OPEN_SOURCE' }
     | { type: 'CLOSE_SOURCE' }
-    | { type: 'OPEN_HIGHLIGHT'; id: string };
+    /** A passage the visitor deliberately picked (e.g. from a list); it counts as a move they made. */
+    | { type: 'OPEN_HIGHLIGHT'; id: string }
+    /**
+     * A passage a deep link asked for (`/?h=<id>`).
+     *
+     * It is deliberately a separate event from `OPEN_HIGHLIGHT`: following a URL is not a move the
+     * visitor made inside this session, so it must not advance `commitCount` (docs/15 §6.1).
+     */
+    | { type: 'OPEN_DEEP_LINK'; id: string };
 
 export type EncounterContext = {
     books: Book[];
@@ -201,6 +209,48 @@ function commit(
     return options.stageScope === undefined
         ? showPassage(state, context, choice, show)
         : showPassage(state, context, choice, { ...show, stageScope: options.stageScope });
+}
+
+/**
+ * Shows one passage the caller already identified by id.
+ *
+ * A direct open cancels any transition in flight and leaves the stage range untouched. It is recorded in
+ * the range's cycle on purpose, so the passage that was deliberately opened is not drawn straight back at
+ * the next `再来一句`. `count` is the only difference between "the visitor picked this" and "the URL
+ * asked for this": the former is a move they made, the latter is not.
+ */
+function openPassage(
+    state: EncounterState,
+    context: EncounterContext,
+    id: string,
+    options: { count: boolean },
+): EncounterState {
+    const target = findById(context.highlights, id);
+    if (target === null) {
+        return state;
+    }
+    if (target.id === state.currentId && state.phase === 'idle') {
+        return state;
+    }
+    return showPassage(
+        state,
+        context,
+        {
+            kind: 'selected',
+            id: target.id,
+            bookId: target.bookId,
+            reason: 'fallback',
+            scopeKey: scopeKeyOf(state.stageScope),
+        },
+        {
+            phase: 'idle',
+            sourceOpen: false,
+            count: options.count,
+            stage: true,
+            cycleReset: false,
+            bookCycleReset: false,
+        },
+    );
 }
 
 /**
@@ -355,30 +405,11 @@ export function encounterReducer(state: EncounterState, event: EncounterEvent, c
             return state.sourceOpen ? { ...state, sourceOpen: false } : state;
         }
 
-        case 'OPEN_HIGHLIGHT': {
-            const target = findById(context.highlights, event.id);
-            if (target === null) {
-                return state;
-            }
-            if (target.id === state.currentId && state.phase === 'idle') {
-                return state;
-            }
-            // A direct open cancels any transition in flight and leaves the stage range untouched. It is
-            // recorded in the range's cycle on purpose, so the passage the visitor deliberately picked is not
-            // drawn straight back at the next `再来一句`.
-            return showPassage(
-                state,
-                context,
-                {
-                    kind: 'selected',
-                    id: target.id,
-                    bookId: target.bookId,
-                    reason: 'fallback',
-                    scopeKey: scopeKeyOf(state.stageScope),
-                },
-                { phase: 'idle', sourceOpen: false, count: true, stage: true, cycleReset: false, bookCycleReset: false },
-            );
-        }
+        case 'OPEN_HIGHLIGHT':
+            return openPassage(state, context, event.id, { count: true });
+
+        case 'OPEN_DEEP_LINK':
+            return openPassage(state, context, event.id, { count: false });
 
         default: {
             return state;

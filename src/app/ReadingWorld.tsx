@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { indexSnapshot } from '../domain/snapshot.ts';
 import type { Snapshot } from '../domain/types.ts';
@@ -17,7 +17,7 @@ import { useBookRooms } from '../features/rooms/useBookRoom.ts';
 import { useRoomMemory } from '../features/rooms/useRoomMemory.ts';
 import { Nav } from './Nav.tsx';
 import { coverUrl, useCoverAccent } from './covers.ts';
-import { routeKey, routePath, type RouterApi } from './router.ts';
+import { roomPath, routeKey, routePath, type RouterApi } from './router.ts';
 import { DATA_MODE } from './snapshotSource.ts';
 import './page.css';
 import '../features/rooms/rooms.css';
@@ -42,6 +42,27 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
     const mainRef = useRef<HTMLElement>(null);
 
     /**
+     * A room's address without content-level query (`/?h=…` is still the hall).
+     *
+     * Focus, the aura entrance and the scroll memory key off this rather than off `router.path`, because
+     * a deep link only points at a different passage *inside* a room — it must not look like arriving.
+     */
+    const roomLocation = roomPath(route);
+
+    /**
+     * The passage the address names, when the address names one.
+     *
+     * Validity is decided against the real snapshot here, so the session is never seeded with an id the
+     * page cannot show (docs/15 §6.1: an unknown id gets the honest unavailable state, not an empty room).
+     */
+    const linkedHighlightId = route.name === 'hall' ? route.highlightId : null;
+    const knownLinkedHighlightId =
+        linkedHighlightId !== null && index.highlightsById.has(linkedHighlightId) ? linkedHighlightId : null;
+    const [unavailableLink, setUnavailableLink] = useState<string | null>(() =>
+        linkedHighlightId !== null && knownLinkedHighlightId === null ? linkedHighlightId : null,
+    );
+
+    /**
      * The stage rooms keep one session each. A room with no stage (所有书, 关于, an unknown path) keeps
      * the hall's session untouched, so walking through the library never changes the sentence waiting in
      * the hall.
@@ -50,12 +71,25 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
         const prefix = '/themes/';
         return key.startsWith(prefix) ? { kind: 'theme', themeId: key.slice(prefix.length) } : ALL_SCOPE;
     }, []);
-    const stageKey = route.name === 'theme' ? routeKey(route) : routeKey({ name: 'hall' });
+    const hallKey = routeKey({ name: 'hall', highlightId: null });
+    const stageKey = route.name === 'theme' ? routeKey(route) : hallKey;
+
+    /**
+     * A hall session that is created while a deep link is in the address opens with that very passage, so
+     * the first paint is never a random sentence that is replaced a moment later (docs/15 §6.1).
+     */
+    const seedFor = useCallback(
+        (key: string): string | null => (key === hallKey ? knownLinkedHighlightId : null),
+        [hallKey, knownLinkedHighlightId],
+    );
+
     const stage = useStageSessions(stageKey, routeKey(route), {
         highlights: index.snapshot.highlights,
         books: index.snapshot.books,
         scopeFor,
+        seedFor,
     });
+    const { openDeepLink } = stage;
 
     const activeBookId = route.name === 'book' ? route.bookId : '';
     const bookRooms = useBookRooms(activeBookId, index.snapshot.books, index.snapshot.highlights);
@@ -89,11 +123,57 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
 
     /**
      * A room change moves focus to the new content without touching the scroll position that
-     * `useRoomMemory` is restoring.
+     * `useRoomMemory` is restoring. A deep link inside the hall is not a room change, so it stays put.
      */
     useEffect(() => {
         mainRef.current?.focus({ preventScroll: true });
-    }, [router.path]);
+    }, [roomLocation]);
+
+    /**
+     * Follows the address when it names a passage.
+     *
+     * Each linked id is handled once: the seed covers the first paint, and this covers arriving at a link
+     * without a full page load. An id the snapshot does not hold becomes a quiet note instead of a
+     * pretend-success, while the room still shows a real fair opening (docs/15 §6.1).
+     */
+    const handledLink = useRef<string | null>(null);
+    useEffect(() => {
+        if (linkedHighlightId === null) {
+            handledLink.current = null;
+            setUnavailableLink(null);
+            return;
+        }
+        if (handledLink.current === linkedHighlightId) {
+            return;
+        }
+        handledLink.current = linkedHighlightId;
+        if (knownLinkedHighlightId === null) {
+            setUnavailableLink(linkedHighlightId);
+            return;
+        }
+        setUnavailableLink(null);
+        openDeepLink(knownLinkedHighlightId);
+    }, [linkedHighlightId, knownLinkedHighlightId, openDeepLink]);
+
+    /**
+     * Once the visitor moves on, the address no longer describes what is on screen, so `?h=` is dropped
+     * with a replace. Replacing instead of pushing keeps the back button meaning "leave this room"
+     * rather than "show me the sentence from a moment ago" (docs/15 §4.1).
+     */
+    const previousCommitCount = useRef(stage.state.commitCount);
+    useEffect(() => {
+        const previous = previousCommitCount.current;
+        previousCommitCount.current = stage.state.commitCount;
+        if (stage.state.commitCount <= previous) {
+            return;
+        }
+        if (route.name !== 'hall' || route.highlightId === null) {
+            return;
+        }
+        handledLink.current = null;
+        setUnavailableLink(null);
+        router.navigate('/', { replace: true });
+    }, [stage.state.commitCount, route, router]);
 
     /** Unknown-but-parseable URLs are normalised, so the address bar always describes the room. */
     useEffect(() => {
@@ -117,7 +197,15 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
     const room = (() => {
         switch (route.name) {
             case 'hall':
-                return <HallRoom index={index} nowYear={nowYear} session={stage} onOpenBook={openBook} />;
+                return (
+                    <HallRoom
+                        index={index}
+                        nowYear={nowYear}
+                        session={stage}
+                        onOpenBook={openBook}
+                        unavailableLink={unavailableLink !== null}
+                    />
+                );
             case 'themes':
                 return <ThemesRoom index={index} />;
             case 'theme':
@@ -158,7 +246,7 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
             data-room-aura={route.name}
         >
             {/** Keyed per room so the room's air arrives once, on entry (docs/12 §5.3). */}
-            <div className="room-aura" key={router.path} aria-hidden="true">
+            <div className="room-aura" key={roomLocation} aria-hidden="true">
                 <div className="room-aura-tint" data-testid="room-aura" />
             </div>
 

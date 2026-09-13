@@ -22,6 +22,13 @@ export type StageSessionOptions = {
     books: Book[];
     /** The drawing range of one room key; a hall and a shelf room never share a cycle. */
     scopeFor: (key: string) => StageScope;
+    /**
+     * The passage a room must open with when the URL asked for one (`/?h=<id>`, docs/15 §4.1).
+     *
+     * It is only consulted when a session is *created*: a room that already exists keeps the sentence it
+     * was showing, and a later deep link goes through `openDeepLink` instead.
+     */
+    seedFor?: (key: string) => string | null;
     selector?: Selector;
 };
 
@@ -32,6 +39,8 @@ export type StageSessionController = {
     nextInBook: () => void;
     openSource: () => void;
     closeSource: () => void;
+    /** Shows the passage a deep link names, without counting it as a move the visitor made. */
+    openDeepLink: (id: string) => void;
 };
 
 /**
@@ -59,7 +68,7 @@ export function useStageSessions(
         [reducedMotion],
     );
     const selector = options.selector ?? selectNext;
-    const { books, highlights, scopeFor } = options;
+    const { books, highlights, scopeFor, seedFor } = options;
 
     const context = useMemo<EncounterContext>(
         () => ({ books, highlights, durations, selector, rng: Math.random }),
@@ -68,7 +77,7 @@ export function useStageSessions(
 
     const sessions = useRef(new Map<string, EncounterState>());
     const [activeState, setActiveState] = useState<EncounterState>(() =>
-        createInitialState(context, null, scopeFor(sessionKey)),
+        createInitialState(context, seedFor?.(sessionKey) ?? null, scopeFor(sessionKey)),
     );
     const [renderedKey, setRenderedKey] = useState(sessionKey);
     const renderedRoom = useRef(roomKey);
@@ -85,11 +94,11 @@ export function useStageSessions(
             if (existing !== undefined) {
                 return existing;
             }
-            const created = createInitialState(context, null, scopeFor(key));
+            const created = createInitialState(context, seedFor?.(key) ?? null, scopeFor(key));
             sessions.current.set(key, created);
             return created;
         },
-        [context, scopeFor],
+        [context, scopeFor, seedFor],
     );
 
     if (renderedKey !== sessionKey) {
@@ -158,5 +167,11 @@ export function useStageSessions(
         closeSource: useCallback(() => {
             dispatch({ type: 'CLOSE_SOURCE' });
         }, [dispatch]),
+        openDeepLink: useCallback(
+            (id: string) => {
+                dispatch({ type: 'OPEN_DEEP_LINK', id });
+            },
+            [dispatch],
+        ),
     };
 }

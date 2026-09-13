@@ -18,7 +18,12 @@ export type BookFilters = {
 };
 
 export type RoomRoute =
-    | { name: 'hall' }
+    /**
+     * 门厅. `highlightId` is a deep link (`/?h=<stable highlight id>`): the URL names one real passage
+     * instead of the opening draw. It belongs to the hall only — a shelf or a book room is a browsing
+     * context, never the identity of a passage (docs/15 §4.1).
+     */
+    | { name: 'hall'; highlightId: string | null }
     | { name: 'themes' }
     | { name: 'theme'; themeId: string }
     | ({ name: 'books' } & BookFilters)
@@ -45,13 +50,24 @@ function readYear(params: URLSearchParams): number | null {
     return Number.isFinite(year) ? year : null;
 }
 
+/**
+ * The passage a hall URL points at.
+ *
+ * Validation happens against the snapshot, not here: this only refuses what cannot be an id at all, so
+ * an unknown-but-well-formed id still reaches the page and gets the honest "unavailable" state.
+ */
+function readHighlightId(params: URLSearchParams): string | null {
+    const raw = params.get('h');
+    return raw === null || raw.length === 0 ? null : raw;
+}
+
 export function parseRoute(pathname: string, search = ''): RoomRoute {
     const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
     const segments = pathname.split('/').filter((part) => part.length > 0).map(decodeSegment);
     const [head, second] = segments;
 
     if (segments.length === 0) {
-        return { name: 'hall' };
+        return { name: 'hall', highlightId: readHighlightId(params) };
     }
     if (head === 'themes') {
         if (segments.length === 1) {
@@ -79,7 +95,7 @@ export function parseRoute(pathname: string, search = ''): RoomRoute {
 export function routePath(route: RoomRoute): string {
     switch (route.name) {
         case 'hall':
-            return '/';
+            return route.highlightId === null ? '/' : `/?h=${encodeURIComponent(route.highlightId)}`;
         case 'themes':
             return '/themes';
         case 'theme':
@@ -106,9 +122,23 @@ export function routePath(route: RoomRoute): string {
     }
 }
 
-/** Stable memory key: two visits to the same filters are the same room. */
+/**
+ * The room's own address, without content-level query.
+ *
+ * A deep-linked hall and a plain hall are the same room, so `/?h=…` must not become a second hall with
+ * its own scroll position, its own stage session or its own aura entrance (docs/15 §6.1).
+ */
+export function roomPath(route: RoomRoute): string {
+    return route.name === 'hall' ? '/' : routePath(route);
+}
+
+/**
+ * Stable memory key: two visits to the same filters are the same room.
+ *
+ * Which passage a deep link names is *not* part of the room, so the key stays `/` for every hall URL.
+ */
 export function routeKey(route: RoomRoute): string {
-    return route.name === 'unknown' ? '/unknown' : routePath(route);
+    return route.name === 'unknown' ? '/unknown' : roomPath(route);
 }
 
 /** The room a book room was opened from, so its return control can exist without inventing a target. */

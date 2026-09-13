@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseRoute, routeKey, routePath, bookRoomKey } from './router.ts';
+import { parseRoute, roomPath, routeKey, routePath, bookRoomKey } from './router.ts';
 
 /**
  * Router properties (docs/12 §3).
@@ -9,7 +9,7 @@ import { parseRoute, routeKey, routePath, bookRoomKey } from './router.ts';
  */
 describe('routes are parsed from real paths', () => {
     it('maps each room to its own route', () => {
-        expect(parseRoute('/')).toEqual({ name: 'hall' });
+        expect(parseRoute('/')).toEqual({ name: 'hall', highlightId: null });
         expect(parseRoute('/themes')).toEqual({ name: 'themes' });
         expect(parseRoute('/themes/t-001')).toEqual({ name: 'theme', themeId: 't-001' });
         expect(parseRoute('/books')).toEqual({ name: 'books', year: null, themeId: null });
@@ -45,7 +45,16 @@ describe('routes are parsed from real paths', () => {
 
 describe('routes are rebuilt as canonical URLs', () => {
     it('round-trips every room', () => {
-        for (const path of ['/', '/themes', '/themes/t-001', '/books', '/books/b-013', '/about', '/books/b-013?year=2025']) {
+        for (const path of [
+            '/',
+            '/?h=h-001',
+            '/themes',
+            '/themes/t-001',
+            '/books',
+            '/books/b-013',
+            '/about',
+            '/books/b-013?year=2025',
+        ]) {
             const [pathname = '/', search = ''] = path.split('?');
             expect(routePath(parseRoute(pathname, search))).toBe(path);
         }
@@ -67,7 +76,7 @@ describe('routes are rebuilt as canonical URLs', () => {
 
     it('gives the six rooms distinct memory keys', () => {
         const keys = [
-            routeKey({ name: 'hall' }),
+            routeKey({ name: 'hall', highlightId: null }),
             routeKey({ name: 'themes' }),
             routeKey({ name: 'theme', themeId: 't-001' }),
             routeKey({ name: 'books', year: null, themeId: null }),
@@ -76,5 +85,51 @@ describe('routes are rebuilt as canonical URLs', () => {
             routeKey({ name: 'about' }),
         ];
         expect(new Set(keys).size).toBe(keys.length);
+    });
+});
+
+/**
+ * Deep links (`/?h=<stable id>`, docs/15 §4.1).
+ *
+ * The passage belongs to the hall and to nothing else: a shelf or a book room is a place the visitor is
+ * browsing, not the identity of a sentence. And because the hall is the same room whether or not it
+ * names a passage, the deep link must not leak into the room's memory keys.
+ */
+describe('a deep link names a passage inside the hall', () => {
+    it('parses a real highlight id on the hall and nowhere else', () => {
+        expect(parseRoute('/', '?h=h-001')).toEqual({ name: 'hall', highlightId: 'h-001' });
+        expect(parseRoute('/', '?h=h-001&year=2025')).toEqual({ name: 'hall', highlightId: 'h-001' });
+        // The room keeps its own meaning and simply does not carry the passage.
+        expect(parseRoute('/themes/t-001', '?h=h-001')).toEqual({ name: 'theme', themeId: 't-001' });
+        expect(parseRoute('/books/b-013', '?h=h-001&year=2025')).toEqual({
+            name: 'book',
+            bookId: 'b-013',
+            year: 2025,
+        });
+    });
+
+    it('treats an empty or malformed parameter as no link rather than a broken id', () => {
+        expect(parseRoute('/', '?h=')).toEqual({ name: 'hall', highlightId: null });
+        expect(parseRoute('/', '?h')).toEqual({ name: 'hall', highlightId: null });
+        // A malformed percent-escape must not throw inside a parse function.
+        expect(parseRoute('/', '?h=%E0%A4%A').name).toBe('hall');
+    });
+
+    it('rebuilds the linked address and encodes ids that need it', () => {
+        expect(routePath({ name: 'hall', highlightId: null })).toBe('/');
+        expect(routePath({ name: 'hall', highlightId: 'h-001' })).toBe('/?h=h-001');
+        const route = { name: 'hall', highlightId: '中文 id' } as const;
+        expect(routePath(route)).toBe('/?h=%E4%B8%AD%E6%96%87%20id');
+        expect(parseRoute('/', `?h=${encodeURIComponent('中文 id')}`)).toEqual({ name: 'hall', highlightId: '中文 id' });
+    });
+
+    it('keeps one hall behind every deep link, for scroll, sessions and the aura', () => {
+        const plain = routeKey({ name: 'hall', highlightId: null });
+        expect(routeKey({ name: 'hall', highlightId: 'h-001' })).toBe(plain);
+        expect(routeKey({ name: 'hall', highlightId: 'h-999' })).toBe(plain);
+        expect(roomPath({ name: 'hall', highlightId: 'h-001' })).toBe('/');
+        // Other rooms already normalise away everything that is not theirs.
+        expect(roomPath(parseRoute('/themes/t-001', '?h=h-001'))).toBe('/themes/t-001');
+        expect(roomPath(parseRoute('/books/b-013', '?h=h-001'))).toBe('/books/b-013');
     });
 });
