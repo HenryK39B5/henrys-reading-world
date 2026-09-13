@@ -4,9 +4,9 @@
 
 ## 当前状态
 
-- 阶段：v1 的 **Slice 0–4**、**V2-A**（schema 2、全量 4,663 条 / 130 本 / 14 个书架）、**V2-B**（两阶段公平发现引擎）、**V2-C1**（房间路由与现场记忆）、**V2-D**（全量分批浏览）、**V2-C2**（Book Aura 与呼吸动效）、**V2-E1/E2/E3**（稳定深链、固定 ID 分享、200% 缩放与最终无障碍）与 **V2-E4**（dialog 滚动锁、Book Aura 出版卡片）均已完成。
-- 下一阶段：**Public Release Gate**（PUB-01～PUB-07），需用户决定；尚未公开导出、部署或上传。
-- 产品方向：`PRODUCT_BRIEF.md` 是历史基线；轻松漫游与公平原则见 `docs/10-PRODUCT-DIRECTION-V2.md`，房间/Book Aura 见 `docs/12-ROOMS-COLOR-MOTION-DIRECTION.md`，施工路线见 `docs/11-V2-IMPLEMENTATION-PLAN.md`；V2-E4 开工 Prompt 是已执行的 `docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md`。
+- 阶段：v1 Slice 0–4、V2-A～V2-E4D 均已完成；当前准备 **Release-A 发布审核系统**。
+- 下一阶段（已确认、尚未实现）：V2-E4E 复制文本来源分层 → 书籍房间有限随机轮 → 书级 publication policy（支持单条排除与逐书封面开关）→ 本机审核器与私有 publication preview。正式 public snapshot、GitHub repo、push 与部署仍未授权。
+- 产品方向：轻松漫游与公平原则见 `docs/10`，房间/Book Aura 见 `docs/12`；公开审核、随机书籍房间和 GitHub Pages 目标以 `docs/17-PUBLICATION-DIRECTION-AND-RELEASE-A.md` 为最新权威；下一批唯一实现 Prompt 为 `docs/18-RELEASE-A-PUBLICATION-REVIEW-IMPLEMENTER-PROMPT.md`。
 - 硬约束：所有开发只使用 Henry 本人的真实划线，不使用 fake / demo 数据；主题属于书籍，不做逐句人格标签。
 - 当前页面数据（local-only）：**4,663 条真实划线 · 130 本书 · 14 个主题书架 · 2024–2026**；房间一次只渲染一个视觉中心，全部内容通过舞台、主题书架与单书房间分批可达。
 - 原始数据与快照只存在于本机 `.private/`，已被 `.gitignore` 排除，不进入前端包。
@@ -120,6 +120,8 @@ npm run snapshot:local                    # 挑选结果 → 开发快照
 | [14 — 连续房间开发 Prompt](docs/14-ROOMS-CONTINUOUS-IMPLEMENTER-PROMPT.md) | 已执行的 V2-C1 → V2-D → V2-C2 历史提示词 |
 | [15 — V2-E 最终收尾 Prompt](docs/15-V2-E-CONTINUOUS-IMPLEMENTER-PROMPT.md) | 已执行的 V2-E1 → V2-E2 → V2-E3 历史提示词 |
 | [16 — V2-E4 分享卡片视觉修订 Prompt](docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md) | 已执行的 V2-E4A → V2-E4B → V2-E4C 历史提示词 |
+| [17 — 公开发布方向与 Release-A](docs/17-PUBLICATION-DIRECTION-AND-RELEASE-A.md) | 书级审批、单条排除、封面开关、有限随机书籍房间、Pages 目标与系统审核流程 |
+| [18 — Release-A 实现 Prompt](docs/18-RELEASE-A-PUBLICATION-REVIEW-IMPLEMENTER-PROMPT.md) | 下一批唯一入口：V2-E4E → 随机书籍房间 → 本机发布审核器 → 私有 preview Gate |
 
 ## 真实数据现状
 

@@ -1,6 +1,6 @@
 # 03 — 真实数据契约
 
-> **当前实现：schemaVersion 2。** 主题引用在 Book（`themeIds`），Highlight 只保留 `id / bookId / text / year`，不再有逐句主题、编辑评分或 Opening / Surprise 字段。下文的 v1 类型只作为历史对照；全量候选（约 4,663 条）已进入 local-only 快照。详见 `docs/10` 与 `docs/11 §1–3`。
+> **当前实现：schemaVersion 2。** 主题引用在 Book（`themeIds`），Highlight 只保留 `id / bookId / text / year`。全量 4,663 条已进入 local-only 快照。公开阶段新增的私有 `PublicationPolicy`、书级默认拒绝、单条排除、封面开关与 preview 投影见 `docs/17 §4–6`；policy 与审核备注不属于前端 Snapshot。
 
 ## 1. 硬边界
 

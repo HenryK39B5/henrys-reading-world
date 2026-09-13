@@ -1,6 +1,6 @@
 # 02 — 技术与工程设计（v1 基线）
 
-> 栈、安全隔离、URL 和工程底线继续有效。V2-E1/E2/E3 已在 `a8083ef` 完成；下一批只做 V2-E4 分享卡片视觉修订与 dialog 滚动锁可靠性，不改变深链、复制或发布边界，具体以 `docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md` 为准。
+> 栈、安全隔离、URL 和工程底线继续有效。V2-E4D 已完成；当前 Release-A 的公开审核、有限随机书籍房间与本机 publication preview 以 `docs/17-PUBLICATION-DIRECTION-AND-RELEASE-A.md` / `docs/18-RELEASE-A-PUBLICATION-REVIEW-IMPLEMENTER-PROMPT.md` 为准。正式 public snapshot、GitHub Pages base/route、push 与部署仍不在 Release-A。
 
 ## 1. 栈与命令
 

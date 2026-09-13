@@ -2,18 +2,18 @@
 
 ## 目标与权威顺序
 
-本轮只实现 Henry's Reading World 的单人静态体验原型。
+本轮实现 Henry's Reading World 的单人静态体验，以及只在本机运行的发布审核工具；不建设公众登录或远程后台。
 
-阅读顺序：`PRODUCT_BRIEF.md` → **`docs/10-PRODUCT-DIRECTION-V2.md` → `docs/12-ROOMS-COLOR-MOTION-DIRECTION.md` → `docs/11-V2-IMPLEMENTATION-PLAN.md`** → `docs/01-SCOPE-AND-DECISIONS.md` → `docs/02-TECHNICAL-DESIGN.md` → `docs/03-DATA-CONTRACT.md` → `docs/04-SERENDIPITY-SPEC.md` → `docs/05-UX-SPEC.md` → `docs/06-IMPLEMENTATION-PLAN.md` → `docs/07-IMPLEMENTATION-HANDOFF.md`。`12` 是 Critique #2 后的空间/Book Aura 权威；算法与数据语义以 `10/11` 为准，冲突时优先最新文件。
+阅读顺序：`PRODUCT_BRIEF.md` → **`docs/17-PUBLICATION-DIRECTION-AND-RELEASE-A.md` → `docs/10-PRODUCT-DIRECTION-V2.md` → `docs/12-ROOMS-COLOR-MOTION-DIRECTION.md` → `docs/11-V2-IMPLEMENTATION-PLAN.md` → `docs/18-RELEASE-A-PUBLICATION-REVIEW-IMPLEMENTER-PROMPT.md`** → `docs/01-SCOPE-AND-DECISIONS.md` → `docs/02-TECHNICAL-DESIGN.md` → `docs/03-DATA-CONTRACT.md` → `docs/04-SERENDIPITY-SPEC.md` → `docs/05-UX-SPEC.md` → `docs/06-IMPLEMENTATION-PLAN.md` → `docs/07-IMPLEMENTATION-HANDOFF.md`。`17` 是公开审核、随机书籍房间与 Pages 目标的最新权威；`18` 是当前唯一实现 Prompt；既有算法/房间/Book Aura 契约以 `10/11/12` 为准。
 
-用户后续明确要求：移植微信读书 skill，所有产品开发使用真实数据，不使用 fake data。此要求补充并收紧 `PRODUCT_BRIEF.md` 的样本边界。Critique #1 后用户把方向从“前三句策展并塑造印象”调整为“全量真实划线的轻松漫游”：主题属于书籍、不是逐句人格标签；算法优化公平与防重复，不编排 Opening/Contrast/Surprise；约 4,663 条均应可到达但不同时渲染。Critique #2 后用户又确认房间式结构、Book Aura 色彩归属与轻盈呼吸动效：门厅 / 主题书架 / 主题房间 / 所有书 / 书籍房间 / About 使用稳定 URL，返回时保留现场；具体以 `docs/10/11/12` 为准。真正出现新冲突时再请用户决定。
+用户后续明确要求：移植微信读书 skill，所有产品开发使用真实数据，不使用 fake data。此要求补充并收紧 `PRODUCT_BRIEF.md` 的样本边界。Critique #1 后用户把方向从“前三句策展并塑造印象”调整为“全量真实划线的轻松漫游”：主题属于书籍、不是逐句人格标签；算法优化公平与防重复，不编排 Opening/Contrast/Surprise；约 4,663 条均应可到达但不同时渲染。Critique #2 后用户又确认房间式结构、Book Aura 色彩归属与轻盈呼吸动效。公开阶段用户进一步确认：项目站点为 `henryk39b5.github.io/henrys-reading-world/`、未来 repo 为 public；130 本逐书审核，公开书允许单条排除，封面默认公开但可逐书关闭；消费者书籍房间改为首轮不重复的有限随机漫游，完整列表只用于本机审核。具体以 `docs/17` 为准。真正出现新冲突时再请用户决定。
 
 开始数据工作前，额外完整阅读 `docs/09-WEREAD-DATA-WORKFLOW.md`、`.agents/skills/weread-skills/SKILL.md`、`PROJECT-ADAPTATION.md` 与所调用能力文件。不依赖客户端自动加载 skill。
 
 ## 执行规则
 
 - 先检查目录、现有实现及 Git 状态；保护既有工作，不因为本交接写着“无代码”就覆盖后续代码。
-- 当前 Slice 0–4、V2-A、V2-B、V2-C1、V2-D、V2-C2、V2-E1/E2/E3 与 V2-E4A/B/C 均已完成。下一阶段只有 **Public Release Gate**（PUB-01～PUB-07），需用户决定后才开始；不得自行公开导出、部署或上传。分享卡片与 dialog 滚动锁的完成记录见 `docs/08` 的 V2-E4A/E4B/E4C 三节。
+- 当前 Slice 0–4、V2-A～V2-E4D 均已完成。用户已批准进入 **Release-A**：V2-E4E 复制文本 → 书籍有限随机轮 → publication policy 与本机审核器 → 私有 publication preview；按 `docs/18` 连续实现。Release-A 不得生成正式 public snapshot、复制 public covers、创建 GitHub repo、push 或部署。
 - 使用 Windows 原生 Node/npm/Git 与 PowerShell。不要混用 WSL 路径。
 - 不在非空项目根目录直接运行可能覆盖文档的脚手架；优先逐文件建立 Vite 配置。
 - 版本首次安装时选择彼此兼容的稳定版本并提交 npm 锁文件，不凭空声称某版本是最新。

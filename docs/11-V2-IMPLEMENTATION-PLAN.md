@@ -1,8 +1,8 @@
 # 11 — v2 迁移与施工计划
 
-> 状态：交给实现模型的当前施工路线。
+> 状态：V2-A～V2-E4D 的历史施工路线。当前发布阶段以 `docs/17-PUBLICATION-DIRECTION-AND-RELEASE-A.md` 为产品/数据权威，以 `docs/18-RELEASE-A-PUBLICATION-REVIEW-IMPLEMENTER-PROMPT.md` 为唯一实现入口。
 >
-> 产品依据：`docs/10-PRODUCT-DIRECTION-V2.md`；空间、色彩与动效以 `docs/12-ROOMS-COLOR-MOTION-DIRECTION.md` 为最新权威。
+> 原有产品依据：`docs/10-PRODUCT-DIRECTION-V2.md`；空间、色彩与动效以 `docs/12-ROOMS-COLOR-MOTION-DIRECTION.md` 为权威。公开阶段对单书列表的调整以 `docs/17` 为准。
 >
 > 原则：按片迁移、每片测试并记录；不要把全量数据、schema、算法、路由与视觉一次性全部改完后才排错。
 
@@ -10,9 +10,9 @@
 
 历史迁移起点为 `e2b82a1`（V2-A 完成）；V2-A～V2-E3 已全部落地。**当前实现基线为 `a8083ef`**，下一批只做用户确认的 V2-E4 分享卡片视觉修订，工作区应先保持干净。
 
-当前已有：schema 2、4,663 条 / 130 本 / 14 个书籍主题书架、稳定 ID、防泄漏全量 local-only 快照、两阶段公平算法、六房间、Book Aura、全量分批、稳定深链与固定 ID 分享。独立验收基线为 171 单测、81 local E2E、1 public E2E；数字仍须开工重跑。
+当前已有：schema 2、4,663 条 / 130 本 / 14 个书籍主题书架、稳定 ID、防泄漏全量 local-only 快照、两阶段公平算法、六房间、Book Aura、全量分批、稳定深链与固定 ID 分享。V2-E4D 后基线为 195 单测、100 local E2E、1 public E2E；数字仍须开工重跑。
 
-以下 V2-A～V2-E 内容保留为迁移历史与不可回退契约；当前施工入口见 V2-E4 与 `docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md`。
+以下 V2-A～V2-E4 内容保留为迁移历史。用户已确认消费者书籍房间从顺序列表迁移为有限随机轮；该新决定及 publication policy 见 `docs/17/18`。
 
 后续 v2 目标：
 
@@ -285,7 +285,20 @@ About 是独立小房间，只显示真实范围和可选的 Henry 自写介绍�
 2. **V2-E4B — Book Aura 出版卡片**：`sharePalette(accent)` 纯函数派生深色卡面与暖色文字（正文对比度 ≥7、次要文字 ≥4.6），颜色由 locked highlight → locked book → 真实封面 accent 得出；双细框、hairline 分区、底部出处区。
 3. **V2-E4C — 视觉与工程 Gate**：320/360/390/768/1440、200% 等价与真实 2×、键盘旅程含卡片断言、深链→分享的 accent 独立核对、网络与隐私（含参考图不可读）、public 空态与构建拒绝。
 
-V2-E4 未增加图片导出、封面展示、头像、日期、统计、二维码、主题标签、模板选择、Web Share、部署或公开快照。完成后下一阶段才是 Public Release Gate。
+V2-E4 未增加图片导出、封面展示、头像、日期、统计、二维码、主题标签、模板选择、Web Share、部署或公开快照。
+
+### Release-A — 发布审核与随机书籍房间（下一批）
+
+用户已确认：
+
+- 项目站点目标为 `henryk39b5.github.io/henrys-reading-world/`，未来 repo 为 public；
+- 130 本逐书审核，未审核默认不公开；
+- 公开书支持单条划线排除；封面默认公开但可逐书关闭；
+- 书籍房间删除消费者顺序列表，改为首轮全部不重复、完成后显式重开的有限随机漫游；完整列表只在本机审核器出现；
+- 随机 UI 不缩小 public snapshot，版权/隐私审核仍按实际导出的全部内容计算；
+- Release-A 只做 V2-E4E、本机 policy/review/preview，不生成正式 public snapshot、不创建 repo、不 push、不部署。
+
+完整规范与 Prompt：`docs/17-PUBLICATION-DIRECTION-AND-RELEASE-A.md`、`docs/18-RELEASE-A-PUBLICATION-REVIEW-IMPLEMENTER-PROMPT.md`。
 
 ## 7. 连续批次交付要求
 

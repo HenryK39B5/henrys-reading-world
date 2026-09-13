@@ -23,7 +23,7 @@
 | 出处展开（Slice 3） | 已完成 | 原位展开、真实收录计数、再看一处 / 收起、焦点回归、耗尽与单条明确说明 |
 | 书籍 / 主题 / About（Slice 4） | 已完成 | 书籍区与书详情、5 个主题的跨书连线、真实年份筛选与空交集处理、真实计数 About |
 | 导航 | 全部放开 | 随机 / 书 / 主题 / 关于 均为真链接，无禁用项 |
-| 浏览器验证 | V2-E4D 后已独立复核 | Playwright + Chromium（本机）：**99 个 local 用例**；`npx playwright test` 全量多次通过，`scroll-lock` `--repeat-each=10` 80/80、`share`+`share-card` `--repeat-each=5` 90/90；1 个 public 空态用例通过。V2-E 曾出现一次 dialog 背景滚到 210px，已在 V2-E4A 定位根因（聚焦把页面拉回顶部、`overflow:hidden` 不阻止程序化滚动、StrictMode 第二次锁录取到被钳制的 0）并修复 |
+| 浏览器验证 | V2-E4D 后已独立复核 | Playwright + Chromium（本机）：**100 个 local 用例**；`scroll-lock` `--repeat-each=10` 80/80、`share`+`share-card` `--repeat-each=5` 95/95；1 个 public 空态用例通过。V2-E 曾出现一次 dialog 背景滚到 210px，已在 V2-E4A 定位根因并修复 |
 | 本机检查 | V2-E4D 后已独立复核 | `check:local` 全绿：typecheck + lint + **195 个单测（15 文件）** + schema 2 数据校验；`verify:ids`、smoke、public build 与 local-private build 拒绝均通过 |
 | 视觉检查（Astra） | 已执行 | 1440 / 390 实际截图；发现并修正孤字成行、26px 点击目标、出处行间距、移动端书目节奏 |
 | 评审证据工具 | 已建立 | `npm run capture:review`：截图 + 可读数字（字号 / 行数 / 对比度 / 点击目标 / 溢出 / 延迟）|
@@ -39,9 +39,10 @@
 | Product Critique #2 | 已完成方向评审 | 用户确认房间式结构、Book Aura 色彩归属、返回保留现场与轻盈呼吸动效；见 `docs/12` |
 | V2-C1 房间路由与现场记忆 | 已完成 | 六个真实路径、每房间独立舞台会话、批次与滚动记忆；149 单测 / 34 Playwright；详见下方 V2-C1 执行记录 |
 | V2-C2 Book Aura 与呼吸动效 | 已完成（含复核修复） | 真实封面环境色、房间进入/换句 700ms、reduced-motion；最终 local Playwright 总数 44；详见下方记录 |
-| V2-D 全量分批浏览 | 已完成（含复核修复） | 书库 12→130、单书 10→531、4,663 条可达；年份传播与同年稳定 ID 排序已由 `9e2d0af` 关闭 |
+| V2-D 全量分批浏览 | 已完成；将由 Release-A1 更新单书入口 | 书库 12→130 保留；单书 10→531 顺序列表将在已确认的 Release-A 中迁移为有限随机轮，4,663 条可达契约不变 |
 | V2-E1/E2/E3 | 已完成并独立复核 | 深链、固定 ID 分享、复制失败、200%/键盘/privacy 均成立；基线 `a8083ef` |
-| V2-E4 交接准备 | 已执行完毕 | 交接 Prompt 为 `docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md`；E4A/E4B/E4C/E4D 均已实现、测试并提交，详见下方对应记录 |
+| V2-E4 交接准备 | 已执行完毕 | 交接 Prompt 为 `docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md`；E4A/E4B/E4C/E4D 均已实现、测试并提交 |
+| Release-A 公开审核准备 | ready-for-implementation | 用户确认项目 Pages 路径、public repo、130 本逐书审核、单条排除、逐书封面关闭与有限随机书籍房间；权威 `docs/17`，唯一 Prompt `docs/18` |
 | 真实访客 Gate | 未进行 | 用户本人体验反馈非常积极（V2-E4D 就是其反馈驱动的收尾），但尚无首次访客结果，不冒充产品 Gate 通过 |
 
 原始返回、更新包、候选池、快照与截图全部留在 `.private/`，已被 `.gitignore` 排除，未进入前端包。
@@ -992,6 +993,77 @@ V2-E（最终独立批次），不在本阶段开始。
 DeepSeek v4.1 Flash 按 `docs/16` 连续完成 E4A → E4B → E4C。每阶段测试、记录、commit，Gate 通过后直接继续；全部完成后统一汇报。不部署、不 push、不生成 public snapshot。
 
 > 本记录交存的是交接当时的状态（`状态：ready-for-implementation`）。实际执行与验收见上方 V2-E4C 与下方 V2-E4D 记录；本批次的真实结果以那两节为准。
+
+## Release-A 产品与实现交接准备（2026-09-13）
+
+```text
+日期 / 执行者：2026-09-13 / GPT-5.6 Sol
+范围：公开权限、随机书籍房间、系统审核与 GitHub Pages 方向；形成 Release-A 规范和实现 Prompt
+状态：ready-for-implementation
+代码基线：3f4a7df
+直接权威：docs/17-PUBLICATION-DIRECTION-AND-RELEASE-A.md
+唯一实现 Prompt：docs/18-RELEASE-A-PUBLICATION-REVIEW-IMPLEMENTER-PROMPT.md
+```
+
+### 用户确认的决定
+
+1. GitHub Pages 使用 public project repository `henrys-reading-world`，目标路径 `henryk39b5.github.io/henrys-reading-world/`；现有 Blogverse 根站不迁移、不嵌入，本批不访问或修改 Blogverse workspace。
+2. 全部 130 本进行系统审核；书是主要权限单位，未审核默认拒绝。
+3. 公开书默认允许自己的划线，但可排除个别 stable highlight ID；第一版不做 selected-only，避免 4,663 条逐条勾选的维护负担。
+4. 公开书封面默认允许，但可逐书关闭；Release-A 只保存决定，不复制 public cover。
+5. 书籍消费者页面删除完整顺序列表，改为有限随机轮：第一轮每条恰好出现一次且 0 重复，完成后提示并由用户显式重开；完整列表只在本机发布审核器出现。
+6. 第一版 Pages 使用手动 workflow；但 GitHub workflow、repo、remote、push 与部署均留到 Release-C～E，Release-A 不做。
+
+### 关键产品判断：随机 UI 不是版权过滤
+
+GitHub Pages 是静态发布。只要全部划线进入 public snapshot / public repo，即使消费者界面一次只画一句，文字也已公开可下载；“首轮不重复”还允许依次遍历全部公开内容。因此随机书籍房间的价值是：
+
+- 与 Reading World 的轻松漫游语言一致；
+- 不出现摘录墙；
+- 降低整页复制的便利性；
+
+但不能把它写成减少发布量或版权风险。publication preview/audit 必须按真正投影出的全部文字计算累计字符、最长条目与长引用提示。程序不自动判断法律结论。
+
+### Release-A 四阶段
+
+1. **A1 / V2-E4E**：修复 `复制文字` 的真实反馈——作者与站点来源之间空一行，站点改为 `来自 Henry's Reading World`；E4D CSS 卡片分层保留，但 docs/08 追加澄清当时误解。
+2. **A2**：消费者书籍房间有限随机轮；年份只留书库，Back 恢复筛选；最大书 531 一轮无重复；全部 4,663 可达证明从 batch list 迁移到 finite cycles。
+3. **A3**：私有 `publication-policy.json`、书级三态、单条 exclude、封面开关、本机审核器与安全保存。
+4. **A4**：只写 `.private` 的 publication preview/audit、隔离与全量工程 Gate；正式 public snapshot 仍为空。
+
+### 发布审核器边界
+
+- 本机工具，不是公众账号/权限后台；
+- 只绑定 127.0.0.1，不需要微信读书 key；
+- 可以搜索、按年/长度/ID筛选，因为它是管理工具；消费者产品仍不加搜索；
+- policy 使用稳定项目 ID，不记录原始 bookId/bookmarkId/账号/secret；
+- reviewComplete 只有 130 本无 unreviewed 时成立；
+- preview 重算 books/highlights/themes 与计数，只写 `.private`；
+- Release-A 不生成 public snapshot、public covers 或 GitHub artifact。
+
+### Blogverse 与 Pages 核对
+
+已按用户要求只读 `E:\Desktop\henry-agent-hub\SKILLS\blogverse\SKILL.md` 及 publishing/customization/workspace references：现有 Blogverse 是 Hexo 6.3 + Volantis，根站为 `henryk39b5.github.io/`，实际 workspace 在 `F:\Working\Blogverse`。Reading World 作为独立 project site 合适，不应并入 Hexo 或共用 deploy 命令；公网稳定后再决定是否从 Blogverse 导航/Explore 链接过去。
+
+### 本次修改
+
+- 新增 `docs/17-PUBLICATION-DIRECTION-AND-RELEASE-A.md`；
+- 新增 `docs/18-RELEASE-A-PUBLICATION-REVIEW-IMPLEMENTER-PROMPT.md`；
+- 更新 `AGENTS.md`、README、`docs/02/03/07/08/11` 的当前权威、基线与下一批入口；
+- 未修改产品代码、快照、主题、稳定 ID、封面、Git 配置或 remote。
+
+### 未验证 / 暂不执行
+
+- 未创建 publication policy、审核器或 preview（属于下一批实现）；
+- 未实际完成 130 本审核；
+- 未生成正式 public snapshot；
+- 未做 Pages base-aware router、静态入口、404 或 workflow；
+- 未创建 GitHub repo、push、部署或修改 Blogverse；
+- 封面和引用的最终公开决定仍须在系统审核与 Release-B Gate 中逐项确认；非商业与网络可见不自动等于无版权风险。
+
+### 下一步
+
+切换到 DeepSeek v4.1 Flash，完整阅读并严格执行 `docs/18`，连续完成 A1 → A2 → A3 → A4；每阶段测试、更新 docs/08、独立 commit。全部结束后停止并交回 Sol 验收；不得进入 Release-B 或 Pages 部署。
 
 ## V2-E4D 卡片署名分层与证据收口（2026-09-13）
 
