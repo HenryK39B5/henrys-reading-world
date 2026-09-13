@@ -45,7 +45,9 @@ export function useShare(): ShareController {
         }
         const element = trigger.current;
         trigger.current = null;
-        element.focus();
+        // `preventScroll` keeps the page exactly where the reader left it: the trigger was on screen when
+        // they used it, and returning the focus must not be a reason for the page to jump (docs/16 §6).
+        element.focus({ preventScroll: true });
     }, [state.highlightId]);
 
     return { state, open, close, reportCopy };

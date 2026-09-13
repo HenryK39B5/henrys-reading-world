@@ -323,18 +323,38 @@ test.describe('keyboard and the dialog', () => {
         await expect(page.getByTestId('stage-passage')).toBeVisible();
 
         const bodyOverflow = () => page.evaluate(() => document.body.style.overflow);
+        /** Where the page content sits on screen — the thing that would move if the page scrolled. */
+        const headerTop = () =>
+            page.evaluate(() =>
+                Math.round(document.querySelector('.site-header')?.getBoundingClientRect().top ?? -1),
+            );
 
         await openDialogFrom(page, 'share-open');
-        // The page behind the dialog must not scroll away underneath it.
         expect(await bodyOverflow()).toBe('hidden');
+
+        // The page behind the dialog must not scroll away underneath it. The header is outside every
+        // animated room, so its position on screen describes the page and nothing else. The document's own
+        // scroll offset is deliberately not the measure here: while the dialog owns the page that offset is
+        // pinned, and the reader's place is carried by the page itself — `e2e/scroll-lock.spec.ts` is where
+        // the place itself is held to account.
+        const beforeWheel = await headerTop();
         await page.mouse.move(8, 8);
         await page.mouse.wheel(0, 600);
-        expect(await page.evaluate(() => window.scrollY)).toBe(0);
+        await page.waitForTimeout(250);
+        expect(await headerTop()).toBe(beforeWheel);
 
         await page.getByTestId('share-close').click();
         await expect(page.getByTestId('share-dialog')).toHaveCount(0);
         await expect(page.getByTestId('share-open')).toBeFocused();
-        expect(await bodyOverflow()).toBe('');
+        // Nothing is left behind: no lock, no offset, no padding, no fallback textarea.
+        expect(
+            await page.evaluate(() => ({
+                overflow: document.body.style.overflow,
+                position: document.body.style.position,
+                top: document.body.style.top,
+                padding: document.body.style.paddingRight,
+            })),
+        ).toEqual({ overflow: '', position: '', top: '', padding: '' });
         await expect(page.getByTestId('share-manual')).toHaveCount(0);
     });
 });

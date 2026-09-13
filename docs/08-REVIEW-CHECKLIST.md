@@ -991,6 +991,103 @@ V2-E（最终独立批次），不在本阶段开始。
 
 DeepSeek v4.1 Flash 按 `docs/16` 连续完成 E4A → E4B → E4C。每阶段测试、记录、commit，Gate 通过后直接继续；全部完成后统一汇报。不部署、不 push、不生成 public snapshot。
 
+## V2-E4A dialog 滚动锁可靠性（2026-09-13）
+
+```text
+日期 / 执行者：2026-09-13 / 实现 Agent（DeepSeek v4.1 Flash）
+范围：V2-E4A — dialog 打开/关闭不再移动读者所在的页面
+状态：verified（本机 Chromium）；真机与 Safari 未验证
+数据模式：真实数据 local-only；未修改快照、稳定 ID 或主题
+代码基线：cda3fd5
+```
+
+### 开工基线重跑（不照抄交接数字）
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run check:local` | 171 单测 / 12 文件；typecheck + lint + 数据校验通过 |
+| `npm run verify:ids` | 20 本 / 46 条稳定 ID 不变；4,663 / 130 |
+| `npx playwright test` | 81 通过 |
+| `npm run test:public` | 1 通过 |
+
+### 根因：三个真实缺陷，而不是“偶发”
+
+在 `a8083ef`/`cda3fd5` 上做真实探针（临时 spec，已删除），不是推测：
+
+| 探针 | 实测 |
+| --- | --- |
+| `document.scrollingElement` | `HTML`（滚动根是 `documentElement`，不是 `body`） |
+| 只锁 `body` 时滚轮 | `0` —— 用户滚动确实被挡住了 |
+| 只锁 `body` 时 `window.scrollTo(0,150)` | **`145`** —— `overflow:hidden` 从未阻止**程序化**滚动 |
+| `html` + `body` 同时锁时滚轮 | `0` |
+
+1. **`overflow:hidden` 只挡用户滚动，不挡程序化滚动**，而已经进入合成器的滚轮事件可以在锁提交前就被应用（CPU 争用下）。所以旧实现真实失败过一次 0 → 210px。
+2. **新发现：dialog 内首次聚焦把页面拉回顶部。** 细粒度日志显示滚动复位时 `active` 是 `share-copy-text`、`dialogOpen: true`：浏览器把刚聚焦的控件滚入视野，而在滚动根被锁的情况下，这等于把页面丢回顶部。**任何从下方打开分享的读者都会中招**，此前所有测试都从顶部打开，所以从未暴露。
+3. **新发现：StrictMode 下第二次锁会记住被钳制的 0。** 开发模式 setup → cleanup → setup 在同一 task 内完成；第一次 unlock 时 `scrollTo` 被钳制（因为 `body` 刚回到流中、布局还没重算），第二个 lock 于是快照到 0，关闭后页面就留在顶部。
+
+另外一个**假警报**：一度以为 `html{overflow:hidden}` 造成 5px 布局位移。实际 `offsetTop` 在所有状态下完全相同（heading 129 / stage 188 / room 121），只有 `getBoundingClientRect` 在变——因为量到的是**房间入场动画进行中**的 rect（docs/12 §5.1 的 8–12px 位移）。是我的测试量错了，不是锁移动了布局。
+
+### 实现
+
+- 新增 `src/features/share/useScrollLock.ts`：
+  - 快照 `html`/`body` 的相关 inline style 与实际滚动位置；
+  - 锁：两者 `overflow:hidden` + `overscroll-behavior:none`，并让 `body` 离开文档流（`position:fixed; top:-<Y>px; left:0; right:0`）——这才是“根本没有可滚动区域”的结构保证；`-Y` 保证画面停在读者原来的位置；
+  - 关闭时按快照原样还原，并显式 `scrollTo` 回原位置；还原前先 `void documentElement.scrollHeight` 强制重算布局（修 StrictMode 的钳制问题）；
+  - 滚动条宽度在**隐藏之前**测量并只在 >0 时补 `padding-right`（补隐藏滚动条带来的横向跳动）。
+- `ShareDialog.tsx`：锁在 showModal 与聚焦**之前**取；dialog 首焦点改为 `focus({ preventScroll: true })`。
+- `useShare.ts`：关闭后归还焦点也用 `preventScroll`，否则焦点回归本身会把页面滚回去。
+
+### 修改文件
+
+- `src/features/share/useScrollLock.ts`（新增）、`useScrollLock.test.ts`（新增）
+- `src/features/share/ShareDialog.tsx`、`src/features/share/useShare.ts`
+- `e2e/scroll-lock.spec.ts`（新增，8 条）
+- `e2e/share.spec.ts`（旧断言改为真实契约）、`e2e/aura.spec.ts`、`e2e/deep-link.spec.ts`、`e2e/zoom.spec.ts`（等待方式改为条件式，见下）
+- `docs/08-REVIEW-CHECKLIST.md`
+
+### 命令 → 实际结果
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run check:local` | **174 单测 / 13 文件**通过（+3 为 `scrollbarGutter`） |
+| `npx playwright test` | **89 通过**（81 + 8 新的滚动锁）；连续两次全量均 89/89 |
+| `npx playwright test e2e/scroll-lock.spec.ts --repeat-each=10` | **80/80** |
+| `npx playwright test e2e/share.spec.ts --repeat-each=5` | **50/50** |
+| `npm run verify:ids` | 20 本 / 46 条不变 |
+
+### 浏览器证据（真实 Chromium）
+
+`e2e/scroll-lock.spec.ts` 覆盖：从真实的非零滚动位置打开（先断言页面确实滚动了）→ 打开后画面位置逐一相同 → backdrop 滚轮 → 监听器记录到的滚动事件**为空**（连瞬时跳动都没有）→ 关闭后仍在原位；从顶部打开同样成立；720×450 下 dialog 自己可滚而页面不动；连续开关 5 次后 html/body 的 inline style 与开关前**逐项相等**（无残留 overflow / position / top / padding）；Esc 与按钮关闭都归还焦点与原位置；`showModal` 不存在时同样成立；程序化 `scrollTo(0,9999)` 也不能把页面留在别处。
+
+### 顺带修掉的三处“计时猜测”（超出 E4A 范围，但是 Gate 阻塞项）
+
+全量并行运行时出现的是**另一批**既存的不稳定检查，与本片改动**没有共享代码路径**（`aura.spec.ts` 从不打开 dialog、不滚动）：
+
+| 现象 | 证据 | 处理 |
+| --- | --- | --- |
+| `aura.spec.ts` “a room wears the colour…” 偶发失败 | 两次全量分别失败在两个不同的 aura 断言；单独 `--repeat-each=5` 35/35 通过 | 固定 `waitForTimeout(900)` 改为条件等待：tint 到达 `--aura-target` 且无动画在运行 |
+| `deep-link.spec.ts` “tints the hall with the linked passage book” 偶发失败 | 同一次全量 | `settledAura` 原来“连续两次相同就收”——而**默认占位色本身也是稳定的**，取样未完成时会提前返回占位色；改为必须稳定数次且不是 `DEFAULT_ACCENT` |
+| `zoom.spec.ts` 真实 2× 放大下控件可达性偶发失败 | 单独运行 1/1 通过 | `reachableWhenMagnified` 原来是“请求滚动后同一 tick 测量”；改为有界轮询直到进入放大可见区 |
+
+三处都**没有放宽断言**：判据仍是原来的数值与条件，只是不再用“等一会儿”代替“等条件”。这与 V2-E3 已经确立的做法一致（截图不再等时长，而是等真实动画状态）。
+
+另外修掉一条**我自己在 E2 写错的断言**：`share.spec.ts` 里“关闭后位置不变”一度被改成“读取 dialog 打开后的 `scrollY` 再比较”，但锁生效时该值被固定在 0，关闭后又还原为真实偏移，于是必然不相等。现在改为比较 `.site-header` 在屏幕上的位置（页面是否真的滚走），并单独逐项断言关闭后没有残留。
+
+### 未验证项
+
+- **真机移动端与 Safari 未验证**：新锁直接改写 `documentElement`/`body` 的 inline style，Safari（尤其 iOS 的橡皮筋与 `visualViewport` 行为）需要真机确认。
+- 交互式浏览器缩放菜单仍未手动执行（与 V2-E3 相同）。
+- 补 `padding-right` 的分支在本机 Chromium 中测不到：该环境滚动条槽宽为 0（`innerWidth === clientWidth`），因此没有触发补值；逻辑本身由 `scrollbarGutter` 单测覆盖。
+
+### 偏差 / 设计判断
+
+- 不引入 scroll-lock 依赖；用 `body` 离开文档流这一结构手段，而不是“先滚动、再补救”。
+- 锁同时覆盖 `html` 与 `body`（docs/16 §6 要求），但真正让页面不可移动的是 `body` 的 fixed + 负 top；只锁滚动根反而会把读者丢回顶部。
+
+### 下一步
+
+V2-E4B（Book Aura 出版卡片），不在本阶段开始。
+
 ## V2-E3 最终响应式、键盘与工程 Gate（2026-09-13）
 
 ```text

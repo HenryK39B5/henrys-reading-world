@@ -9,6 +9,7 @@ import {
     type ShareCopyStatus,
 } from '../../domain/share.ts';
 import type { Book, Highlight } from '../../domain/types.ts';
+import { useScrollLock } from './useScrollLock.ts';
 import './share.css';
 
 export type ShareDialogProps = {
@@ -98,6 +99,19 @@ export function ShareDialog({
     const linkLabel = shareLinkLabel(localOnly);
 
     /**
+     * The lock is taken first, before the dialog is shown and before anything in it is focused.
+     *
+     * Order matters here, and the reason is a real defect this pass found: focusing the dialog's first
+     * control makes the browser scroll the focused element into view, which threw the page to the top for
+     * any reader who opened the dialog from further down. Locking first means the offset that is saved and
+     * restored is the reader's real one; the focus below then avoids scrolling altogether.
+     *
+     * The page behind the modal is not what is being read: it must not scroll away underneath it, and the
+     * reader's place in it must survive the dialog being opened and closed (docs/16 §6).
+     */
+    useScrollLock();
+
+    /**
      * Opening is entirely imperative, and `open` is deliberately never passed as a prop.
      *
      * Two traps live here. React owns every prop it is given, so a re-render would remove the `open`
@@ -131,19 +145,10 @@ export function ShareDialog({
         }
     }, []);
 
-    // The first real action holds the focus, so a keyboard visitor lands on something they can use.
+    // The first real action holds the focus, so a keyboard visitor lands on something they can use —
+    // without the browser moving the page to get there.
     useLayoutEffect(() => {
-        copyTextRef.current?.focus();
-    }, []);
-
-    // The page behind the modal is not what is being read: it must not scroll away underneath it.
-    useLayoutEffect(() => {
-        const { body } = document;
-        const previous = body.style.overflow;
-        body.style.overflow = 'hidden';
-        return () => {
-            body.style.overflow = previous;
-        };
+        copyTextRef.current?.focus({ preventScroll: true });
     }, []);
 
     const copy = useCallback(

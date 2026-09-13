@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
+import { DEFAULT_ACCENT } from '../src/domain/accent.ts';
 
 /**
  * Deep links (`/?h=<stable highlight id>`, docs/15 §4.1, §6).
@@ -58,18 +59,23 @@ async function stageText(page: Page): Promise<string> {
  * Waits until the room's aura has stopped arriving.
  *
  * The colour is sampled from the real cover asynchronously, so an immediate read would measure the
- * placeholder accent instead of the book's own colour.
+ * placeholder accent instead of the book's own colour. Two identical readings are not enough on their own
+ * either: the placeholder is itself a stable value, so a loaded machine that took longer than one poll
+ * interval to sample reported the placeholder as the answer. The colour is only accepted once it has been
+ * stable across several readings *and* is no longer the placeholder.
  */
 async function settledAura(page: Page): Promise<string> {
     let previous = '';
-    for (let attempt = 0; attempt < 40; attempt += 1) {
+    let stable = 0;
+    for (let attempt = 0; attempt < 60; attempt += 1) {
         const current = await page
             .locator('.shell')
             .evaluate((element) => getComputedStyle(element).getPropertyValue('--aura').trim());
-        if (current !== '' && current === previous) {
+        stable = current !== '' && current === previous ? stable + 1 : 0;
+        previous = current;
+        if (stable >= 2 && current.toLowerCase() !== DEFAULT_ACCENT) {
             return current;
         }
-        previous = current;
         await page.waitForTimeout(100);
     }
     return previous;

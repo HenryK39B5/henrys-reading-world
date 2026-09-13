@@ -36,6 +36,38 @@ function loadSnapshot(): {
     };
 }
 
+/**
+ * Waits until the room has actually settled, after giving the asynchronous cover sampling its moment.
+ *
+ * Two things arrive late here, and a fixed budget only guesses at both. The colour is sampled from a real
+ * cover image; and the tint's opacity wakes through a 700ms animation that ends at `--aura-target`.
+ * Waiting for the tint to reach its own target and for no animation to still be running is a condition
+ * about the room rather than a guess about how long 700ms takes on a loaded machine — which is exactly what
+ * failed a band assertion that was describing the room correctly.
+ */
+async function settledRoom(page: Page, budget = 400): Promise<void> {
+    await page.waitForTimeout(budget);
+    await expect
+        .poll(
+            async () =>
+                page.evaluate(() => {
+                    const tint = document.querySelector('.room-aura-tint');
+                    if (tint === null) {
+                        return true;
+                    }
+                    const style = getComputedStyle(tint);
+                    const opacity = Number.parseFloat(style.opacity);
+                    const target = Number.parseFloat(style.getPropertyValue('--aura-target')) || 0;
+                    const animating = document
+                        .getAnimations()
+                        .some((animation) => animation.playState === 'running');
+                    return !animating && opacity >= target - 1e-6;
+                }),
+            { message: 'the room aura must settle on its own target', timeout: 10_000 },
+        )
+        .toBe(true);
+}
+
 /** Which colour the cover of `bookId` actually is, sampled in the browser from the real image. */
 async function coverAccent(page: Page, bookId: string): Promise<string | null> {
     return page.evaluate(async (id: string) => {
@@ -186,7 +218,7 @@ test.describe('book aura', () => {
     test('a room wears the colour of the book it belongs to', async ({ page }) => {
         await page.goto('/');
         await expect(page.getByTestId('room-heading')).toBeVisible();
-        await page.waitForTimeout(900);
+        await settledRoom(page);
 
         const hall = await aura(page);
         expect(hall?.room).toBe('hall');
@@ -209,7 +241,7 @@ test.describe('book aura', () => {
         for (const path of ['/books', '/themes', '/about']) {
             await page.goto(path);
             await expect(page.getByTestId('room-heading')).toBeVisible();
-            await page.waitForTimeout(800);
+            await settledRoom(page, 800);
             const neutral = await aura(page);
             expect(neutral?.target, `${path} must stay on neutral paper`).toBe('0');
             expect(neutral?.opacity).toBe(0);
@@ -226,7 +258,7 @@ test.describe('book aura', () => {
 
         await page.goto(`/books/${bookId}`);
         await expect(page.getByTestId('room-heading')).toBeVisible();
-        await page.waitForTimeout(900);
+        await settledRoom(page);
 
         const strongest = await aura(page);
         expect(strongest?.room).toBe('book');
@@ -314,7 +346,7 @@ test.describe('book aura', () => {
 
         await page.goto(`/themes/${shelfId}`);
         await expect(page.getByTestId('room-heading')).toBeVisible();
-        await page.waitForTimeout(900);
+        await settledRoom(page);
         const room = await aura(page);
         expect(room?.room).toBe('theme');
         expect(room?.target).toBe('0.045');
@@ -324,7 +356,7 @@ test.describe('book aura', () => {
     test('text keeps its contrast over the tinted room', async ({ page }) => {
         await page.goto('/');
         await expect(page.getByTestId('room-heading')).toBeVisible();
-        await page.waitForTimeout(900);
+        await settledRoom(page);
         const hallRatio = await contrast(page);
         expect(hallRatio.passage, 'the passage must stay well above AA').toBeGreaterThan(7);
         expect(hallRatio.muted).toBeGreaterThan(4.5);
@@ -337,7 +369,7 @@ test.describe('book aura', () => {
         }
         await page.goto(`/books/${bookId}`);
         await expect(page.getByTestId('room-heading')).toBeVisible();
-        await page.waitForTimeout(900);
+        await settledRoom(page);
         const bookRatio = await contrast(page);
         console.log(`contrast over the aura: hall ${JSON.stringify(hallRatio)}, book ${JSON.stringify(bookRatio)}`);
         expect(bookRatio.passage).toBeGreaterThan(7);
@@ -395,7 +427,7 @@ test.describe('book aura', () => {
     test('a passage change moves the room colour to the next book instead of jumping', async ({ page }) => {
         await page.goto('/');
         await expect(page.getByTestId('room-heading')).toBeVisible();
-        await page.waitForTimeout(900);
+        await settledRoom(page);
 
         const declared = await page.getByTestId('room-aura').evaluate((node) => ({
             property: getComputedStyle(node).transitionProperty,
@@ -413,7 +445,7 @@ test.describe('book aura', () => {
                 observed = timeline;
             }
             await expect(page.locator('.stage')).toHaveAttribute('data-phase', 'idle', { timeout: 3000 });
-            await page.waitForTimeout(800);
+            await settledRoom(page, 800);
         }
         expect(observed, 'two draws in a row must end on different books').not.toBeNull();
         if (observed === null) {
@@ -433,7 +465,7 @@ test.describe('book aura', () => {
     test('rapid draws do not stack the room colour', async ({ page }) => {
         await page.goto('/');
         await expect(page.getByTestId('room-heading')).toBeVisible();
-        await page.waitForTimeout(900);
+        await settledRoom(page);
         const before = await aura(page);
 
         await page.evaluate(() => {
@@ -443,7 +475,7 @@ test.describe('book aura', () => {
             }
         });
         await expect(page.locator('.stage')).toHaveAttribute('data-phase', 'idle', { timeout: 3000 });
-        await page.waitForTimeout(900);
+        await settledRoom(page);
 
         const after = await aura(page);
         // One passage, one commit, one room colour: the aura never accumulates.

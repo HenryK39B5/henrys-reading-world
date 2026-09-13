@@ -132,25 +132,40 @@ test.describe('200% zoom equivalence', () => {
  *
  * Under real magnification the visible region is smaller than the layout viewport, so "reachable" means
  * the browser can scroll it into that smaller region — not that it is on screen without scrolling.
+ *
+ * Asking for the scroll and measuring in the same tick describes the request rather than the result: under
+ * a loaded parallel run the scroll and the magnified pan land a frame or two later, and the check failed on
+ * a page that was fine. The answer is still the strict one — the control must end up fully inside the
+ * visible region — it is just read after the browser has had the frames to get there.
  */
 async function reachableWhenMagnified(page: Page, testId: string): Promise<boolean> {
-    return page.evaluate((id: string) => {
+    return page.evaluate(async (id: string) => {
         const element = document.querySelector(`[data-testid="${id}"]`);
-        if (element === null) {
-            return false;
-        }
-        element.scrollIntoView({ block: 'center', inline: 'center' });
-        const rect = element.getBoundingClientRect();
         const view = window.visualViewport;
-        if (view === null) {
+        if (element === null || view === null) {
             return false;
         }
-        return (
-            rect.top >= view.offsetTop - 1 &&
-            rect.left >= view.offsetLeft - 1 &&
-            rect.bottom <= view.offsetTop + view.height + 1 &&
-            rect.right <= view.offsetLeft + view.width + 1
-        );
+        const isFullyVisible = (): boolean => {
+            const rect = element.getBoundingClientRect();
+            return (
+                rect.top >= view.offsetTop - 1 &&
+                rect.left >= view.offsetLeft - 1 &&
+                rect.bottom <= view.offsetTop + view.height + 1 &&
+                rect.right <= view.offsetLeft + view.width + 1
+            );
+        };
+        for (let attempt = 0; attempt < 30; attempt += 1) {
+            element.scrollIntoView({ block: 'center', inline: 'center' });
+            if (isFullyVisible()) {
+                return true;
+            }
+            await new Promise((resolve) => {
+                requestAnimationFrame(() => {
+                    resolve(undefined);
+                });
+            });
+        }
+        return false;
     }, testId);
 }
 
