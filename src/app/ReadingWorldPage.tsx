@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { describeDeadEnd } from '../domain/encounter.ts';
+import { describeDeadEnd, unseenInBookCount } from '../domain/encounter.ts';
 import { indexSnapshot } from '../domain/snapshot.ts';
 import type { Snapshot } from '../domain/types.ts';
 import { totalCountText, yearSpanText } from '../domain/world.ts';
@@ -19,7 +19,7 @@ export type ReadingWorldPageProps = {
 export function ReadingWorldPage({ snapshot, warnings }: ReadingWorldPageProps) {
     const index = useMemo(() => indexSnapshot(snapshot), [snapshot]);
     const nowYear = useMemo(() => new Date().getFullYear(), []);
-    const encounter = useEncounter(index.snapshot.highlights);
+    const encounter = useEncounter(index.snapshot.highlights, index.snapshot.books);
     const stageRef = useRef<HTMLElement>(null);
     const [yearFilter, setYearFilter] = useState<number | null>(null);
     const [openBookId, setOpenBookId] = useState<string | null>(null);
@@ -27,12 +27,8 @@ export function ReadingWorldPage({ snapshot, warnings }: ReadingWorldPageProps) 
     const current = encounter.state.currentId === null ? undefined : index.highlightsById.get(encounter.state.currentId);
     const book = current === undefined ? undefined : index.booksById.get(current.bookId);
     const bookHighlightCount = current === undefined ? 0 : (index.highlightsByBook.get(current.bookId)?.length ?? 0);
-    const bookUnseenCount =
-        current === undefined
-            ? 0
-            : (index.highlightsByBook.get(current.bookId) ?? []).filter(
-                  (item) => item.id !== current.id && !encounter.state.seenInCycle.includes(item.id),
-              ).length;
+    // Counted for the current visit to this book, which is exactly what "再看一处" can offer next.
+    const bookUnseenCount = unseenInBookCount(encounter.state, index.snapshot.highlights);
 
     /**
      * Passages chosen in the list views replace the stage above, so the page has to bring the visitor

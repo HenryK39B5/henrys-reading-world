@@ -214,6 +214,9 @@ About 是独立小房间，只显示真实范围和可选的 Henry 自写介绍�
 
 ### V2-B — Fair Discovery Engine
 
+- 实际完成：`discovery.ts` 取代 `serendipity.ts`；两阶段公平引擎（先选书、再选句）、`all / theme:<id> / book:<id>` 三套独立 cycle、持久 `stageScope`、原子 `SET_STAGE_SCOPE`、机械长度规则。真实数据首次 130 次抽完全部 130 本、600 次 0 重复；旧“按条数加权”的已知限制测试已由 45 条新性质测试取代。执行记录见 `docs/08`。
+- 已知遗留：主题/房间 UI 与 scope 控件属 V2-C1；首屏只做机械可读长度偏好。
+
 - 新两阶段选择器与 scope-aware cycle。
 - reducer/hook 接入 `stageScope / NEXT_STAGE / SET_STAGE_SCOPE`。
 - 保持旧 UI 可运行，先用测试证明公平与状态正确。

@@ -1,6 +1,6 @@
 # 02 — 技术与工程设计（v1 基线）
 
-> 栈、安全隔离、URL 和工程底线继续有效。数据 schema、选择状态与 scope 将按 `docs/11` 迁移：schema 2、Book.themeIds、all/theme 持久舞台范围和先选书再选句。下文 `globalDrawCount` 与 Opening/Contrast/Surprise 是当前 v1 代码说明，不是下一阶段目标。
+> 栈、安全隔离、URL 和工程底线继续有效。数据 schema、选择状态与 scope 已按 `docs/11` 迁移：schema 2、`Book.themeIds`、all/theme 持久舞台范围与先选书再选句（V2-A / V2-B 已完成，§5–6 已同步为 v2）；房间路由与色彩仍待 V2-C1 / V2-C2。
 
 ## 1. 栈与命令
 
@@ -73,25 +73,30 @@ e2e/                         # Playwright 浏览器验收
 
 ## 5. 状态与事件
 
-`EncounterState`：`currentId`、`historyIds`（曝光顺序，可重复）、`seenInCycle`、`globalDrawCount`、`phase: idle|exiting|entering`、`pendingId`。
+> v2 更新（V2-B，对应 `docs/10 §5–6` 与 `docs/11 §4`）：v1 的单一 `seenInCycle`、`globalDrawCount` 与 `pendingId` 已移除，改为持久舞台范围与按 scope 分组的 cycle。选择器文件由 `serendipity.ts` 换为 `discovery.ts`。
+
+`EncounterState`：`currentId`、`historyIds`（曝光顺序，可重复）、`stageScope`（`all` 或 `theme:<id>`）、`cycles`（`all`、每个 `theme:<id>` 与每本书的 `book:<id>` 访问 cycle 各一份，分别保存 `bookIds` 与 `highlightIds`）、`phase: idle|exiting|entering`、`pending` + `pendingKind: stage|book`、`commitCount`、`lastResult`、`sourceOpen`。
 
 UI 状态：出处开关、当前选书 / 主题 / 年份、分享预览的固定 `highlightId`。历史计数只在内容真正提交显示时更新；React StrictMode 二次调用不能消耗两次选句或注册重复计时器。
 
-- `NEXT_GLOBAL`：空闲才接受，立即进入 exiting；选好 pendingId，不提前计为曝光。
-- `COMMIT_QUOTE`：原子更新当前句、历史、计数、来源层状态，再进入 entering。
+- `NEXT_STAGE`：空闲才接受；用当前 `stageScope` 走两阶段抽样（先公平选书、再选句），立即进入 exiting，不提前计为曝光。
+- `NEXT_IN_BOOK`：只在该书内抽取，不改变 `stageScope`；耗尽时明确报告，不静默换书，也不重置 cycle 重复已看划线。
+- `SET_STAGE_SCOPE(scope)`：原子切换范围并提交该范围内一条划线；无内容可显示时保留旧范围，避免标签与句子不一致。
+- `COMMIT_QUOTE`：原子更新当前句、历史、cycle、计数、来源层状态，再进入 entering。
 - `TRANSITION_END`：回 idle；计时器清理与 token 防止旧回调覆盖新状态。
-- `OPEN_HIGHLIGHT(id)`：取消正在进行的转场，直接切到指定有效记录，记曝光；不消耗首页随机阶段计数。
-- `NEXT_IN_BOOK(bookId)`：使用局部候选，不消耗 globalDrawCount，但记曝光；出处保持展开并更新。
-- `OPEN_SHARE`：固定当前 ID；后续换句不得改变已打开的分享内容。
+- `OPEN_HIGHLIGHT(id)`：取消正在进行的转场，直接切到指定有效记录，记曝光并开始该书的新的访问 cycle；不改变 `stageScope`。
+- `OPEN_SHARE`：固定当前 ID；后续换句不得改变已打开的分享内容（V2-E 实现）。
 
 出处在全局换句 / 跨书选择后关闭；同书“再看一处”保持打开。使用纯 reducer 或同等可测设计，避免散落多个互相竞态的 setTimeout。
 
 ## 6. URL 与分享
 
+> v2 待办（V2-C1，见 `docs/12 §3`）：当前仍是单页 `#random / #books / #topics / #about`；房间式路由（`/`、`/themes`、`/themes/:id`、`/books`、`/books/:id`、`/about`）与返回现场记忆在该片实现。以下深链规则继续有效。
+
 - 四个导航使用 `#random / #books / #topics / #about`，同时滚动至对应标题。
 - 精确划线链接使用当前 origin + 当前 pathname（保留子路径）+ `?h=<encodeURIComponent(id)>#random`。
 - 分享 URL 不复制其他 query 参数，避免传播追踪或敏感参数。
-- 初次加载 `h` 有效则优先展示该条，记曝光；下一次首页换句走 Contrast。`h` 无效则显示轻提示 `这条划线暂不可用` 并正常选 Opening。
+- 初次加载 `h` 有效则优先展示该条，记曝光（v2：作为 `fallback`，不参与舞台抽取）；`h` 无效则显示轻提示 `这条划线暂不可用` 并按 `docs/11 §4` 公平抽取首屏。
 - 每次普通换句不写 history，避免返回键要退几十步。分享时即时构造链接。
 - 内部点击某条进入舞台时 `replaceState` 更新 `h`；处理 `popstate` / `hashchange` 恢复外部导航，不让 hash 变化重新随机选句。
 - 已删除或撤回的 ID 不可复用于其他内容。深链不可绕过当前快照审核边界。
