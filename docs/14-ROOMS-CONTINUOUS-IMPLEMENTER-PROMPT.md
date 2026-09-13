@@ -1,8 +1,8 @@
 # 14 — 连续房间开发批次 Implementer Prompt
 
-> 状态：V2-B 已完成并通过 GPT-5.6 Sol 独立复验。本文件用于下一次 DeepSeek v4.1 Flash 连续开发。
+> 状态：**已执行的历史提示词**。V2-C1 / V2-D / V2-C2 已完成，并在 `9e2d0af` 通过 GPT-5.6 Sol 独立复核修复；后续不要再次使用本文件开工。下一批使用 `docs/15-V2-E-CONTINUOUS-IMPLEMENTER-PROMPT.md`。
 >
-> 执行顺序：**V2-C1 房间路由与现场记忆 → V2-D 全量分批浏览 → V2-C2 Book Aura 与呼吸动效**。
+> 当时的执行顺序：**V2-C1 房间路由与现场记忆 → V2-D 全量分批浏览 → V2-C2 Book Aura 与呼吸动效**。
 >
 > 工作方式：三个内部阶段分别测试、记录、commit；Gate 通过后直接继续，不停下等待。全部结束后统一汇报。
 

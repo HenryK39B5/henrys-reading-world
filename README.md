@@ -5,7 +5,7 @@
 ## 当前状态
 
 - 阶段：v1 的 **Slice 0–4**、**V2-A**（schema 2、全量 4,663 条 / 130 本 / 14 个书架）、**V2-B**（两阶段公平发现引擎）、**V2-C1**（房间路由与现场记忆）、**V2-D**（全量分批浏览）与 **V2-C2**（Book Aura 与呼吸动效）均已完成。下一步只剩 V2-E（分享、深链与最终无障碍）。
-- 产品方向：`PRODUCT_BRIEF.md` 是历史基线；轻松漫游与公平原则见 `docs/10-PRODUCT-DIRECTION-V2.md`，最新房间/色彩/动效决定见 `docs/12-ROOMS-COLOR-MOTION-DIRECTION.md`，施工路线见 `docs/11-V2-IMPLEMENTATION-PLAN.md`。
+- 产品方向：`PRODUCT_BRIEF.md` 是历史基线；轻松漫游与公平原则见 `docs/10-PRODUCT-DIRECTION-V2.md`，最新房间/色彩/动效决定见 `docs/12-ROOMS-COLOR-MOTION-DIRECTION.md`，施工路线见 `docs/11-V2-IMPLEMENTATION-PLAN.md`；下一批唯一开工 Prompt 是 `docs/15-V2-E-CONTINUOUS-IMPLEMENTER-PROMPT.md`。
 - 硬约束：所有开发只使用 Henry 本人的真实划线，不使用 fake / demo 数据；主题属于书籍，不做逐句人格标签。
 - 当前页面数据（local-only）：**4,663 条真实划线 · 130 本书 · 14 个主题书架 · 2024–2026**；房间一次只渲染一个视觉中心，全部内容通过舞台、主题书架与单书房间分批可达。
 - 原始数据与快照只存在于本机 `.private/`，已被 `.gitignore` 排除，不进入前端包。
@@ -35,7 +35,7 @@ npm run snapshot:local      # 生成全量 local-only 快照
 ```powershell
 npm run check:local         # typecheck + lint + 单测 + 快照校验（开发主校验）
 npm run verify:ids          # 20 本 / 46 条稳定 ID 指向同一真实材料
-npm run test:e2e            # Playwright，真实 Chromium，41 个用例（房间、现场记忆、分批、光环）
+npm run test:e2e            # Playwright，真实 Chromium，44 个用例（房间、现场记忆、分批、光环）
 npm run capture:review      # 生成评审截图 + 可读数字，输出到 .private/review/rooms-batch/
 npm run covers:fetch        # 下载真实书封到 .private/covers/（只由 dev:local 服务）
 npm run smoke:local         # 用真实快照做渲染冒烟检查
@@ -111,7 +111,8 @@ npm run snapshot:local                    # 挑选结果 → 开发快照
 | [11 — v2 施工计划](docs/11-V2-IMPLEMENTATION-PLAN.md) | schema 2、公平算法、房间路由、色彩动效与分片验收 |
 | [12 — 房间、色彩与呼吸感](docs/12-ROOMS-COLOR-MOTION-DIRECTION.md) | Critique #2 后的空间结构、Book Aura、导航记忆与动效语言 |
 | [13 — V2-B 开工 Prompt](docs/13-V2-B-IMPLEMENTER-PROMPT.md) | 已执行的 V2-B 历史实现提示词 |
-| [14 — 连续房间开发 Prompt](docs/14-ROOMS-CONTINUOUS-IMPLEMENTER-PROMPT.md) | 下一批连续完成 V2-C1 → V2-D → V2-C2 的完整提示词 |
+| [14 — 连续房间开发 Prompt](docs/14-ROOMS-CONTINUOUS-IMPLEMENTER-PROMPT.md) | 已执行的 V2-C1 → V2-D → V2-C2 历史提示词 |
+| [15 — V2-E 最终收尾 Prompt](docs/15-V2-E-CONTINUOUS-IMPLEMENTER-PROMPT.md) | 下一批连续完成深链、复制/分享预览与最终无障碍的完整提示词 |
 
 ## 真实数据现状
 

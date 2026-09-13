@@ -1,10 +1,10 @@
 # 02 — 技术与工程设计（v1 基线）
 
-> 栈、安全隔离、URL 和工程底线继续有效。数据 schema、选择状态与 scope 已按 `docs/11` 迁移：schema 2、`Book.themeIds`、all/theme 持久舞台范围与先选书再选句（V2-A / V2-B 已完成，§5–6 已同步为 v2）；房间路由与色彩仍待 V2-C1 / V2-C2。
+> 栈、安全隔离、URL 和工程底线继续有效。数据 schema、选择状态、房间路由、全量分批与 Book Aura 已完成并在 `9e2d0af` 通过复核修复；下一批只实现 V2-E 深链、复制/分享预览与最终无障碍，具体以 `docs/15-V2-E-CONTINUOUS-IMPLEMENTER-PROMPT.md` 为准。
 
 ## 1. 栈与命令
 
-React + TypeScript strict + Vite + 原生 CSS。单页、无 router、无后端、无全局状态库。测试用 Vitest、Testing Library、Playwright；可用 axe 检查可访问性。不要引入 UI 套件、动画库或运行时推荐服务。
+React + TypeScript strict + Vite + 原生 CSS。客户端静态 SPA，使用项目内小型 History API router；无后端、无全局状态库。测试用 Vitest、Testing Library、Playwright；可用 axe 检查可访问性。不要引入 UI 套件、动画库或运行时推荐服务。
 
 首次安装选择兼容的稳定版本，保存 `package-lock.json`，README 记录实际版本。
 
@@ -99,12 +99,14 @@ UI 状态：出处开关、当前选书 / 主题 / 年份、分享预览的固�
 - 站点内链接都是真实 `<a href>`，可以新标签页打开、书签、无 JavaScript 也能跟随；router 只接管点击。
 - 页面“返回上一处”与浏览器后退使用同一个 `history.back()`，不另建一套返回逻辑。
 - 未知路径、无效 theme / book ID 显示安静可返回的错误态，不回退到旧房间伪装成功。
-- 精确划线链接（V2-E）沿用现有 `?h=<encodeURIComponent(id)>`，房间与 scope 是上下文，内容身份仍是稳定 highlight ID。
-- 分享 URL 不复制其他 query 参数，避免传播追踪或敏感参数。
-- 初次加载 `h` 有效则优先展示该条，记曝光（v2：作为 `fallback`，不参与舞台抽取）；`h` 无效则显示轻提示 `这条划线暂不可用` 并按 `docs/11 §4` 公平抽取首屏。
+- 精确划线的唯一规范链接（V2-E）是 `/?h=<encodeURIComponent(id)>`。`h` 只在门厅 `/` 有意义；房间、主题、年份和临时 scope 是浏览上下文，不进入分享 URL，也不替代稳定 highlight ID。
+- 其他房间收到多余 `h` 时保留当前房间并用 `replaceState` 移除；分享 URL 不复制其他 query 参数，避免传播追踪或敏感参数。
+- 初次加载 `h` 有效则优先展示该条，记入 all cycle（reason 为 `fallback`，打开本身不算用户换句 commit）；当前 `OPEN_HIGHLIGHT` 是 `count: true` 的用户直接选择语义，深链应使用独立 `count: false` 事件或共享 helper。`h` 无效/撤回则显示轻提示 `这条划线暂不可用` 并按 `docs/11 §4` 公平抽取首屏。
+- `/?h=…` 与 `/` 共享同一个 room/stage/scroll identity；h 变化不得触发房间重新醒来、主区域重新聚焦、滚动归零或独立 cycle。首次有效深链不能先可见地画一条随机句再替换。
+- 从深链执行全局或同书换句后，内容不再与 URL 指定记录一致，必须用 `replaceState` 清除 `h`，不能新增历史；只开关出处或分享 dialog 不清除。
 - 普通换句不写 history，避免返回键要退几十步；改变房间与筛选才写一条历史。
-- 已删除或撤回的 ID 不可复用于其他内容。深链不可绕过当前快照审核边界。
-- 本机 `localhost` / `127.0.0.1` 链接明确标注仅本机有效；不声称已公开可访问。
+- 深链不为每个 ID 建独立房间 session/cycle；清除 `h` 后继续使用门厅 all session。已删除或撤回的 ID 不可复用于其他内容，深链不可绕过当前快照审核边界。
+- 本机 `localhost` / `127.0.0.1` 可复制为明确标注的 `本机链接`，只在这台电脑的 local preview 中有效；不调用 Web Share、不上传，也不声称已公开可访问。
 
 ## 7. 工程底线
 
