@@ -187,6 +187,47 @@ test.describe('review capture', () => {
         await roomReady(page);
         await page.screenshot({ path: join(OUT_DIR, 'about-1440.png'), fullPage: true });
 
+        // --- full-library reading (V2-D): the whole library and the largest book, in batches ---
+        await page.goto('/books');
+        await roomReady(page);
+        let guard = 0;
+        while ((await page.getByTestId('books-more').count()) > 0 && guard < 20) {
+            await page.getByTestId('books-more').click();
+            guard += 1;
+        }
+        await expect(page.getByTestId('book-list').locator('.book-item')).toHaveCount(130);
+        console.log(`books expanded: ${await page.getByTestId('books-batch-label').innerText()}`);
+        console.log(`books expanded density: ${JSON.stringify(await density(page))}`);
+        await page.screenshot({ path: join(OUT_DIR, 'books-expanded-1440.png'), fullPage: true });
+
+        const largest = await page.evaluate(async () => {
+            const response = await fetch('/__local_snapshot');
+            const snapshot = (await response.json()) as { highlights: { bookId: string }[] };
+            const counts = new Map<string, number>();
+            for (const highlight of snapshot.highlights) {
+                counts.set(highlight.bookId, (counts.get(highlight.bookId) ?? 0) + 1);
+            }
+            return [...counts.entries()].sort((left, right) => right[1] - left[1])[0] ?? null;
+        });
+        if (largest !== null) {
+            const [bookId, count] = largest;
+            await page.goto(`/books/${bookId}`);
+            await roomReady(page);
+            console.log(`largest book first batch: ${await page.getByTestId('book-batch-label').innerText()}`);
+            const started = Date.now();
+            guard = 0;
+            while ((await page.getByTestId('book-more').count()) > 0 && guard < 40) {
+                await page.getByTestId('book-more').click();
+                guard += 1;
+            }
+            await expect(page.getByTestId('book-passages').locator('.passage-item')).toHaveCount(count);
+            console.log(
+                `largest book walked to its last passage: ${await page.getByTestId('book-batch-label').innerText()} in ${String(Date.now() - started)}ms`,
+            );
+            console.log(`largest book expanded density: ${JSON.stringify(await density(page))}`);
+            await page.screenshot({ path: join(OUT_DIR, 'book-room-longest-expanded-1440.png'), fullPage: true });
+        }
+
         // --- return journey: does a room come back the way it was left? -------------
         await page.goto('/themes');
         await roomReady(page);

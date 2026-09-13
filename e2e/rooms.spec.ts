@@ -57,6 +57,10 @@ function booksInYear(data: RealData, year: number): Set<string> {
     return new Set(data.highlights.filter((item) => item.year === year).map((item) => item.bookId));
 }
 
+function bookCountFor(data: RealData, bookId: string): number {
+    return data.countByBook.get(bookId) ?? 0;
+}
+
 function booksOnShelf(data: RealData, themeId: string): Set<string> {
     return new Set(data.books.filter((book) => book.themeIds.includes(themeId)).map((book) => book.id));
 }
@@ -492,6 +496,59 @@ test.describe('the whole library stays reachable, in batches', () => {
         await expect(page.getByTestId('books-batch-label')).toHaveText(
             `显示 12 / ${String(data.countByBook.size)}`,
         );
+    });
+
+    test('a book without a cover falls back to its real title, and long passages stay complete', async ({ page }) => {
+        const data = loadSnapshot();
+        const parsed = JSON.parse(readFileSync(SNAPSHOT_PATH, 'utf8')) as {
+            books: { id: string; title: string; coverPath?: string }[];
+            highlights: Highlight[];
+        };
+        const withoutCover = parsed.books.filter((book) => book.coverPath === undefined);
+        test.skip(withoutCover.length === 0, 'every book in this snapshot has a local cover');
+        const target = withoutCover.find((book) => bookCountFor(data, book.id) > 1) ?? withoutCover[0];
+        expect(target).toBeDefined();
+        if (target === undefined) {
+            return;
+        }
+
+        await page.goto(`/books/${target.id}`);
+        await roomReady(page);
+        // No invented image: the real title is typeset in place of the cover.
+        await expect(page.locator('.book-head-cover .book-cover-fallback')).toHaveText(target.title);
+        await expect(page.locator('.book-head-cover img')).toHaveCount(0);
+
+        // The longest real passage in the library is rendered whole, never clipped.
+        const longest = parsed.highlights
+            .map((item) => ({ item, length: [...item.text].filter((char) => !/\s/u.test(char)).length }))
+            .sort((left, right) => right.length - left.length)[0];
+        expect(longest).toBeDefined();
+        if (longest === undefined) {
+            return;
+        }
+        await page.goto(`/books/${longest.item.bookId}`);
+        await roomReady(page);
+        let guard = 0;
+        while ((await page.getByTestId('book-more').count()) > 0 && guard < 40) {
+            await page.getByTestId('book-more').click();
+            guard += 1;
+        }
+        const rendered = page.locator('.passage-text').filter({ hasText: longest.item.text.slice(0, 12) });
+        await expect(rendered).toHaveCount(1);
+        const metrics = await rendered.first().evaluate((element) => ({
+            scrollWidth: element.scrollWidth,
+            clientWidth: element.clientWidth,
+            overflow: window.getComputedStyle(element).overflow,
+            whiteSpace: window.getComputedStyle(element).whiteSpace,
+        }));
+        expect(metrics.overflow).not.toBe('hidden');
+        expect(metrics.whiteSpace).toBe('pre-wrap');
+        expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth + 1);
+        const overflow = await page.evaluate(
+            () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        );
+        expect(overflow).toBeLessThanOrEqual(1);
+        console.log(`longest passage rendered: ${String(longest.length)} characters`);
     });
 
     test('the shelf room links to the books of its own shelf', async ({ page }) => {
