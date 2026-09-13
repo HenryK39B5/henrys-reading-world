@@ -1,21 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Browser verification runs against the local development server, which is the only mode that
- * serves the private, not-yet-publicly-approved snapshot. The server binds to loopback only.
+ * V2-E4 evidence capture: screenshots and measurements of the Book Aura share cards only, kept out of the
+ * normal test run (see testIgnore in playwright.config.ts) because it writes real passages to .private/.
  */
 export default defineConfig({
     testDir: './e2e',
-    // Review captures and the public-mode empty-state check are run explicitly:
-    // `npm run capture:review`, `npm run capture:v2e`, `npm run capture:v2e4` and `npm run test:public`.
-    testIgnore: [
-        '**/capture.spec.ts',
-        '**/capture-v2e.spec.ts',
-        '**/capture-v2e4.spec.ts',
-        '**/empty-state.spec.ts',
-    ],
+    testMatch: '**/capture-v2e4.spec.ts',
     fullyParallel: false,
-    forbidOnly: true,
     retries: 0,
     reporter: [['list']],
     use: {

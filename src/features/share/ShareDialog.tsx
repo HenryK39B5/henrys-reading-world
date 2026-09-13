@@ -1,4 +1,5 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import {
     SITE_NAME,
     UNKNOWN_AUTHOR,
@@ -8,6 +9,7 @@ import {
     shareUrl,
     type ShareCopyStatus,
 } from '../../domain/share.ts';
+import { sharePalette } from '../../domain/sharePalette.ts';
 import type { Book, Highlight } from '../../domain/types.ts';
 import { useScrollLock } from './useScrollLock.ts';
 import './share.css';
@@ -16,6 +18,13 @@ export type ShareDialogProps = {
     /** The locked passage. It is read-only here: the dialog never re-derives it from the stage. */
     highlight: Highlight;
     book: Book | undefined;
+    /**
+     * The accent of the locked passage's own book.
+     *
+     * Its own accent, not the room's: the card must belong to the book that was shared even if the room
+     * behind the dialog has moved on to another one by the time this is painted (docs/16 §5.1).
+     */
+    accent: string;
     /** The content is real but the deployment is not, so the link only resolves on this machine. */
     localOnly: boolean;
     copyStatus: ShareCopyStatus;
@@ -79,6 +88,7 @@ function useExtendedCard(ref: React.RefObject<HTMLDivElement | null>): boolean {
 export function ShareDialog({
     highlight,
     book,
+    accent,
     localOnly,
     copyStatus,
     onCopyResult,
@@ -95,6 +105,13 @@ export function ShareDialog({
     const extended = useExtendedCard(cardRef);
     const title = book?.title ?? UNKNOWN_TITLE;
     const author = book?.author ?? UNKNOWN_AUTHOR;
+    /**
+     * One book, one card.
+     *
+     * The palette is a pure function of the locked book's accent, so the surface cannot depend on the room,
+     * the stage or anything else that may change while the dialog is open.
+     */
+    const palette = sharePalette(accent);
     const url = shareUrl(typeof window === 'undefined' ? '' : window.location.origin, highlight.id);
     const linkLabel = shareLinkLabel(localOnly);
 
@@ -177,13 +194,28 @@ export function ShareDialog({
                 分享这一处划线
             </h2>
 
-            <div className="share-card" data-testid="share-card" data-extended={extended ? 'true' : 'false'} ref={cardRef}>
+            <div
+                className="share-card"
+                data-testid="share-card"
+                data-extended={extended ? 'true' : 'false'}
+                data-accent={accent}
+                style={
+                    {
+                        '--card-bg': palette.background,
+                        '--card-text': palette.text,
+                        '--card-muted': palette.mutedText,
+                        '--card-rule': palette.rule,
+                    } as CSSProperties
+                }
+                ref={cardRef}
+            >
                 <blockquote className="share-card-text" data-testid="share-card-text">
                     {highlight.text}
                 </blockquote>
                 <div className="share-card-meta">
                     <p className="share-card-source">
-                        《<cite>{title}</cite>》{author}
+                        《<cite className="share-card-title">{title}</cite>》
+                        <span className="share-card-author">{author}</span>
                     </p>
                     <p className="share-card-brand">{SITE_NAME}</p>
                     {localOnly ? <p className="share-card-badge">仅本机 · 未公开审核</p> : null}

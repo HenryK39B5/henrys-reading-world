@@ -107,6 +107,16 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
     const share = useShare();
     const sharedHighlight =
         share.state.highlightId === null ? undefined : index.highlightsById.get(share.state.highlightId);
+    /**
+     * The card's colour belongs to the passage that is locked, not to the room that happens to be behind it.
+     *
+     * The room's own `--aura` would be wrong here: the dialog can stay open while the stage moves on, and the
+     * card would then be painted in the next book's colour while still holding the previous book's words
+     * (docs/16 §5.1). Reading the accent from the locked passage's own book — through the same cover cache the
+     * rooms use — keeps the words, the source and the colour describing one thing.
+     */
+    const sharedBook = sharedHighlight === undefined ? undefined : index.booksById.get(sharedHighlight.bookId);
+    const shareAccent = useCoverAccent(coverUrl(sharedBook?.coverPath));
 
     /**
      * Book Aura (docs/12 §4): the colour of the room comes from the cover of the book on screen.
@@ -291,7 +301,8 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
             {sharedHighlight === undefined ? null : (
                 <ShareDialog
                     highlight={sharedHighlight}
-                    book={index.booksById.get(sharedHighlight.bookId)}
+                    book={sharedBook}
+                    accent={shareAccent}
                     localOnly={DATA_MODE === 'local'}
                     copyStatus={share.state.copyStatus}
                     onCopyResult={share.reportCopy}

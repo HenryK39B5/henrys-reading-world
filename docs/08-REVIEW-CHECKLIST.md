@@ -991,6 +991,72 @@ V2-E（最终独立批次），不在本阶段开始。
 
 DeepSeek v4.1 Flash 按 `docs/16` 连续完成 E4A → E4B → E4C。每阶段测试、记录、commit，Gate 通过后直接继续；全部完成后统一汇报。不部署、不 push、不生成 public snapshot。
 
+## V2-E4B Book Aura 出版卡片（2026-09-13）
+
+```text
+日期 / 执行者：2026-09-13 / 实现 Agent（DeepSeek v4.1 Flash）
+范围：V2-E4B — 分享卡片改为锁定书籍 Book Aura 派生的低饱和深色出版卡片
+状态：verified（本机 Chromium）；真机与 Safari 未验证
+数据模式：真实数据 local-only；未修改快照、稳定 ID、主题或发布状态
+代码基线：c1c4e52
+```
+
+### 完成内容
+
+1. **纯 palette** `src/domain/sharePalette.ts`：`sharePalette(accent)` 由**一个颜色**派生 `background / text / mutedText / rule`。无 RNG、无日期、无书名 hash、无外部调色板；同一 accent 永远得到同一张卡。
+2. **可读性是解出来的，不是眼睛看的**：卡面固定在 L 0.20、饱和度取 accent 饱和度的 75%（限 0.10–0.26），文字与次要文字的亮度**逐步抬升直到对比度达到目标**（正文 ≥7、出处/品牌/徽标 ≥4.6），因此一张极暗或极饱和的封面也不会产生不可读卡片。
+3. **一个书一个色域，墨色恒定**：卡面与细线携带书（Book Aura），文字为恒定的暖米白（`#f1eadf` 一系）。参考图里 flomo 与微信读书用的也都是恒定墨色——这样读者不必为每本书重新适应一遍“绿白/蓝白”。
+4. **可读的编码路径**：`accent.ts` 新增并导出 `hexToRgb` / `rgbToHsl` / `hslToHex`，`muteColor` 改为复用它们；新增 `accent.test.ts`（12 条）钉住原有范围、灰样本的中性 hue、像素平均的取舍，并用一个**手算核对过的**具体值（`rgb(141,83,76) → #8d534c`）证明这次拆分是行为保持的。
+5. **颜色锁定 stable highlight ID**：`ReadingWorld` 不再使用房间的 `--aura`，而是由 `share.state.highlightId` → `sharedBook` → `coverPath` 独立取色（复用封面采样缓存），所以卡片背后的舞台变化不会重绘卡片。
+6. **卡片视觉**：外层 1px 描边 + 内层 `outline` 偏移 7px 的双细框；正文与出处之间一条 hairline；出处区（书名 cream / 作者 muted / 品牌字距加大 / 本机徽标）；4:5 仍只是默认比例。
+
+### 两个设计判断（来自参考图，但不照搬）
+
+- **不引入**头像、当前日期、统计、二维码、主题标签、多套模板、固定黑金或 flomo 黄；参考图只用来提炼“深色色域 + 分区 + 细框 + 恒定墨色”这套出版物语言。
+- **内框用 `outline` 而不是嵌套 div**：嵌套框架会改变卡片超过 4:5 时的成长方式，而“长文不裁剪”是本项目已经验证过的性质。`outline` 偏移不参与布局，因此长卡片的行为与 E2 完全一致。
+
+### 修改文件
+
+- `src/domain/sharePalette.ts`、`sharePalette.test.ts`（新增）
+- `src/domain/accent.ts`（导出 `hexToRgb` / `rgbToHsl` / `hslToHex` 并重构 `muteColor`）、`accent.test.ts`（新增）
+- `src/features/share/ShareDialog.tsx`、`share.css`
+- `src/app/ReadingWorld.tsx`
+- `e2e/share-card.spec.ts`（新增 8 条）、`e2e/capture-v2e4.spec.ts`、`playwright.capture-v2e4.config.ts`（新增）
+- `playwright.config.ts`、`package.json`（`capture:v2e4`）
+- `docs/08-REVIEW-CHECKLIST.md`
+
+### 命令 → 实际结果
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run check:local` | **195 单测 / 15 文件**通过（E4A 后 174/13：+9 `sharePalette`、+12 `accent`） |
+| `npx playwright test` | **97 通过**（E4A 后 89；+8 分享卡片） |
+| `npm run capture:v2e4` | 通过，11 张图 + 日志写入 `.private/review/v2-e4/` |
+| `npm run verify:ids` | 20 本 / 46 条不变 |
+
+### 浏览器证据（真实 Chromium，`.private/review/v2-e4/`）
+
+- `card-shortest/medium/299/longest.png`：整张卡片（元素级截图，不是窗口截图）。实测 `data-extended` 在 8 / 42 字为 `false`、在 299 / 398 字为 `true`，溢出一律 0/0。
+- `card-aura-1/2/3.png`：三本真实封面，卡面实测 `rgb(63,41,39)` / `rgb(54,46,56)` / `rgb(64,38,43)`（暖棕 / 灰紫 / 梅红），与各自 accent 的 palette 逐位一致。
+- `share-dialog-1440.png`、`share-dialog-390.png`：浅色 dialog 与深色卡片分层清楚。
+- `zoom-200-dialog.png`、`clipboard-failure-1440.png`、`reduced-motion-1440.png`。
+- 6 本真实书在 E2E 中实测产生 **≥4 个明显不同的卡面**（测试刻意挑选 accent 不同的书）。
+
+### 三个真实发现
+
+1. **卡片颜色是“到达”的**：accent 由真实封面异步采样，冷缓存的深链会在采样完成前先画默认 palette，再在 600ms 内过渡到本书颜色。这是 `docs/16 §5.3` 明确允许的行为，且**每一帧都是可读卡片**（palette 是“任意颜色”的完备函数）；测试改为断言它**落定**在哪里，而不是取第一帧。
+2. **深 dialog 里聚焦会滚动 dialog 自身**：长文卡片打开后实测 `dialog.scrollTop = 270`，因为浏览器把聚焦的 `复制文字` 滚入了可见区域（`preventScroll` 只管文档，不管 dialog 内部滚动容器）。这与 V2-E3 已记录的取舍一致（焦点可见优先，dialog 自身滚动），因此保留；但**窗口截图会拍到被裁的卡片**，所以卡片证据改为元素级截图。
+3. **`margin: auto` 的分配是三份不是两份**：最初正文与出处都带 `margin-top: auto`，剩余空间被三个 auto margin 均分，短句因此偏上；去掉出处那个之后，正文落在卡片的光学中心，出处仍贴底。长文没有剩余空间，布局不受影响。
+
+### 未验证项
+
+- 真机与 Safari 未验证（与 V2-E3 相同）。
+- 新增的 `accent.test.ts` 只覆盖纯函数；房间 accent 的真实渲染仍由 `aura.spec.ts` 在浏览器里验证。
+
+### 下一步
+
+V2-E4C（视觉与全量工程 Gate），不在本阶段开始。
+
 ## V2-E4A dialog 滚动锁可靠性（2026-09-13）
 
 ```text

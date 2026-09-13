@@ -33,34 +33,57 @@
 /* ---- 卡片预览 ---- */
 
 .share-card {
-    /* 4:5 is the card's default shape, not a crop: real text can grow the box (docs/15 §7.4). */
+    /* 4:5 is the card's default shape, not a crop: real text can grow the box (docs/16 §7.2). */
     aspect-ratio: 4 / 5;
     width: min(320px, 100%);
     margin: 0 auto;
-    padding: 26px 22px 20px;
+    padding: 24px 20px 18px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    background: var(--paper);
-    border: 1px solid var(--rule);
+    gap: 14px;
+    background: var(--card-bg);
+    color: var(--card-text);
+    border: 1px solid var(--card-rule);
+    /* The inner hairline that makes a publication of the card.
+     *
+     * Drawn as an inset outline on purpose: a nested wrapper element would have changed how the card grows
+     * past its 4:5 default, and the growth of a long passage is a property this project already verifies.
+     */
+    outline: 1px solid var(--card-rule);
+    outline-offset: -7px;
+    /* The colour arrives with the sampled cover, so it is allowed to arrive slowly — never instantly and
+       never as a flash back to the default while the same card is on screen. */
+    transition:
+        background-color 600ms ease-out,
+        border-color 600ms ease-out,
+        color 600ms ease-out;
 }
 
 .share-card-text {
     /* `flex: 0 0 auto` keeps the sentence whole: the card grows instead of the text shrinking. */
     flex: 0 0 auto;
-    margin: 0;
+    /*
+     * The auto margins put a short passage in the optical middle of the card instead of leaving a hole under
+     * it. They only ever absorb free space, so a long passage — which has none — is laid out exactly as it
+     * would be without them, and no line of a real sentence is moved.
+     */
+    margin: auto 0;
     font-family: var(--stage-font);
     font-size: 17px;
-    line-height: 1.85;
+    line-height: 1.9;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
 }
 
+/* The source sits at the foot of the card, divided from the passage by a hairline. Its position is the
+   passage's auto margins doing the work: no `margin-top: auto` here, or the free space would be split
+   three ways and a short passage would sit high in the card. */
 .share-card-meta {
     flex: 0 0 auto;
-    margin-top: auto;
-    font-size: 13px;
-    color: var(--ink-soft);
+    padding-top: 12px;
+    border-top: 1px solid var(--card-rule);
+    color: var(--card-muted);
+    font-size: 12.5px;
     line-height: 1.6;
 }
 
@@ -70,16 +93,28 @@
     margin: 0;
 }
 
+.share-card-title {
+    font-style: normal;
+    color: var(--card-text);
+    letter-spacing: 0.01em;
+}
+
+.share-card-author {
+    display: block;
+}
+
 .share-card-brand {
-    font-size: 11px;
-    letter-spacing: 0.06em;
+    margin-top: 10px;
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
 }
 
 .share-card-badge {
-    margin-top: 6px;
-    font-size: 11px;
-    border-top: 1px solid var(--rule);
-    padding-top: 6px;
+    margin-top: 8px;
+    padding-top: 7px;
+    border-top: 1px solid var(--card-rule);
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
 }
 
 .share-note {
@@ -168,6 +203,7 @@
     }
 
     .share-card {
-        padding: 20px 16px 16px;
+        padding: 18px 14px 14px;
+        outline-offset: -5px;
     }
 }

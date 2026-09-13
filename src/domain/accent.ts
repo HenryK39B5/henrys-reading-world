@@ -7,7 +7,15 @@
  */
 export const DEFAULT_ACCENT = '#425a4b';
 
+/** The range a cover accent is muted into, so a sampled colour cannot shout on paper. */
+export const MUTED_SATURATION = { min: 0.12, max: 0.34 } as const;
+export const MUTED_LIGHTNESS = { min: 0.3, max: 0.46 } as const;
+
+/** Hues a colour with no hue at all (a grey sample) falls back to. */
+const NEUTRAL_HUE = 210;
+
 export type Rgb = { r: number; g: number; b: number };
+export type Hsl = { h: number; s: number; l: number };
 
 function clamp(value: number, min: number, max: number): number {
     return Math.min(max, Math.max(min, value));
@@ -37,23 +45,33 @@ export function contrastRatio(left: Rgb, right: Rgb): number {
     return (lighter + 0.05) / (darker + 0.05);
 }
 
-/** Mutes a sampled colour so it can sit on paper without shouting. */
-export function muteColor({ r, g, b }: Rgb): string {
+/** Parses `#rgb` / `#rrggbb` (with or without the hash). Anything else is not a colour. */
+export function hexToRgb(value: string): Rgb | null {
+    const text = value.trim().replace(/^#/u, '');
+    const expanded = text.length === 3 ? [...text].map((char) => `${char}${char}`).join('') : text;
+    if (!/^[0-9a-f]{6}$/iu.test(expanded)) {
+        return null;
+    }
+    return {
+        r: Number.parseInt(expanded.slice(0, 2), 16),
+        g: Number.parseInt(expanded.slice(2, 4), 16),
+        b: Number.parseInt(expanded.slice(4, 6), 16),
+    };
+}
+
+export function rgbToHsl({ r, g, b }: Rgb): Hsl {
     const red = r / 255;
     const green = g / 255;
     const blue = b / 255;
     const max = Math.max(red, green, blue);
     const min = Math.min(red, green, blue);
-    const lightness = (max + min) / 2;
+    const l = (max + min) / 2;
     const delta = max - min;
-    const saturation = delta === 0 ? 0 : delta / (1 - Math.abs(2 * lightness - 1));
+    const s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
 
-    const mutedSaturation = clamp(saturation, 0.12, 0.34);
-    const mutedLightness = clamp(lightness, 0.3, 0.46);
-
-    const hue = (() => {
+    const h = (() => {
         if (delta === 0) {
-            return 210;
+            return NEUTRAL_HUE;
         }
         if (max === red) {
             return (60 * (((green - blue) / delta) % 6) + 360) % 360;
@@ -64,10 +82,14 @@ export function muteColor({ r, g, b }: Rgb): string {
         return 60 * ((red - green) / delta + 4);
     })();
 
-    const chroma = (1 - Math.abs(2 * mutedLightness - 1)) * mutedSaturation;
-    const secondary = chroma * (1 - Math.abs(((hue / 60) % 2) - 1));
-    const offset = mutedLightness - chroma / 2;
-    const sector = Math.floor(hue / 60) % 6;
+    return { h, s, l };
+}
+
+export function hslToHex(h: number, s: number, l: number): string {
+    const chroma = (1 - Math.abs(2 * l - 1)) * s;
+    const secondary = chroma * (1 - Math.abs(((h / 60) % 2) - 1));
+    const offset = l - chroma / 2;
+    const sector = Math.floor(h / 60) % 6;
     const parts: [number, number, number] =
         sector === 0
             ? [chroma, secondary, 0]
@@ -86,6 +108,16 @@ export function muteColor({ r, g, b }: Rgb): string {
         g: (parts[1] + offset) * 255,
         b: (parts[2] + offset) * 255,
     });
+}
+
+/** Mutes a sampled colour so it can sit on paper without shouting. */
+export function muteColor(rgb: Rgb): string {
+    const { h, s, l } = rgbToHsl(rgb);
+    return hslToHex(
+        h,
+        clamp(s, MUTED_SATURATION.min, MUTED_SATURATION.max),
+        clamp(l, MUTED_LIGHTNESS.min, MUTED_LIGHTNESS.max),
+    );
 }
 
 /**
