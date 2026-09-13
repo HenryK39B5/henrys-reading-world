@@ -104,7 +104,8 @@ npm run snapshot:local                    # 挑选结果 → 开发快照
 | [10 — Product Direction v2](docs/10-PRODUCT-DIRECTION-V2.md) | Critique #1 后的最新产品目标、主题语义与公平漫游原则 |
 | [11 — v2 施工计划](docs/11-V2-IMPLEMENTATION-PLAN.md) | schema 2、公平算法、房间路由、色彩动效与分片验收 |
 | [12 — 房间、色彩与呼吸感](docs/12-ROOMS-COLOR-MOTION-DIRECTION.md) | Critique #2 后的空间结构、Book Aura、导航记忆与动效语言 |
-| [13 — V2-B 开工 Prompt](docs/13-V2-B-IMPLEMENTER-PROMPT.md) | 下一位实现模型只实施公平发现引擎的完整提示词 |
+| [13 — V2-B 开工 Prompt](docs/13-V2-B-IMPLEMENTER-PROMPT.md) | 已执行的 V2-B 历史实现提示词 |
+| [14 — 连续房间开发 Prompt](docs/14-ROOMS-CONTINUOUS-IMPLEMENTER-PROMPT.md) | 下一批连续完成 V2-C1 → V2-D → V2-C2 的完整提示词 |
 
 ## 真实数据现状
 

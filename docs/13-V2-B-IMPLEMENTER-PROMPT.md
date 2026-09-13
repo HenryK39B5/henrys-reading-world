@@ -1,6 +1,8 @@
 # V2-B Implementer Prompt
 
-将以下内容作为下一位实现模型在 `E:\Desktop\henrys-reading-world` 中的开工提示词。**本轮只做 V2-B，不进入房间路由、色彩或动效开发。**
+> 状态：**已执行的历史提示词**。V2-B 已在 `46bee2c` 完成，并在 `a0815b2` 通过复核修复；后续不要再次使用本文件开工。下一批使用 `docs/14-ROOMS-CONTINUOUS-IMPLEMENTER-PROMPT.md`。
+
+以下是当时供实现模型在 `E:\Desktop\henrys-reading-world` 中使用的开工提示词。**本轮只做 V2-B，不进入房间路由、色彩或动效开发。**
 
 ---
 
