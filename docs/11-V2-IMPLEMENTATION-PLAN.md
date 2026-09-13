@@ -238,7 +238,9 @@ About 是独立小房间，只显示真实范围和可选的 Henry 自写介绍�
 
 验收：all → themes → theme A 连续 3 次 → book → back 恢复 theme A 原现场 → themes → theme B → home → books（筛选/展开）→ book → back 恢复书库现场；直接刷新各 URL；无效 ID；桌面/390px、键盘与焦点。
 
-### V2-C2 — Book Aura 与呼吸动效
+### V2-C2 — Book Aura 与呼吸动效（已完成）
+
+- 实际完成：`--aura` / `--aura-target` 从真实封面取色；门厅 5%、主题房间 4.5%、书籍房间 10%、书库与 About 中性；`aura-wake` 700ms 进入，房间三组错峰 0/60/120ms；reduced-motion 直接 `animation: none`。对比度实测正文 12.7–13.9、次要文字 4.9–5.3。执行记录见 `docs/08`。
 
 - 按 `docs/12 §4–6` 接入房间/当前书的颜色归属、浓度和环境过渡。
 - 门厅、主题、书籍房间分别截图调色；不为主题分配人为语义色。

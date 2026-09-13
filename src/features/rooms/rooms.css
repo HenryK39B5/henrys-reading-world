@@ -1,11 +1,147 @@
 /**
  * Rooms: one visual centre at a time (docs/12 §2, §6).
  *
- * Low-colour structure first — Book Aura quantities arrive in V2-C2 — so this file carries layout,
- * rhythm and the neutral paper palette only.
+ * Layout and rhythm first. Book Aura then gives each room the colour of the real cover it belongs to
+ * (docs/12 §4), and the room's entrance gives it air (§5).
+ */
+
+/* The aura strength is a real compositing opacity, so it animates natively everywhere. */
+
+/**
+ * The room's air.
+ *
+ * Two layers behind the content: the page's own paper, and one layer holding the current book's cover
+ * colour at a small opacity. Keyed per room, so every entry starts from bare paper and the colour
+ * arrives over ~700ms — slower than the sentence, which is the point.
+ */
+.room-aura {
+    position: fixed;
+    inset: 0;
+    /* Behind the room's content: the tint is the air, never a wash over the words. */
+    z-index: -1;
+    pointer-events: none;
+    background: var(--paper);
+}
+
+.room-aura-tint {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    /*
+     * The room's accent and target come from the shell; the fallbacks keep the layer valid without them.
+     * Declaring them here would shadow the inherited per-room values.
+     *
+     * One flat tint, not a gradient: docs/12 §4.2 gives a *band* per room (4–7% hall, 8–12% book room),
+     * and a wash on top would push the strongest part of the page past it.
+     */
+    background: var(--aura, var(--accent));
+    animation: aura-wake 700ms ease-out both;
+}
+
+@keyframes aura-wake {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: var(--aura-target, 0);
+    }
+}
+
+.shell {
+    position: relative;
+    z-index: 1;
+}
+
+/**
+ * A room breathes in: the room fades, and its groups displace by no more than 70ms apart (docs/12 §5.1).
  */
 .room {
     padding-top: 8px;
+    animation: room-fade 320ms ease-out both;
+}
+
+.room-heading,
+.book-head,
+.room-note,
+.stage,
+.book-random,
+.room-exits,
+.filter-row,
+.book-list,
+.shelf-list,
+.passage-list,
+.book-list-section,
+.batch-row,
+.about-line,
+.about-text {
+    animation: room-enter 360ms ease-out both;
+}
+
+/* Sentence before controls, controls before the rest: the reading order of one room. */
+.stage,
+.book-random,
+.room-note,
+.book-list-section {
+    animation-delay: 60ms;
+}
+
+.room-exits,
+.filter-row,
+.book-list,
+.shelf-list,
+.passage-list,
+.batch-row {
+    animation-delay: 120ms;
+}
+
+@keyframes room-enter {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* The room itself does not move; only its groups do. */
+@keyframes room-fade {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/**
+ * Reduced motion (docs/12 §5.4): no displacement, no stagger, no long colour arrival. The room and its
+ * colour simply are there — not a very short animation that would still change on the next frame.
+ */
+@media (prefers-reduced-motion: reduce) {
+    .room,
+    .room-heading,
+    .book-head,
+    .room-note,
+    .stage,
+    .book-random,
+    .room-exits,
+    .filter-row,
+    .book-list,
+    .shelf-list,
+    .passage-list,
+    .book-list-section,
+    .batch-row,
+    .about-line,
+    .about-text {
+        animation: none;
+    }
+
+    .room-aura-tint {
+        animation: none;
+        opacity: var(--aura-target, 0);
+    }
 }
 
 .room-region {

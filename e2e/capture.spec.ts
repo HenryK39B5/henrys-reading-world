@@ -27,6 +27,11 @@ function nonWhitespaceLength(text: string): number {
 async function contrastRatios(page: Page) {
     return page.evaluate(() => {
         const parse = (value: string): [number, number, number] => {
+            const hex = /^#([0-9a-f]{6})$/iu.exec(value.trim());
+            if (hex?.[1] !== undefined) {
+                const int = Number.parseInt(hex[1], 16);
+                return [(int >> 16) & 255, (int >> 8) & 255, int & 255];
+            }
             const match = /rgba?\(([^)]+)\)/.exec(value);
             const parts = (match?.[1] ?? '0,0,0').split(',').map((part) => Number.parseFloat(part));
             return [parts[0] ?? 0, parts[1] ?? 0, parts[2] ?? 0];
@@ -38,28 +43,62 @@ async function contrastRatios(page: Page) {
             };
             return 0.2126 * channel(rgb[0]) + 0.7152 * channel(rgb[1]) + 0.0722 * channel(rgb[2]);
         };
-        const ratio = (foreground: string, background: string) => {
-            const first = luminance(parse(foreground));
-            const second = luminance(parse(background));
+        const ratio = (foreground: [number, number, number], background: [number, number, number]) => {
+            const first = luminance(foreground);
+            const second = luminance(background);
             const lighter = Math.max(first, second);
             const darker = Math.min(first, second);
             return Math.round(((lighter + 0.05) / (darker + 0.05)) * 100) / 100;
         };
+
+        /** The room's real background: the page's paper with the aura layer composited over it. */
+        const paper = parse(getComputedStyle(document.documentElement).getPropertyValue('--paper') || '#faf9f6');
+        const shell = document.querySelector<HTMLElement>('.shell');
+        const tint = document.querySelector<HTMLElement>('.room-aura-tint');
+        const accent = parse(
+            (shell === null ? '' : getComputedStyle(shell).getPropertyValue('--aura')) || '#425a4b',
+        );
+        const strength = Number.parseFloat((tint === null ? '0' : getComputedStyle(tint).opacity) || '0');
+        const background: [number, number, number] = [
+            paper[0] * (1 - strength) + accent[0] * strength,
+            paper[1] * (1 - strength) + accent[1] * strength,
+            paper[2] * (1 - strength) + accent[2] * strength,
+        ];
+
         const body = window.getComputedStyle(document.body);
-        const background = body.backgroundColor;
         const passage = document.querySelector('.stage-text');
         const attribution = document.querySelector('.stage-attribution');
         const heading = document.querySelector('.room-heading');
         const note = document.querySelector('.room-note');
         const link = document.querySelector('.room-exit');
+        const colour = (node: Element | null, fallback: string) =>
+            node === null ? null : parse(window.getComputedStyle(node).color || fallback);
+
         return {
-            bodyOnPaper: ratio(body.color, background),
-            passageOnPaper: passage === null ? null : ratio(window.getComputedStyle(passage).color, background),
-            attributionOnPaper:
-                attribution === null ? null : ratio(window.getComputedStyle(attribution).color, background),
-            headingOnPaper: heading === null ? null : ratio(window.getComputedStyle(heading).color, background),
-            noteOnPaper: note === null ? null : ratio(window.getComputedStyle(note).color, background),
-            exitOnPaper: link === null ? null : ratio(window.getComputedStyle(link).color, background),
+            room: shell?.dataset['roomAura'] ?? null,
+            auraPercent: Math.round(strength * 1000) / 10,            bodyOnPaper: ratio(parse(body.color), background),
+            passageOnPaper: ratio(colour(passage, body.color) ?? parse(body.color), background),
+            attributionOnPaper: ratio(colour(attribution, body.color) ?? parse(body.color), background),
+            headingOnPaper: ratio(colour(heading, body.color) ?? parse(body.color), background),
+            noteOnPaper: ratio(colour(note, body.color) ?? parse(body.color), background),
+            exitOnPaper: ratio(colour(link, body.color) ?? parse(body.color), background),
+        };
+    });
+}
+
+/** The room's aura: which room, which real cover colour, and how strong it resolved. */
+async function auraInfo(page: Page) {
+    return page.evaluate(() => {
+        const shell = document.querySelector<HTMLElement>('.shell');
+        const tint = document.querySelector<HTMLElement>('.room-aura-tint');
+        if (shell === null || tint === null) {
+            return null;
+        }
+        return {
+            room: shell.dataset['roomAura'] ?? null,
+            accent: getComputedStyle(shell).getPropertyValue('--aura').trim(),
+            target: getComputedStyle(shell).getPropertyValue('--aura-target').trim(),
+            opacity: Math.round(Number.parseFloat(getComputedStyle(tint).opacity || '0') * 1000) / 1000,
         };
     });
 }
@@ -150,8 +189,9 @@ test.describe('review capture', () => {
             await advance(page);
         }
         console.log(`bands captured: ${[...bands].sort().join(', ')}`);
+        console.log(`hall aura: ${JSON.stringify(await auraInfo(page))}`);
         console.log(`hall density: ${JSON.stringify(await density(page))}`);
-        console.log(`hall contrast: ${JSON.stringify(await contrastRatios(page))}`);
+        console.log(`hall contrast against the tinted room: ${JSON.stringify(await contrastRatios(page))}`);
 
         // --- the other rooms --------------------------------------------------------
         await page.goto('/themes');
@@ -164,6 +204,8 @@ test.describe('review capture', () => {
         await page.screenshot({ path: join(OUT_DIR, 'theme-room-1440.png'), fullPage: true });
         console.log(`theme room heading: ${await page.getByTestId('room-heading').innerText()}`);
         console.log(`theme room note: ${await page.getByTestId('theme-note').innerText()}`);
+        console.log(`theme room aura: ${JSON.stringify(await auraInfo(page))}`);
+        console.log(`theme room contrast: ${JSON.stringify(await contrastRatios(page))}`);
         await page.getByTestId('source-toggle').click();
         await page.waitForTimeout(200);
         await page.screenshot({ path: join(OUT_DIR, 'theme-room-source-1440.png'), fullPage: true });
@@ -172,6 +214,7 @@ test.describe('review capture', () => {
         await page.goto('/books');
         await roomReady(page);
         await page.screenshot({ path: join(OUT_DIR, 'books-1440.png'), fullPage: true });
+        console.log(`books aura: ${JSON.stringify(await auraInfo(page))}`);
         console.log(`books density: ${JSON.stringify(await density(page))}`);
         console.log(`books batch label: ${await page.getByTestId('books-batch-label').innerText()}`);
 
@@ -179,13 +222,101 @@ test.describe('review capture', () => {
         await roomReady(page);
         await page.screenshot({ path: join(OUT_DIR, 'book-room-1440.png'), fullPage: true });
         console.log(`book room heading: ${await page.getByTestId('room-heading').innerText()}`);
+        console.log(`book room aura: ${JSON.stringify(await auraInfo(page))}`);
         console.log(`book room batch label: ${await page.getByTestId('book-batch-label').innerText()}`);
         console.log(`book room density: ${JSON.stringify(await density(page))}`);
         console.log(`book room contrast: ${JSON.stringify(await contrastRatios(page))}`);
 
+        /**
+         * Six books with visibly different cover colours, so the aura can be reviewed for real rather
+         * than assumed from one screenshot.
+         */
+        const colourSample = await page.evaluate(async () => {
+            const response = await fetch('/__local_snapshot');
+            const snapshot = (await response.json()) as {
+                books: { id: string; title: string; coverPath?: string }[];
+                highlights: { bookId: string }[];
+            };
+            const counts = new Map<string, number>();
+            for (const highlight of snapshot.highlights) {
+                counts.set(highlight.bookId, (counts.get(highlight.bookId) ?? 0) + 1);
+            }
+            const sample = async (book: { id: string; coverPath?: string }) => {
+                if (book.coverPath === undefined) {
+                    return null;
+                }
+                const url = book.coverPath.startsWith('local-covers/')
+                    ? `/__local_cover/${book.coverPath.slice('local-covers/'.length)}`
+                    : `/${book.coverPath}`;
+                const image = new Image();
+                image.decoding = 'async';
+                await new Promise((resolve) => {
+                    image.addEventListener('load', resolve, { once: true });
+                    image.addEventListener('error', resolve, { once: true });
+                    image.src = url;
+                });
+                const canvas = document.createElement('canvas');
+                canvas.width = 8;
+                canvas.height = 8;
+                const context = canvas.getContext('2d');
+                if (context === null) {
+                    return null;
+                }
+                context.drawImage(image, 0, 0, 8, 8);
+                const { data } = context.getImageData(0, 0, 8, 8);
+                let r = 0;
+                let g = 0;
+                let b = 0;
+                let n = 0;
+                for (let index = 0; index + 3 < data.length; index += 4) {
+                    r += data[index] ?? 0;
+                    g += data[index + 1] ?? 0;
+                    b += data[index + 2] ?? 0;
+                    n += 1;
+                }
+                return { bookId: book.id, average: [Math.round(r / n), Math.round(g / n), Math.round(b / n)] };
+            };
+            const ranked = snapshot.books
+                .filter((book) => (counts.get(book.id) ?? 0) > 0 && book.coverPath !== undefined)
+                .slice(0, 40);
+            const measured = [];
+            for (const book of ranked) {
+                const result = await sample(book);
+                if (result !== null) {
+                    measured.push(result);
+                }
+            }
+            return measured;
+        });
+        if (colourSample.length > 0) {
+            const distinct = colourSample
+                .filter((entry) => entry !== null)
+                .filter((entry, index, all) =>
+                    all.findIndex(
+                        (other) =>
+                            Math.abs((other.average[0] ?? 0) - (entry.average[0] ?? 0)) < 30 &&
+                            Math.abs((other.average[1] ?? 0) - (entry.average[1] ?? 0)) < 30 &&
+                            Math.abs((other.average[2] ?? 0) - (entry.average[2] ?? 0)) < 30,
+                    ) === index,
+                )
+                .slice(0, 6);
+            for (const [index, entry] of distinct.entries()) {
+                await page.goto(`/books/${entry.bookId}`);
+                await roomReady(page);
+                await page.waitForTimeout(800);
+                const info = await auraInfo(page);
+                console.log(
+                    `cover sample ${String(index + 1)}: ${entry.bookId} cover rgb(${entry.average.join(',')}) -> aura ${String(info?.accent ?? '')}`,
+                );
+                await page.screenshot({ path: join(OUT_DIR, `book-room-colour-${String(index + 1)}-1440.png`), fullPage: true });
+            }
+            console.log(`cover colour samples: ${String(distinct.length)}`);
+        }
+
         await page.goto('/about');
         await roomReady(page);
         await page.screenshot({ path: join(OUT_DIR, 'about-1440.png'), fullPage: true });
+        console.log(`about aura: ${JSON.stringify(await auraInfo(page))}`);
 
         // --- full-library reading (V2-D): the whole library and the largest book, in batches ---
         await page.goto('/books');
@@ -226,6 +357,54 @@ test.describe('review capture', () => {
             );
             console.log(`largest book expanded density: ${JSON.stringify(await density(page))}`);
             await page.screenshot({ path: join(OUT_DIR, 'book-room-longest-expanded-1440.png'), fullPage: true });
+        }
+
+        /**
+         * Edge cases of the same room: a book with no cover art, and the two extreme real passage
+         * lengths (the longest line in the library, and the shortest book that still opens the world).
+         */
+        const edges = await page.evaluate(async () => {
+            const response = await fetch('/__local_snapshot');
+            const snapshot = (await response.json()) as {
+                books: { id: string; coverPath?: string }[];
+                highlights: { id: string; bookId: string; text: string }[];
+            };
+            const length = (text: string) => [...text].filter((char) => !/\s/u.test(char)).length;
+            const counts = new Map<string, number>();
+            for (const highlight of snapshot.highlights) {
+                counts.set(highlight.bookId, (counts.get(highlight.bookId) ?? 0) + 1);
+            }
+            const longest = [...snapshot.highlights].sort((left, right) => length(right.text) - length(left.text))[0];
+            const starved = snapshot.books
+                .filter((book) => book.coverPath === undefined && (counts.get(book.id) ?? 0) > 0)
+                .map((book) => ({ id: book.id, count: counts.get(book.id) ?? 0 }))
+                .sort((left, right) => right.count - left.count)[0];
+            return { longest: longest ?? null, withoutCover: starved ?? null, longestLength: longest === null ? 0 : length(longest.text) };
+        });
+
+        if (edges.withoutCover !== null) {
+            await page.goto(`/books/${edges.withoutCover.id}`);
+            await roomReady(page);
+            await page.waitForTimeout(700);
+            console.log(`book without a cover: ${edges.withoutCover.id}, aura ${JSON.stringify(await auraInfo(page))}`);
+            await page.screenshot({ path: join(OUT_DIR, 'book-room-no-cover-1440.png'), fullPage: true });
+            await page.setViewportSize({ width: 390, height: 844 });
+            await page.screenshot({ path: join(OUT_DIR, 'book-room-no-cover-390.png'), fullPage: true });
+            await page.setViewportSize({ width: 1440, height: 900 });
+        }
+
+        if (edges.longest !== null) {
+            await page.goto(`/books/${edges.longest.bookId}`);
+            await roomReady(page);
+            await page.waitForTimeout(700);
+            const metrics = await passageMetrics(page, '.book-random-text');
+            console.log(
+                `longest real passage on screen: ${String(edges.longestLength)} characters, ${String(metrics.lines)} lines, font ${String(metrics.fontSize)}px`,
+            );
+            await page.screenshot({ path: join(OUT_DIR, 'book-room-longest-passage-1440.png'), fullPage: true });
+            await page.setViewportSize({ width: 390, height: 844 });
+            await page.screenshot({ path: join(OUT_DIR, 'book-room-longest-passage-390.png'), fullPage: true });
+            await page.setViewportSize({ width: 1440, height: 900 });
         }
 
         // --- return journey: does a room come back the way it was left? -------------
@@ -324,6 +503,13 @@ test.describe('review capture', () => {
         await page.setViewportSize({ width: 1440, height: 900 });
         await page.goto('/');
         await roomReady(page);
+        const reducedMotion = await page.evaluate(() => ({
+            roomAnimation: window.getComputedStyle(document.querySelector('.room') as Element).animationDuration,
+            auraAnimation: window.getComputedStyle(document.querySelector('.room-aura-tint') as Element).animationDuration,
+            auraOpacity: window.getComputedStyle(document.querySelector('.room-aura-tint') as Element).opacity,
+            roomTransform: window.getComputedStyle(document.querySelector('.room') as Element).transform,
+        }));
+        console.log(`reduced motion styles: ${JSON.stringify(reducedMotion)}`);
         const beforeText = await page.getByTestId('stage-passage').innerText();
         const motionStart = Date.now();
         await page.getByTestId('next-quote').click();
@@ -334,6 +520,7 @@ test.describe('review capture', () => {
         );
         console.log(`reduced motion commit: ${String(Date.now() - motionStart)}ms, phases skipped`);
         await expect(page.locator('.stage')).toHaveAttribute('data-phase', 'idle');
+        console.log(`reduced motion aura: ${JSON.stringify(await auraInfo(page))}`);
 
         console.log(`highlights in snapshot: ${String(highlights.length)}`);
         console.log(`screenshots written to ${OUT_DIR}`);

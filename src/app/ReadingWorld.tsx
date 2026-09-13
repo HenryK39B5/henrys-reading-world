@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
+import type { CSSProperties } from 'react';
 import { indexSnapshot } from '../domain/snapshot.ts';
 import type { Snapshot } from '../domain/types.ts';
 import { INITIAL_BOOK_BATCH, INITIAL_PASSAGE_BATCH } from '../domain/reading.ts';
@@ -15,6 +16,7 @@ import { useBatches } from '../features/rooms/useBatches.ts';
 import { useBookRooms } from '../features/rooms/useBookRoom.ts';
 import { useRoomMemory } from '../features/rooms/useRoomMemory.ts';
 import { Nav } from './Nav.tsx';
+import { coverUrl, useCoverAccent } from './covers.ts';
 import { routeKey, routePath, type RouterApi } from './router.ts';
 import { DATA_MODE } from './snapshotSource.ts';
 import './page.css';
@@ -61,6 +63,27 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
     // batches, and neither should inherit the other's "show more" position.
     const bookBatches = useBatches(INITIAL_BOOK_BATCH);
     const passageBatches = useBatches(INITIAL_PASSAGE_BATCH);
+
+    /**
+     * Book Aura (docs/12 §4): the colour of the room comes from the cover of the book on screen.
+     *
+     * The hall and a shelf room follow the passage that is showing; a book room is the book itself;
+     * a library, a shelf list and About stay on neutral paper and let real covers carry the colour.
+     */
+    const focusBookId = (() => {
+        if (route.name === 'book') {
+            return route.bookId;
+        }
+        if (route.name === 'hall' || route.name === 'theme') {
+            return stage.state.currentId === null
+                ? null
+                : (index.highlightsById.get(stage.state.currentId)?.bookId ?? null);
+        }
+        return null;
+    })();
+    const focusBook = focusBookId === null ? undefined : index.booksById.get(focusBookId);
+    const aura = useCoverAccent(coverUrl(focusBook?.coverPath));
+    const auraTarget = route.name === 'book' ? '0.1' : route.name === 'hall' ? '0.05' : route.name === 'theme' ? '0.045' : '0';
 
     useRoomMemory(routeKey(route));
 
@@ -129,7 +152,16 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
     })();
 
     return (
-        <div className="shell">
+        <div
+            className="shell"
+            style={{ '--aura': aura, '--aura-target': auraTarget } as CSSProperties}
+            data-room-aura={route.name}
+        >
+            {/** Keyed per room so the room's air arrives once, on entry (docs/12 §5.3). */}
+            <div className="room-aura" key={router.path} aria-hidden="true">
+                <div className="room-aura-tint" data-testid="room-aura" />
+            </div>
+
             <header className="site-header">
                 <a className="brand" href="/">
                     Henry's Reading World
