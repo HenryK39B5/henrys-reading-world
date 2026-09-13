@@ -8,9 +8,11 @@
 
 ## 0. 当前基线与迁移目标
 
-当前 commit 基线：`e2b82a1`（V2-A 完成）。工作区应先保持干净。
+历史迁移起点为 `e2b82a1`（V2-A 完成）；V2-A～V2-E3 已全部落地。**当前实现基线为 `a8083ef`**，下一批只做用户确认的 V2-E4 分享卡片视觉修订，工作区应先保持干净。
 
-V2-A 已有：schema 2、4,663 条 / 130 本 / 14 个书籍主题书架、稳定 ID、防泄漏全量 local-only 快照；当前 UI 仍是兼容性长页面，选择器仍是待替换的过渡实现。独立复核为 87 单测、24 E2E。
+当前已有：schema 2、4,663 条 / 130 本 / 14 个书籍主题书架、稳定 ID、防泄漏全量 local-only 快照、两阶段公平算法、六房间、Book Aura、全量分批、稳定深链与固定 ID 分享。独立验收基线为 171 单测、81 local E2E、1 public E2E；数字仍须开工重跑。
+
+以下 V2-A～V2-E 内容保留为迁移历史与不可回退契约；当前施工入口见 V2-E4 与 `docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md`。
 
 后续 v2 目标：
 
@@ -271,7 +273,17 @@ About 是独立小房间，只显示真实范围和可选的 Henry 自写介绍�
 2. **V2-E2 — 固定 ID 的复制与分享预览**：只分享门厅/主题舞台和书籍房间顶部的当前视觉中心，不给长列表逐行加按钮。dialog 打开时固定 highlight ID；复制真实原文和明确标注的本机链接；Clipboard 失败可手动复制；短/中句约 4:5，299/398 字长文自然增高、不裁剪。local-only 不实现 Web Share、PNG、二维码或上传。
 3. **V2-E3 — 最终无障碍与工程 Gate**：真实 200% 浏览器缩放、320/360/390/768/1440、完整键盘与 dialog 焦点、reduced-motion、封面/Clipboard/无效路径失败回退、network/privacy 和 public 空态全量复验。
 
-分享只锁定稳定 highlight ID；房间与临时 scope 是上下文，不替代内容身份。三个阶段的执行记录（含命令、数字、未验证项）见 `docs/08` 的 V2-E1/E2/E3 三节。整个 V2-E 已完成；下一阶段仅为 Public Release Gate。
+分享只锁定稳定 highlight ID；房间与临时 scope 是上下文，不替代内容身份。三个阶段的执行记录（含命令、数字、未验证项）见 `docs/08` 的 V2-E1/E2/E3 三节。
+
+### V2-E4 — 分享卡片视觉修订（下一批）
+
+> 用户实际体验确认：分享功能与整体风格一致，但当前卡片和 dialog 同为白色、只有文字，视觉过于苍白。用户同意：先只重做 CSS 预览，不导出图片；不显示书封，只使用锁定书籍的 Book Aura 色彩。执行 Prompt：`docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md`。
+
+1. **V2-E4A — dialog 滚动锁可靠性**：修复独立验收中真实出现一次的背景滚动；同时防守 `html/body`，保留并恢复实际滚动位置与原 inline style；修正“初始必为 0”的脆弱测试。
+2. **V2-E4B — Book Aura 出版卡片**：浅色 dialog 中放置低饱和深色卡面；palette 从 locked highlight → locked book → real cover accent 派生；暖色文字、细框、出处分区；无封面回退默认 accent。
+3. **V2-E4C — 视觉与工程 Gate**：最短 8 字/中句/299/398 字、至少 6 本真实封面色、320/390/720/1440、200%、键盘、reduced-motion、privacy/public build；证据进入 `.private/review/v2-e4/`。
+
+V2-E4 不增加图片导出、封面展示、头像、日期、统计、二维码、主题标签、模板选择、Web Share、部署或公开快照。完成后下一阶段才是 Public Release Gate。
 
 ## 7. 连续批次交付要求
 

@@ -23,8 +23,8 @@
 | 出处展开（Slice 3） | 已完成 | 原位展开、真实收录计数、再看一处 / 收起、焦点回归、耗尽与单条明确说明 |
 | 书籍 / 主题 / About（Slice 4） | 已完成 | 书籍区与书详情、5 个主题的跨书连线、真实年份筛选与空交集处理、真实计数 About |
 | 导航 | 全部放开 | 随机 / 书 / 主题 / 关于 均为真链接，无禁用项 |
-| 浏览器验证 | 连续房间批次后已复核 | Playwright + Chromium：**44 个 local 用例 + 1 个 public 空态用例全通过**；房间、全量分批、Aura、年份传播与真实长度边界均覆盖 |
-| 本机检查 | 连续房间批次后已复核 | `check:local` 全绿：typecheck + lint + 151 个单测（11 文件）+ schema 2 数据校验；`verify:ids`、smoke、public build 与 local-private build 拒绝均通过 |
+| 浏览器验证 | V2-E 后已独立复核 | Playwright + Chromium：81 个 local 用例；Sol 首次全量为 80/81（dialog 背景偶发滚到 210px），单用例 10/10、share spec 50/50、第二次全量 81/81；1 个 public 空态用例通过。该低频滚动风险进入 V2-E4A，不按 flake 忽略 |
+| 本机检查 | V2-E 后已独立复核 | `check:local` 全绿：typecheck + lint + **171 个单测（12 文件）** + schema 2 数据校验；`verify:ids`、smoke、public build 与 local-private build 拒绝均通过 |
 | 视觉检查（Astra） | 已执行 | 1440 / 390 实际截图；发现并修正孤字成行、26px 点击目标、出处行间距、移动端书目节奏 |
 | 评审证据工具 | 已建立 | `npm run capture:review`：截图 + 可读数字（字号 / 行数 / 对比度 / 点击目标 / 溢出 / 延迟）|
 | 封面与色彩（视觉修复） | 已完成 | 127 张真实书封下载到 `.private/covers/`；`local-covers/` 仅由 dev:local 服务；每本书主色从封面实时提取并降饱和 |
@@ -40,7 +40,8 @@
 | V2-C1 房间路由与现场记忆 | 已完成 | 六个真实路径、每房间独立舞台会话、批次与滚动记忆；149 单测 / 34 Playwright；详见下方 V2-C1 执行记录 |
 | V2-C2 Book Aura 与呼吸动效 | 已完成（含复核修复） | 真实封面环境色、房间进入/换句 700ms、reduced-motion；最终 local Playwright 总数 44；详见下方记录 |
 | V2-D 全量分批浏览 | 已完成（含复核修复） | 书库 12→130、单书 10→531、4,663 条可达；年份传播与同年稳定 ID 排序已由 `9e2d0af` 关闭 |
-| V2-E 开发准备 | ready | `docs/15-V2-E-CONTINUOUS-IMPLEMENTER-PROMPT.md` 是下一批唯一入口；E1→E2→E3 后停在 Public Release Gate 前 |
+| V2-E1/E2/E3 | 已完成并独立复核 | 深链、固定 ID 分享、复制失败、200%/键盘/privacy 均成立；基线 `a8083ef` |
+| V2-E4 交接准备 | ready-for-implementation | 用户确认只重做 CSS 预览、不导出图片、不显示书封；下一批唯一入口 `docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md` |
 | 真实访客 Gate | 未进行 | 用户本人体验反馈非常积极，但尚无首次访客结果，不冒充产品 Gate 通过 |
 
 原始返回、更新包、候选池、快照与截图全部留在 `.private/`，已被 `.gitignore` 排除，未进入前端包。
@@ -916,6 +917,80 @@ V2-E（最终独立批次），不在本阶段开始。
 - 部署、上传、SEO、Web Share、PNG、二维码；
 - 真实首次访客评审与无法在当前 Windows/Chromium 环境完成的 Safari/真机验证。
 
+## V2-E4 分享卡片视觉修订交接准备（2026-09-13）
+
+```text
+日期 / 执行者：2026-09-13 / GPT-5.6 Sol
+范围：独立验收 V2-E；固化分享卡片视觉修订、滚动可靠性与实现 Prompt；未修改产品代码
+状态：ready-for-implementation
+代码基线：a8083ef
+下一批 Prompt：docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md
+```
+
+### 用户体验反馈与已确认决定
+
+用户实际体验分享功能后确认：分享卡片的风格与整个产品一脉相承，这是应保留的优点；不足是卡片与 dialog 都是白色、只有文字与极细边框，过于“苍白”、单一。用户提供 4 张 flomo 与 4 张微信读书分享图作参考，并确认高推理建议：
+
+1. **本批只重做 CSS 预览**：不下载/复制 PNG，不做 Canvas/SVG 导出、Web Share、上传或二维码。
+2. **卡片不显示书封**：真实封面只作为颜色来源；无封面/采样失败回退 `DEFAULT_ACCENT`。
+3. **Book Aura 出版卡片**：浅色 dialog 内形成低饱和深色卡面、暖米白文字、细框与清楚出处区；不是固定黑金或 flomo 黄。
+4. **一个稳定系统**：不加头像、当前日期、统计、主题标签或随机模板。
+5. **颜色也锁 ID**：卡片 palette 必须从 locked highlight → locked book → cover accent 派生，不能只继承可能随后台舞台变化的 `.shell --aura`。
+6. **长文契约不变**：最短 8 字、中句、299 字与 398 字全部完整；4:5 只是默认，长文自然增高。
+
+### 参考图片整理
+
+用户提供的 8 张图片已从项目根目录移入：
+
+```text
+.private/reference/share-cards/
+├─ README.md       # 原文件名映射与设计提炼
+├─ flomo/          # 4 张
+└─ weread/         # 4 张
+```
+
+它们有继续参考价值，不建议删除；仅作本机设计材料，不进入 Git、`src/`、`public/` 或构建。可提炼 flomo 的纸张/票据结构和微信读书的深色出版物分区，但不能导入、裁切或照搬这些图片及品牌元素。
+
+### Sol 独立验收命令与结果
+
+| 命令 | 实际结果 |
+| --- | --- |
+| `npm run check:local` | 171/171 单测（12 文件），typecheck/lint/data validation 通过；唯一数据警告仍是无原始换行样本 |
+| `npm run verify:ids` | 20 本 / 46 条稳定 ID 未变；总量 4,663 / 130 |
+| `npm run smoke:local` | 3/3 |
+| `npm run test:public` | 1/1 |
+| `npm run build` | 成功，public snapshot 仍为空 |
+| `npx vite build --mode local-private` | 按预期拒绝 |
+| 第一次 `npx playwright test` | **80/81**；唯一失败：dialog backdrop wheel 后 `window.scrollY=210` |
+| 精确失败用例 `--repeat-each=10` | 10/10 |
+| `e2e/share.spec.ts --repeat-each=5` | 50/50 |
+| 第二次 `npx playwright test` | 81/81 |
+
+### 验收判断
+
+- **E1 深链**：通过；有效/无效 ID、replace 清除 `h`、room identity 与 all cycle 契约有覆盖。
+- **E2 固定 ID 与复制**：功能通过；视觉有条件通过，需 V2-E4B 修订。
+- **E3 键盘/缩放/privacy**：主体通过；滚动锁曾真实失败一次，需 V2-E4A 修复后才关闭风险。
+- **总体**：V2-E 功能与工程主体通过，产品视觉为有条件通过；先完成 V2-E4，再回到 Public Release Gate。
+
+### 实现陷阱与 Gate
+
+- 当前 `ShareDialog` 只锁 `document.body.style.overflow`；V2-E4A 必须同时防守滚动根、保存并恢复实际滚动位置与原 inline style。测试不能假定打开前 `scrollY=0`。
+- 当前卡片与 dialog 同用 `var(--paper)`；问题不是简单缺装饰，而是没有卡片/容器分层，也没有书籍来源色域。
+- 不能直接让卡片继承 `.shell --aura`：固定原文可能与变化后的后台书籍颜色不一致。
+- palette 建议用可单测纯函数从 accent 派生，主文字、出处与低权重品牌均需 ≥4.5:1；不要以低权重为理由牺牲可读性。
+- 新证据必须进入 `.private/review/v2-e4/`，不覆盖 V2-E 历史截图；参考图片不进入产品网络请求。
+
+### 文档变更
+
+- 新增 `docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md`；
+- 更新 `AGENTS.md`、README、`docs/02/05/07/11/12/15`；
+- `docs/15` 保持已执行历史 Prompt；`docs/16` 成为下一批唯一入口。
+
+### 下一步
+
+DeepSeek v4.1 Flash 按 `docs/16` 连续完成 E4A → E4B → E4C。每阶段测试、记录、commit，Gate 通过后直接继续；全部完成后统一汇报。不部署、不 push、不生成 public snapshot。
+
 ## V2-E3 最终响应式、键盘与工程 Gate（2026-09-13）
 
 ```text
@@ -991,9 +1066,9 @@ V2-E（最终独立批次），不在本阶段开始。
 - **门厅会记住“再看一处”后的原句**：从书房间返回后显示的是离开时的句子，而不是深链原句；深链地址已在换句时按 `docs/15 §4.1` 清除。
 - **public 产物里的 `local-covers` / `__local_cover` 字符串**：它们是 `covers.ts` 与校验器里的运行时代码分支（拒绝非法 `coverPath`），不是数据；public 快照的 book 标题与划线在 dist 中出现次数均为 0。
 
-### 下一步
+### 下一步（E3 完成当时）
 
-V2-E1 → E2 → E3 全部完成，本机原型开发批次结束。下一阶段仅为 **Public Release Gate（PUB-01～PUB-07）**，需用户决定后才开始；不得自行公开导出、部署或上传。
+V2-E1 → E2 → E3 全部完成，当时计划进入 Public Release Gate。用户随后实际体验分享卡片并新增 V2-E4 视觉修订；当前下一步以本文件上方 V2-E4 交接记录与 `docs/16` 为准。仍不得自行公开导出、部署或上传。
 
 ## V2-E2 固定 ID 的复制、dialog 与分享预览（2026-09-13）
 

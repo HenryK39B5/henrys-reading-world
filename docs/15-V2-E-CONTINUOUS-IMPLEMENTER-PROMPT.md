@@ -1,6 +1,6 @@
 # 15 — V2-E 最终收尾批次 Implementer Prompt
 
-> 状态：**已执行的历史提示词**。V2-E1 / V2-E2 / V2-E3 已全部完成。本机原型开发批次结束，下一阶段是 Public Release Gate（PUB-01～PUB-07），需用户决定。
+> 状态：**已执行的历史提示词**。V2-E1 / V2-E2 / V2-E3 已全部完成。用户体验后新增窄范围视觉修订 V2-E4；当前唯一入口见 `docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md`。
 >
 > 基线：`9e2d0af Fix review findings: year scope, aura travel, stable book order`。
 >

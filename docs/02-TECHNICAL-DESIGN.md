@@ -1,6 +1,6 @@
 # 02 — 技术与工程设计（v1 基线）
 
-> 栈、安全隔离、URL 和工程底线继续有效。数据 schema、选择状态、房间路由、全量分批与 Book Aura 已完成并在 `9e2d0af` 通过复核修复；下一批只实现 V2-E 深链、复制/分享预览与最终无障碍，具体以 `docs/15-V2-E-CONTINUOUS-IMPLEMENTER-PROMPT.md` 为准。
+> 栈、安全隔离、URL 和工程底线继续有效。V2-E1/E2/E3 已在 `a8083ef` 完成；下一批只做 V2-E4 分享卡片视觉修订与 dialog 滚动锁可靠性，不改变深链、复制或发布边界，具体以 `docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md` 为准。
 
 ## 1. 栈与命令
 
@@ -107,6 +107,7 @@ UI 状态：出处开关、当前选书 / 主题 / 年份、分享预览的固�
 - 普通换句不写 history，避免返回键要退几十步；改变房间与筛选才写一条历史。
 - 深链不为每个 ID 建独立房间 session/cycle；清除 `h` 后继续使用门厅 all session。已删除或撤回的 ID 不可复用于其他内容，深链不可绕过当前快照审核边界。
 - 本机 `localhost` / `127.0.0.1` 可复制为明确标注的 `本机链接`，只在这台电脑的 local preview 中有效；不调用 Web Share、不上传，也不声称已公开可访问。
+- V2-E4 的卡片 palette 必须从**已锁定 highlight 对应书籍**的封面 accent 独立派生，不能只继承当前房间 `.shell --aura`；否则背景舞台变化可能让固定原文与错误书籍颜色并存。palette 以纯函数生成深色低饱和背景与达到 AA 的暖色文字；无封面/采样失败回退 `DEFAULT_ACCENT`。
 
 ## 7. 工程底线
 
