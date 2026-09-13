@@ -7,6 +7,7 @@ export type HallRoomProps = {
     nowYear: number;
     session: StageSessionController;
     onOpenBook: (bookId: string) => void;
+    onShare: (highlightId: string) => void;
     /** The address named a passage this snapshot does not hold (docs/15 §6.1). */
     unavailableLink: boolean;
 };
@@ -16,7 +17,7 @@ export type HallRoomProps = {
  *
  * The library lives in its own rooms; nothing below the sentence repeats the shelves here.
  */
-export function HallRoom({ index, nowYear, session, onOpenBook, unavailableLink }: HallRoomProps) {
+export function HallRoom({ index, nowYear, session, onOpenBook, onShare, unavailableLink }: HallRoomProps) {
     return (
         <section className="room room-hall" aria-labelledby="hall-heading" data-room="hall">
             <h1 id="hall-heading" className="room-heading" data-testid="room-heading">
@@ -35,6 +36,7 @@ export function HallRoom({ index, nowYear, session, onOpenBook, unavailableLink 
                 session={session}
                 emptyNote="目前没有可展示的划线。"
                 onOpenBook={onOpenBook}
+                onShare={onShare}
             />
 
             <nav className="room-exits" aria-label="去别的房间">

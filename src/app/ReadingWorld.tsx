@@ -15,6 +15,8 @@ import { UnknownRoom } from '../features/rooms/UnknownRoom.tsx';
 import { useBatches } from '../features/rooms/useBatches.ts';
 import { useBookRooms } from '../features/rooms/useBookRoom.ts';
 import { useRoomMemory } from '../features/rooms/useRoomMemory.ts';
+import { ShareDialog } from '../features/share/ShareDialog.tsx';
+import { useShare } from '../features/share/useShare.ts';
 import { Nav } from './Nav.tsx';
 import { coverUrl, useCoverAccent } from './covers.ts';
 import { roomPath, routeKey, routePath, type RouterApi } from './router.ts';
@@ -97,6 +99,14 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
     // batches, and neither should inherit the other's "show more" position.
     const bookBatches = useBatches(INITIAL_BOOK_BATCH);
     const passageBatches = useBatches(INITIAL_PASSAGE_BATCH);
+
+    /**
+     * Sharing lives beside the rooms, not inside one: it holds a locked passage id and nothing else, so
+     * opening a dialog cannot disturb a session, a batch or a return position (docs/15 §7.1).
+     */
+    const share = useShare();
+    const sharedHighlight =
+        share.state.highlightId === null ? undefined : index.highlightsById.get(share.state.highlightId);
 
     /**
      * Book Aura (docs/12 §4): the colour of the room comes from the cover of the book on screen.
@@ -203,6 +213,7 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
                         nowYear={nowYear}
                         session={stage}
                         onOpenBook={openBook}
+                        onShare={share.open}
                         unavailableLink={unavailableLink !== null}
                     />
                 );
@@ -216,6 +227,7 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
                         nowYear={nowYear}
                         session={stage}
                         onOpenBook={openBook}
+                        onShare={share.open}
                     />
                 );
             case 'books':
@@ -230,6 +242,7 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
                         batches={passageBatches}
                         room={bookRooms}
                         onBack={router.previousPath === null ? null : goBack}
+                        onShare={share.open}
                     />
                 );
             case 'about':
@@ -273,6 +286,18 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
                     </ul>
                 </details>
             ) : null}
+
+            {/** One dialog for the whole document, holding one locked passage (docs/15 §7.2). */}
+            {sharedHighlight === undefined ? null : (
+                <ShareDialog
+                    highlight={sharedHighlight}
+                    book={index.booksById.get(sharedHighlight.bookId)}
+                    localOnly={DATA_MODE === 'local'}
+                    copyStatus={share.state.copyStatus}
+                    onCopyResult={share.reportCopy}
+                    onRequestClose={share.close}
+                />
+            )}
         </div>
     );
 }

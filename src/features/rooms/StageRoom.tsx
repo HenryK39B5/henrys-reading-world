@@ -10,13 +10,15 @@ export type StageRoomProps = {
     /** Shown instead of the stage when the room has nothing to draw from. */
     emptyNote: string;
     onOpenBook: (bookId: string) => void;
+    /** Only the passage on screen can be shared, never a row of a list (docs/15 §4.2). */
+    onShare: (highlightId: string) => void;
 };
 
 /**
  * One passage room: the hall and every shelf room are the same reading surface, only their range and
  * their label differ. The passage on screen always belongs to a real snapshot record of that room.
  */
-export function StageRoom({ index, nowYear, session, emptyNote, onOpenBook }: StageRoomProps) {
+export function StageRoom({ index, nowYear, session, emptyNote, onOpenBook, onShare }: StageRoomProps) {
     const current = session.state.currentId === null ? undefined : index.highlightsById.get(session.state.currentId);
     const book = current === undefined ? undefined : index.booksById.get(current.bookId);
 
@@ -45,6 +47,7 @@ export function StageRoom({ index, nowYear, session, emptyNote, onOpenBook }: St
             onOpenSource={session.openSource}
             onCloseSource={session.closeSource}
             onOpenBook={onOpenBook}
+            onShare={onShare}
         />
     );
 }

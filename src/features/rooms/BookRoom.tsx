@@ -16,6 +16,8 @@ export type BookRoomProps = {
     room: BookRoomController;
     /** Present only when the visitor arrived from another room in this session. */
     onBack: (() => void) | null;
+    /** Shares the random passage at the top of the room; the list below it has no share controls. */
+    onShare: (highlightId: string) => void;
 };
 
 function listHref(bookId: string, year: number | null): string {
@@ -29,7 +31,7 @@ function listHref(bookId: string, year: number | null): string {
  * The random passage and the list are this room's own state. Reading here never consumes the cycle of the
  * hall or a shelf, so returning to those rooms shows the sentence that was there.
  */
-export function BookRoom({ index, bookId, year, nowYear, batches, room, onBack }: BookRoomProps) {
+export function BookRoom({ index, bookId, year, nowYear, batches, room, onBack, onShare }: BookRoomProps) {
     const book = index.booksById.get(bookId);
     const passages = book === undefined ? [] : (index.highlightsByBook.get(bookId) ?? []);
 
@@ -116,6 +118,19 @@ export function BookRoom({ index, bookId, year, nowYear, batches, room, onBack }
                     >
                         随机看一处
                     </button>
+                    {current === undefined ? null : (
+                        <button
+                            type="button"
+                            className="share-trigger"
+                            data-testid="book-share-open"
+                            data-share-trigger="book"
+                            onClick={() => {
+                                onShare(current.id);
+                            }}
+                        >
+                            分享
+                        </button>
+                    )}
                     {passages.length <= 1 ? (
                         <span className="room-note" data-testid="book-random-note">
                             这本书目前只收录了一处划线。

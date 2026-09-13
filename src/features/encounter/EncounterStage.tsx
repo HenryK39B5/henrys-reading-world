@@ -27,6 +27,8 @@ export type EncounterStageProps = {
     deadEnd: string | null;
     /** Opens the book section for this book (Slice 4); absent when the section cannot be reached. */
     onOpenBook?: (bookId: string) => void;
+    /** Opens the share dialog for this passage (V2-E); absent when sharing is not available here. */
+    onShare?: (highlightId: string) => void;
     onNext: () => void;
     onNextInBook: () => void;
     onOpenSource: () => void;
@@ -56,6 +58,7 @@ export function EncounterStage({
     onOpenSource,
     onCloseSource,
     onOpenBook,
+    onShare,
 }: EncounterStageProps) {
     const band = lengthBand(highlight.text);
     const timeLabel = relativeYearLabel(highlight.year, nowYear);
@@ -201,6 +204,23 @@ export function EncounterStage({
                         ↻
                     </span>
                 </button>
+                {onShare === undefined ? null : (
+                    <button
+                        type="button"
+                        className="share-trigger"
+                        data-testid="share-open"
+                        data-share-trigger="stage"
+                        /* A transition in flight has two passages in it, so neither can be shared yet. */
+                        aria-disabled={busy}
+                        onClick={() => {
+                            if (!busy) {
+                                onShare(highlight.id);
+                            }
+                        }}
+                    >
+                        分享
+                    </button>
+                )}
             </div>
 
             {deadEnd === null ? null : (

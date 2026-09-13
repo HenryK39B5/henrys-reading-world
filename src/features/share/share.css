@@ -1,0 +1,173 @@
+/**
+ * The share dialog (docs/15 §7, docs/05 §8).
+ *
+ * A quiet editorial preview rather than a poster: the passage is the subject, the source is small, the
+ * site name sits in the corner and nothing is cropped. Real paper and ink, the same tokens as the rooms.
+ */
+.share-dialog {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    width: min(560px, calc(100vw - 28px));
+    max-height: min(92svh, 760px);
+    padding: 22px 22px 18px;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: var(--paper);
+    color: var(--ink);
+    overflow: auto;
+    overscroll-behavior: contain;
+}
+
+.share-dialog::backdrop {
+    background: rgba(37, 37, 34, 0.4);
+}
+
+.share-heading {
+    font-family: var(--stage-font);
+    font-size: 20px;
+    font-weight: 400;
+    margin: 0 0 16px;
+}
+
+/* ---- 卡片预览 ---- */
+
+.share-card {
+    /* 4:5 is the card's default shape, not a crop: real text can grow the box (docs/15 §7.4). */
+    aspect-ratio: 4 / 5;
+    width: min(320px, 100%);
+    margin: 0 auto;
+    padding: 26px 22px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+}
+
+.share-card-text {
+    /* `flex: 0 0 auto` keeps the sentence whole: the card grows instead of the text shrinking. */
+    flex: 0 0 auto;
+    margin: 0;
+    font-family: var(--stage-font);
+    font-size: 17px;
+    line-height: 1.85;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.share-card-meta {
+    flex: 0 0 auto;
+    margin-top: auto;
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+}
+
+.share-card-source,
+.share-card-brand,
+.share-card-badge {
+    margin: 0;
+}
+
+.share-card-brand {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+}
+
+.share-card-badge {
+    margin-top: 6px;
+    font-size: 11px;
+    border-top: 1px solid var(--rule);
+    padding-top: 6px;
+}
+
+.share-note {
+    margin: 12px 0 0;
+    font-size: 13px;
+    color: var(--ink-soft);
+    text-align: center;
+}
+
+/* ---- 动作与状态 ---- */
+
+.share-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+}
+
+.share-button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 14px;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    background: none;
+    color: var(--ink);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.share-button-quiet {
+    border-color: transparent;
+    color: var(--ink-soft);
+}
+
+@media (hover: hover) {
+    .share-button:hover {
+        border-color: var(--ink-soft);
+    }
+
+    .share-button-quiet:hover {
+        color: var(--ink);
+    }
+}
+
+.share-status {
+    margin: 12px 0 0;
+    font-size: 13px;
+    color: var(--ink-soft);
+    min-height: 1.2em;
+}
+
+.share-manual-block {
+    margin-top: 10px;
+}
+
+.share-manual {
+    width: 100%;
+    font-family: var(--ui-font);
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ink);
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 8px 10px;
+    resize: vertical;
+}
+
+.share-local {
+    margin: 14px 0 0;
+    font-size: 12px;
+    color: var(--ink-soft);
+    border-top: 1px solid var(--rule);
+    padding-top: 10px;
+}
+
+@media (max-width: 420px) {
+    .share-dialog {
+        width: calc(100vw - 16px);
+        padding: 18px 14px 14px;
+    }
+
+    .share-card {
+        padding: 20px 16px 16px;
+    }
+}

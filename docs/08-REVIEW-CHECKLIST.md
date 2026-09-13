@@ -916,6 +916,81 @@ V2-E（最终独立批次），不在本阶段开始。
 - 部署、上传、SEO、Web Share、PNG、二维码；
 - 真实首次访客评审与无法在当前 Windows/Chromium 环境完成的 Safari/真机验证。
 
+## V2-E2 固定 ID 的复制、dialog 与分享预览（2026-09-13）
+
+```text
+日期 / 执行者：2026-09-13 / 实现 Agent（DeepSeek v4.1 Flash）
+范围：V2-E2 — 稳定 ID 锁定的分享 dialog、复制与失败回退、CSS 卡片预览
+状态：verified
+数据模式与许可依据：真实数据 local-only；未新增或修改快照
+代码基线：54c25d3
+```
+
+### 完成内容
+
+1. **纯分享层** `src/domain/share.ts`：`shareReducer`（锁定 ID + 复制结果）、`shareHref` / `shareUrl`（只含一个 `h`，无房间/年份/追踪参数）、`shareText`（原文 + 空行 + `——《书名》作者` + 站点名）、空字段回退。
+2. **状态边界**：`useShare` 与所有房间 session 分离；只保存一个 ID 与复制结果。`OPEN_SHARE` 每次重新锁定；`COPY_RESULT` 不可能改变已锁 ID。
+3. **dialog**：原生 `<dialog>` + `showModal`；标题、`aria-labelledby`、单一 DOM、打开时焦点进入 `复制文字`、Esc 关闭、关闭后焦点回到原触发器；打开期间锁住背景页面滚动。
+4. **复制与失败回退**：成功后才显示 `已复制`；Clipboard 不存在/拒绝/抛错时显示 `自动复制失败，请手动复制` + 可全选的只读 `<textarea>`；local-only 下不调用 `navigator.share`。
+5. **卡片预览**：4:5 为默认比例而非裁剪容器；实测高度超比例时自然增高并提示 `长文预览已延长比例`；卡片带 `仅本机 · 未公开审核` 徽标。
+6. **分享入口范围**：只发生在当前视觉中心（门厅/主题舞台、书籍房间顶部随机句），均带 `data-share-trigger`；书库、主题书架、单书顺序列表、About 一个都没有。
+
+### 修改文件
+
+- `src/domain/share.ts`、`src/domain/share.test.ts`（新增）
+- `src/features/share/useShare.ts`、`ShareDialog.tsx`、`share.css`（新增）
+- `src/features/encounter/EncounterStage.tsx`、`src/features/encounter/stage.css`
+- `src/features/rooms/StageRoom.tsx`、`HallRoom.tsx`、`ThemeRoom.tsx`、`BookRoom.tsx`
+- `src/app/ReadingWorld.tsx`
+- `e2e/share.spec.ts`（新增）、`e2e/rooms.spec.ts`（修正一条不成立的旧断言）
+- `docs/08-REVIEW-CHECKLIST.md`
+
+### 命令 → 实际结果
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run typecheck` / `npm run lint` | 通过 |
+| `npm run test` | **171 单测 / 12 文件**通过（E1 后 160） |
+| `npx playwright test` | **62 通过**（E1 后 52；新增 10 条分享用例） |
+| `npm run test:public` | 1/1 通过 |
+
+### 三个真实技术发现（非猜测，均由证据定位）
+
+1. **React 不能拥有通过 `showModal()` 打开的 `<dialog>`**：`open` 一旦作为 prop 传入，下一次渲染会移除 `showModal()` 设置的属性并关闭对话框。更隐蔽的是**幂等性**：开发模式下 effect 会 setup→cleanup→setup，我最初的清理函数里的 `dialog.close()` 直接触发 `close` 事件，把刚打开的分享状态清空。修正：打开全程命令式且幂等（已打开就返回），不再传 `open`，也不在清理阶段关闭。修正后实测 dialog 保持 `open=true` 且状态稳定。
+2. **Windows 剪贴板把 `\n` 规范化为 `\r\n`**：首版断言逐字节比较时失败在此，不是产品缺陷。测试改为比较归一化后的文本，产品仍写入原文。
+3. **Chromium 模态焦点环的边界**：从 dialog 最后一个控件继续 Tab 可能把焦点交给浏览器自身 chrome（`activeElement` 变回 `body`），这是浏览器行为。真正要守的性质是“焦点永远不会落到 dialog 之后的页面内容上”，测试据此重写。
+
+### 修正一条已有但本身不成立的断言
+
+全量回归暴露 `e2e/rooms.spec.ts` 的“带外书籍开局”用例失败：期望 b-105 渲染其**最长**划线（133 字），实测 126 字。核对真实数据与引擎后确认：b-105 只有两条划线（133 / 126 字），两条都不在 20–120 偏好带内，因此 `preferLength` 不过滤它们，`pickUniform` 在两者中公平随机选择。该断言要求“必为最长那条”，而引擎从未承诺过这一点；它之前只是运气通过。
+
+- 证据：同一用例连跑三次，b-105 分别实测 133 / 126 / 126 字（`npm run` 输出已记录）。
+- 修正：断言改为真实契约——渲染文本必须是该书的真实划线、逐字完整、长度落在统计带之外（这才是“带外书”的定义），band 与 390/1440 无溢出照旧校验。
+- 与 V2-B 公平原则一致：不能为了迁就测试而让算法固定选最长句。
+
+### 浏览器证据（真实 Chromium，本机 local-only）
+
+- `复制文字` 写入的内容逐字等于真实原文 + 真实书名作者 + 站点名；`复制本机链接` 写入 `http://127.0.0.1:5173/?h=<id>`，query 只有 `h`。
+- `data-highlight-id` 在 dialog 打开期间保持不变：即使在模态后尝试触发 `再来一句` 并连按 Tab，卡片文本与锁定 ID 均不变，复制内容仍属于锁定条目。
+- 关闭后重新打开会锁定新句（ID 不同）。
+- Clipboard 拒绝：`自动复制失败，请手动复制` + 只读 textarea；点击后自动全选；下一次成功复制会清掉回退面板。
+- `navigator.share` 能力被 stub 后调用计数为 0。
+- 卡片在 18 / 41–120 字样本上 `data-extended=false`，在 299 / 398 字上为 `true` 且提示可见；两种宽度下 `scrollHeight === clientHeight`、`scrollWidth === clientWidth`（无裁剪、无横向溢出）。
+
+### 未验证项
+
+- 真机移动端与 Safari 仍未验证；200% 浏览器缩放与完整键盘旅程属 V2-E3。
+- `showModal` 不可用时的非模态回退分支已实现（`data-modal=false`）但本机 Chromium 不会进入该路径，属于未执行分支。
+
+### 偏差 / 设计判断
+
+- “长文已延长比例”由**实测卡面高度**判定，而不是按字数阈值猜；同一句话在 390px 与 1440px 需要的高度不同，提示必须描述真实渲染。
+- 分享 dialog 打开时锁住背景滚动：原生 `<dialog>` 不自动给 body 加滚动锁，而背景随着弹窗滚走会直接影响阅读。
+
+### 下一步
+
+V2-E3（200% 缩放、完整键盘、最终工程 Gate），不在本阶段开始。
+
 ## V2-E1 稳定深链与错误状态（2026-09-13）
 
 ```text

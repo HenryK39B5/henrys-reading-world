@@ -9,6 +9,7 @@ export type ThemeRoomProps = {
     nowYear: number;
     session: StageSessionController;
     onOpenBook: (bookId: string) => void;
+    onShare: (highlightId: string) => void;
 };
 
 /**
@@ -17,7 +18,7 @@ export type ThemeRoomProps = {
  * `再来一句` stays in the shelf, and every sentence is described as coming from a book filed on this
  * shelf — never as a sentence that is "about" the topic.
  */
-export function ThemeRoom({ index, themeId, nowYear, session, onOpenBook }: ThemeRoomProps) {
+export function ThemeRoom({ index, themeId, nowYear, session, onOpenBook, onShare }: ThemeRoomProps) {
     const entry = summarizeThemes(index).find((item) => item.theme.id === themeId);
 
     if (entry === undefined) {
@@ -56,6 +57,7 @@ export function ThemeRoom({ index, themeId, nowYear, session, onOpenBook }: Them
                 session={session}
                 emptyNote="这个书架目前没有可展示的划线。"
                 onOpenBook={onOpenBook}
+                onShare={onShare}
             />
 
             <nav className="room-exits" aria-label="主题房间的出口">

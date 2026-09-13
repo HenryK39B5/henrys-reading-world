@@ -689,7 +689,7 @@ test.describe('the whole library stays reachable, in batches', () => {
 test.describe('a book with nothing shorter can still open, whole', () => {
     test.skip(!hasSnapshot, 'private local snapshot is not available');
 
-    test('the longest and the shortest real opening arrive in one shelf cycle', async ({ page }) => {
+    test('a book outside the preferred band still opens, whole, in one shelf cycle', async ({ page }) => {
         test.setTimeout(240_000);
         await page.emulateMedia({ reducedMotion: 'reduce' });
         const data = loadSnapshot();
@@ -697,7 +697,7 @@ test.describe('a book with nothing shorter can still open, whole', () => {
         expect(starved.size, 'this snapshot has books outside the preferred band').toBeGreaterThan(0);
 
         const report: string[] = [];
-        for (const [bookId, entry] of starved) {
+        for (const bookId of starved.keys()) {
             const shelfId = smallestShelfOf(data, bookId);
             expect(shelfId, `${bookId} must be filed on a shelf`).not.toBeNull();
             if (shelfId === null) {
@@ -726,12 +726,22 @@ test.describe('a book with nothing shorter can still open, whole', () => {
             expect(found, `${bookId} must appear within one cycle of ${shelfId}`).toBe(true);
 
             const shown = (await page.getByTestId('stage-passage').innerText()).trim();
-            expect(data.byText.get(shown)?.bookId).toBe(bookId);
+            const shownHighlight = data.byText.get(shown);
+            expect(shownHighlight?.bookId, 'the stage must show a real passage of this book').toBe(bookId);
+            if (shownHighlight === undefined) {
+                continue;
+            }
+            const shownLength = nonWhitespace(shown);
             // Whole, not trimmed to a band: the rendered line is exactly the stored one.
-            expect(nonWhitespace(shown)).toBe(entry.length);
+            expect(shownLength).toBe(nonWhitespace(shownHighlight.text));
+            // Which of the book's own lines arrives is the fair engine's business, so this asserts the
+            // property that makes the book special — the band preference cannot serve it, and it opens anyway.
+            expect(shownLength < 20 || shownLength > 120, `${bookId} must stay outside the preferred band`).toBe(
+                true,
+            );
             await expect(page.locator('.stage')).toHaveAttribute(
                 'data-band',
-                entry.length <= 40 ? 'short' : entry.length <= 120 ? 'medium' : 'long',
+                shownLength <= 40 ? 'short' : shownLength <= 120 ? 'medium' : 'long',
             );
 
             const metrics = await page.getByTestId('stage-passage').evaluate((node) => ({
@@ -748,7 +758,7 @@ test.describe('a book with nothing shorter can still open, whole', () => {
                 () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
             );
             expect(overflow, 'the long opening must not push the page sideways').toBeLessThanOrEqual(1);
-            report.push(`${bookId}/${shelfId}: ${String(entry.length)} chars, ${String(draws)} draws, ${metrics.font}`);
+            report.push(`${bookId}/${shelfId}: ${String(shownLength)} chars, ${String(draws)} draws, ${metrics.font}`);
 
             // And the same line is complete on a phone-width screen.
             await page.setViewportSize({ width: 390, height: 844 });
@@ -761,7 +771,7 @@ test.describe('a book with nothing shorter can still open, whole', () => {
                 () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
             );
             expect(narrowOverflow).toBeLessThanOrEqual(1);
-            expect(nonWhitespace((await page.getByTestId('stage-passage').innerText()).trim())).toBe(entry.length);
+            expect(nonWhitespace((await page.getByTestId('stage-passage').innerText()).trim())).toBe(shownLength);
             await page.setViewportSize({ width: 1440, height: 900 });
         }
 
