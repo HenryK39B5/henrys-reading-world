@@ -103,16 +103,26 @@
     display: block;
 }
 
+/*
+ * The site's own signature, on the other side of a hairline from the source.
+ *
+ * The gap is the point: at ten pixels the brand read as a third line of the attribution, as if the site were
+ * another author. More air plus its own rule makes the foot of the card two facts instead of one run-on.
+ */
+.share-card-imprint {
+    margin-top: 18px;
+    padding-top: 12px;
+    border-top: 1px solid var(--card-rule);
+}
+
 .share-card-brand {
-    margin-top: 10px;
     font-size: 10.5px;
     letter-spacing: 0.14em;
 }
 
+/* The deployment note belongs with the signature, not under it: no second rule, just a little air. */
 .share-card-badge {
-    margin-top: 8px;
-    padding-top: 7px;
-    border-top: 1px solid var(--card-rule);
+    margin-top: 7px;
     font-size: 10.5px;
     letter-spacing: 0.04em;
 }

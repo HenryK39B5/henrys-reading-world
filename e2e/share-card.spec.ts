@@ -297,6 +297,58 @@ test.describe('the share card belongs to the book it came from', () => {
         }
     });
 
+    test('keeps the source and the site own signature apart', async ({ page }) => {
+        const data = loadSnapshot();
+        const bookId = data.coveredBookId;
+        const highlight = bookId === null ? undefined : data.firstOfBook.get(bookId);
+        test.skip(highlight === undefined, '需要一本有真实封面的书');
+        if (highlight === undefined) {
+            return;
+        }
+
+        await shareThroughDeepLink(page, highlight.id);
+        const card = page.getByTestId('share-card');
+        await expect(page.getByTestId('share-card-imprint')).toBeVisible();
+
+        // Author and site name are different facts, and the card has to say so: the signature sits below the
+        // source with real air and its own rule between them, not a few pixels under the author's name.
+        const measured = await card.evaluate((node) => {
+            const source = node.querySelector('.share-card-source');
+            const imprint = node.querySelector('.share-card-imprint');
+            const author = node.querySelector('.share-card-author');
+            const brand = node.querySelector('.share-card-brand');
+            const badge = node.querySelector('.share-card-badge');
+            if (source === null || imprint === null || author === null || brand === null) {
+                return null;
+            }
+            const imprintStyle = getComputedStyle(imprint);
+            return {
+                gap: imprint.getBoundingClientRect().top - source.getBoundingClientRect().bottom,
+                rule: Number.parseFloat(imprintStyle.borderTopWidth),
+                authorBottom: author.getBoundingClientRect().bottom,
+                brandTop: brand.getBoundingClientRect().top,
+                brandColour: getComputedStyle(brand).color,
+                badgeInsideImprint: badge !== null && imprint.contains(badge),
+                badgeRule: badge === null ? 0 : Number.parseFloat(getComputedStyle(badge).borderTopWidth),
+                background: getComputedStyle(node).backgroundColor,
+            };
+        });
+        expect(measured).not.toBeNull();
+        if (measured === null) {
+            return;
+        }
+
+        expect(measured.gap, 'the signature needs real air below the source').toBeGreaterThanOrEqual(14);
+        expect(measured.rule, 'the signature gets its own hairline').toBeGreaterThan(0);
+        // The site name is on its own line, below the author rather than beside it.
+        expect(measured.brandTop).toBeGreaterThanOrEqual(measured.authorBottom);
+        // `仅本机 · 未公开审核` belongs to the signature, so it never gets a second rule of its own.
+        expect(measured.badgeInsideImprint).toBe(true);
+        expect(measured.badgeRule).toBe(0);
+        // Separating the blocks must not have made the quieter line unreadable.
+        expect(contrastRatio(toRgb(measured.brandColour), toRgb(measured.background))).toBeGreaterThanOrEqual(4.5);
+    });
+
     test('does not carry the colour in with a long transition when motion is reduced', async ({ page }) => {
         const data = loadSnapshot();
         const bookId = data.coveredBookId;

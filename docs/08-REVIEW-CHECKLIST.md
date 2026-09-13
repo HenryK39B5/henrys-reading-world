@@ -23,8 +23,8 @@
 | 出处展开（Slice 3） | 已完成 | 原位展开、真实收录计数、再看一处 / 收起、焦点回归、耗尽与单条明确说明 |
 | 书籍 / 主题 / About（Slice 4） | 已完成 | 书籍区与书详情、5 个主题的跨书连线、真实年份筛选与空交集处理、真实计数 About |
 | 导航 | 全部放开 | 随机 / 书 / 主题 / 关于 均为真链接，无禁用项 |
-| 浏览器验证 | V2-E 后已独立复核 | Playwright + Chromium：81 个 local 用例；Sol 首次全量为 80/81（dialog 背景偶发滚到 210px），单用例 10/10、share spec 50/50、第二次全量 81/81；1 个 public 空态用例通过。该低频滚动风险进入 V2-E4A，不按 flake 忽略 |
-| 本机检查 | V2-E 后已独立复核 | `check:local` 全绿：typecheck + lint + **171 个单测（12 文件）** + schema 2 数据校验；`verify:ids`、smoke、public build 与 local-private build 拒绝均通过 |
+| 浏览器验证 | V2-E4D 后已独立复核 | Playwright + Chromium（本机）：**99 个 local 用例**；`npx playwright test` 全量多次通过，`scroll-lock` `--repeat-each=10` 80/80、`share`+`share-card` `--repeat-each=5` 90/90；1 个 public 空态用例通过。V2-E 曾出现一次 dialog 背景滚到 210px，已在 V2-E4A 定位根因（聚焦把页面拉回顶部、`overflow:hidden` 不阻止程序化滚动、StrictMode 第二次锁录取到被钳制的 0）并修复 |
+| 本机检查 | V2-E4D 后已独立复核 | `check:local` 全绿：typecheck + lint + **195 个单测（15 文件）** + schema 2 数据校验；`verify:ids`、smoke、public build 与 local-private build 拒绝均通过 |
 | 视觉检查（Astra） | 已执行 | 1440 / 390 实际截图；发现并修正孤字成行、26px 点击目标、出处行间距、移动端书目节奏 |
 | 评审证据工具 | 已建立 | `npm run capture:review`：截图 + 可读数字（字号 / 行数 / 对比度 / 点击目标 / 溢出 / 延迟）|
 | 封面与色彩（视觉修复） | 已完成 | 127 张真实书封下载到 `.private/covers/`；`local-covers/` 仅由 dev:local 服务；每本书主色从封面实时提取并降饱和 |
@@ -41,8 +41,8 @@
 | V2-C2 Book Aura 与呼吸动效 | 已完成（含复核修复） | 真实封面环境色、房间进入/换句 700ms、reduced-motion；最终 local Playwright 总数 44；详见下方记录 |
 | V2-D 全量分批浏览 | 已完成（含复核修复） | 书库 12→130、单书 10→531、4,663 条可达；年份传播与同年稳定 ID 排序已由 `9e2d0af` 关闭 |
 | V2-E1/E2/E3 | 已完成并独立复核 | 深链、固定 ID 分享、复制失败、200%/键盘/privacy 均成立；基线 `a8083ef` |
-| V2-E4 交接准备 | ready-for-implementation | 用户确认只重做 CSS 预览、不导出图片、不显示书封；下一批唯一入口 `docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md` |
-| 真实访客 Gate | 未进行 | 用户本人体验反馈非常积极，但尚无首次访客结果，不冒充产品 Gate 通过 |
+| V2-E4 交接准备 | 已执行完毕 | 交接 Prompt 为 `docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md`；E4A/E4B/E4C/E4D 均已实现、测试并提交，详见下方对应记录 |
+| 真实访客 Gate | 未进行 | 用户本人体验反馈非常积极（V2-E4D 就是其反馈驱动的收尾），但尚无首次访客结果，不冒充产品 Gate 通过 |
 
 原始返回、更新包、候选池、快照与截图全部留在 `.private/`，已被 `.gitignore` 排除，未进入前端包。
 
@@ -990,6 +990,109 @@ V2-E（最终独立批次），不在本阶段开始。
 ### 下一步
 
 DeepSeek v4.1 Flash 按 `docs/16` 连续完成 E4A → E4B → E4C。每阶段测试、记录、commit，Gate 通过后直接继续；全部完成后统一汇报。不部署、不 push、不生成 public snapshot。
+
+> 本记录交存的是交接当时的状态（`状态：ready-for-implementation`）。实际执行与验收见上方 V2-E4C 与下方 V2-E4D 记录；本批次的真实结果以那两节为准。
+
+## V2-E4D 卡片署名分层与证据收口（2026-09-13）
+
+```text
+日期 / 执行者：2026-09-13 / 实现 Agent（DeepSeek v4.1 Flash）
+范围：V2-E4D — 卡片“出处 / 署名”分层、长卡片截图证据修正、文档状态收口
+状态：verified（本机 Chromium）；真机与 Safari 未验证
+数据模式：真实数据 local-only；未修改快照、稳定 ID、主题或发布状态
+代码基线：d163caf（V2-E4C）
+触发：用户实际体验分享页面后的反馈 + GPT-5.6 Sol 独立验收的两个收尾项
+```
+
+### 触发反馈
+
+用户看真实页面后：**审美明显改善**；唯一建议是分享文字的作者之后紧接着 `Henry's Reading World` 有点奇怪，希望隔开、换行或优化。Sol 的独立验收同时指出两个收尾项：长卡片截图不完整、`docs/08` 顶部状态滞后。三项在本片一次解决，**未新增任何功能**。
+
+### 1. 出处与署名分层
+
+问题不是“行距小了”，而是语义混在一起：作者与站点名是两类不同的事实（谁写的 / 这份预览从哪来），相距 10px 时第二个读起来像第一段的续行。
+
+结构（`ShareDialog.tsx`）：
+
+```text
+blockquote          原文（未动）
+share-card-meta     ← 仍作为页脚容器（既有测试读取它的 muted 颜色）
+  share-card-source   《书名》/ 作者
+  share-card-imprint  ← 新增：独立区块 + 自己的细线
+    share-card-brand    Henry's Reading World
+    share-card-badge    仅本机 · 未公开审核
+```
+
+CSS（`share.css`）：
+
+- `.share-card-imprint`：`margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--card-rule)`；
+- `.share-card-badge` **去掉自己的 border-top**（原先它自带一条）：两条细线相距不到 30px 会显得碎，现在页脚只有两条线，含义清楚——正文/出处一条、出处/署名一条；
+- 品牌字号、字距、颜色、对比度全部不变（仍为 `--card-muted`）。
+
+保留 `.share-card-meta` 作为容器是有意为之：`share-card.spec.ts`、`keyboard.spec.ts`、`zoom.spec.ts` 都从它读取次要文字颜色，改类名会静默把对比度断言变成空字符串比较。
+
+新增断言（`share-card.spec.ts`，第 9 条）：署名距离出处 **≥14px**、`border-top-width > 0`、站点名在作者**下方**而不是旁侧、徽标**在 imprint 内部且自己不再带线**、品牌文字对卡面对比度 **≥4.5**。
+
+### 2. 长卡片截图：不是“拍得不好”，是元素被顶出视口
+
+Sol 看到 `card-299.png` 缺上边框、`card-longest.png` 顶部混入背后舞台。实测根因（临时探针，已删除）：
+
+| 状态 | dialog 滚动口 | 卡片位置 | 截图结果 |
+| --- | --- | --- | --- |
+| 设计原样（1440×900） | `client=758 / scroll=1268 / scrollTop=476` | `y = -333` | 979px 残图，顶部是背后页面 |
+| 解除滚动口 + `scrollTop=0`（1440×1500） | `1268 / 1268 / 0` | `y = 188` | 991px = 整张卡片（真实高 990.02） |
+
+`scrollTop=476` 正是 V2-E4B 已记录的“浏览器把聚焦的 `复制文字` 滚入可见区域”：长文时卡片顶部被顶到视口上方数百像素，而 locator 截图只会拍到视口内那部分。**产品本体没有裁剪**（溢出一律 0/0，文字逐字完整），失真的是证据。
+
+修正（`capture-v2e4.spec.ts`）：
+
+1. 截图前解除 dialog 自己的 `max-height` / `overflow` 并把 `scrollTop` 归零（仅截图期间，`finally` 中还原）——dialog 才是 92svh 封顶的拥有者，卡片的宽、4:5 默认比例与长文增高都来自卡片自己的规则，不受此影响；
+2. 卡片截图专用视口 1440×1500（另有宽度下限，避免降到手机档 padding）；
+3. **截图前断言卡片完整落在视口内**（`y ≥ 0` 且 `y + height ≤ 视口高`），否则报出具体坐标；
+4. **截图后读 PNG 的 IHDR 校验尺寸等于卡片盒**（不需新依赖，八个字节）：Chromium 的裁剪矩形是向外取整的整数矩形，因此容差 ±1px，超出即判为残图。
+
+第 4 条立即生效：改完第 1–3 条之前它就以 `card-299 must be the whole card, not a fragment of it` 报错，而不是像上次那样默默写出残图。
+
+### 3. 文档收口
+
+- `docs/08` 顶部“当前真实状态”：浏览器验证改为 **99 local / 1 public**（并写明 E4A 根因已修复），本机检查改为 **195 单测 / 15 文件**，V2-E4 交接行由 `ready-for-implementation` 改为已执行完毕；
+- V2-E4 交接记录末尾加一行说明：该节 `状态` 是交接当时的值，实际结果以 E4C/E4D 为准（追加，不篡改历史）；
+- README 第 6 条补上署名分层。
+
+### 命令 → 实际结果（全部实跑）
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run typecheck` / `lint` | 无错误 |
+| `npm run check:local` | **195 单测 / 15 文件**通过；数据校验仅剩既存的无原始换行警告 |
+| `npx playwright test` | **100 通过**（E4C 后 99；+1 署名分层） |
+| `npx playwright test e2e/scroll-lock.spec.ts --repeat-each=10` | **80/80** |
+| `npx playwright test e2e/share.spec.ts e2e/share-card.spec.ts --repeat-each=5` | **95/95**（E4C 后 90；新增用例也参与重复） |
+| `npm run test:public` | 1/1 |
+| `npm run capture:v2e4` | 通过；13 张图重写，长卡片首次通过“整张卡片”校验 |
+| `npm run build` | 成功；dist 仍为 3 个文件，无真实内容、封面或凭证 |
+| `npx vite build --mode local-private` | 按预期拒绝 |
+| `git diff --check` / Markdown 本地链接 / 尾随空白 | 全部干净 |
+
+### 浏览器证据（`.private/review/v2-e4/`）
+
+`card-longest.png`（991px，含上边框与全文）、`card-299.png`（798px，完整）、`card-shortest.png`／`card-18.png`／`card-medium.png`（400px，`data-extended=false`）、`card-aura-1/2/3.png`、`share-dialog-1440/390`、`zoom-200-dialog`、`clipboard-failure-1440`、`reduced-motion-1440`。已逐张人工查看。
+
+### 未验证项
+
+- 真机与 Safari 仍未验证（本机只有 Chromium）；
+- 署名分层在真实交互式缩放菜单下未人工看过（仍以 200% 等价重排 + 真实 2× 为证据）；
+- 卡片篇幅比上一版约高 30px，4:5 默认判定未变（8/18/42 字 `false`、299/398 字 `true` 已验），但极短卡片在不同字体族下的光学重心仍属人工观感项。
+
+### 偏差 / 设计判断
+
+- **没有给站点名加分隔符或图标**：加“·”或小图标会把署名变成第二个出处样式；用空行 + 细线分层是参考图里已有的出版物语言，也与卡内已有的双细框一致；
+- **截图期解除 dialog 滚动口是一种摆拍吗**：不是。它改的是 dialog 的溢出容器，不是卡片；卡片尺寸、比例与增高规则全部来自卡片自己，且截图后立即还原。真正的防伪措施是尺寸校验——它刚在本片拦下过一张残图；
+- **文档修正只动“当前真实状态”**：历史章节里的旧数字与旧状态保留（追加不覆盖），但在交接节末尾标明其时效，避免被误读为当前值。
+
+### 下一步
+
+本机原型开发批次结束。下一阶段仅为 **Public Release Gate（PUB-01～PUB-07）**，需用户决定后才开始；不得自行公开导出、部署或上传。真机/Safari 与至少 3 位首次访客的记录仍待补。
 
 ## V2-E4C 视觉与全量工程 Gate（2026-09-13）
 

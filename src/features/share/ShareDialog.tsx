@@ -217,8 +217,18 @@ export function ShareDialog({
                         《<cite className="share-card-title">{title}</cite>》
                         <span className="share-card-author">{author}</span>
                     </p>
-                    <p className="share-card-brand">{SITE_NAME}</p>
-                    {localOnly ? <p className="share-card-badge">仅本机 · 未公开审核</p> : null}
+                    {/**
+                     * The site's own signature, kept apart from the source.
+                     *
+                     * Author and site name are different kinds of fact — who wrote it, and where this preview
+                     * came from — and when they sit ten pixels apart the second reads as a continuation of the
+                     * first. Its own block, its own hairline and more air between them make the foot of the card
+                     * say 出处 then 署名 (docs/16 §4.4).
+                     */}
+                    <div className="share-card-imprint" data-testid="share-card-imprint">
+                        <p className="share-card-brand">{SITE_NAME}</p>
+                        {localOnly ? <p className="share-card-badge">仅本机 · 未公开审核</p> : null}
+                    </div>
                 </div>
             </div>
 

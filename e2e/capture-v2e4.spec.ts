@@ -1,4 +1,4 @@
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import { DEFAULT_ACCENT, accentFromPixels, hexToRgb, type Rgb } from '../src/domain/accent.ts';
@@ -22,19 +22,91 @@ test.use({ permissions: ['clipboard-read', 'clipboard-write'] });
  * the page rather than by guessing a duration, then any remaining animation is frozen at its end state.
  */
 /**
- * Captures the card itself rather than the window around it.
+ * The pixel size of a PNG, read out of its IHDR chunk.
  *
- * A long passage makes the dialog taller than its own viewport, and the dialog deliberately scrolls to keep the
- * focused control on screen — so a window screenshot of a long card shows a crop of it. The card is what these
- * images are evidence for, so it is captured whole.
+ * Eight bytes of header are cheaper than a decoder dependency, and they settle the one question this file
+ * cannot afford to get wrong: was the card captured whole? A locator screenshot of an element the dialog's
+ * scroll port can only partly show comes back smaller than the element, or offset inside it, and both look
+ * like a perfectly successful screenshot until someone opens the file.
+ */
+function pngSize(path: string): { width: number; height: number } {
+    const header = readFileSync(path).subarray(0, 24);
+    if (header.subarray(1, 4).toString('latin1') !== 'PNG') {
+        throw new Error(`${path} is not a PNG`);
+    }
+    return { width: header.readUInt32BE(16), height: header.readUInt32BE(20) };
+}
+
+/**
+ * Captures the card itself rather than the window around it, and proves the capture is the whole card.
+ *
+ * A long card is taller than the dialog's own scroll port, and the dialog deliberately scrolls itself to keep
+ * the focused 复制文字 in view — so for a 398-character passage the card's own top ends up hundreds of pixels
+ * above the window. A locator screenshot then comes back as a fragment, and the first pass shipped exactly
+ * that: a 299-character card missing its top border and a 398-character card with the stage behind it in the
+ * frame, both of which look like a successful capture until someone opens the file. Measured on this Chromium:
+ * with the dialog as designed the card sits at y=-333, and it only reaches y=188 once the port is opened and
+ * the dialog's own scroll position is returned to the top.
+ *
+ * Opening the port cannot flatter the design: it is the dialog that owns the 92svh ceiling, while the card's
+ * width, its 4:5 default and the way a long passage grows it all come from the card's own rules. The frame is
+ * then checked against the card's real box, so a fragment fails here instead of in review.
  */
 async function shotCard(page: Page, name: string): Promise<void> {
     await settle(page);
-    await page.getByTestId('share-card').screenshot({
-        path: join(OUT_DIR, `${name}.png`),
-        animations: 'disabled',
-    });
+    const card = page.getByTestId('share-card');
+    const dialog = page.getByTestId('share-dialog');
+    const lift = async (): Promise<void> => {
+        await dialog.evaluate((node) => {
+            node.style.setProperty('max-height', 'none');
+            node.style.setProperty('overflow', 'visible');
+            node.scrollTop = 0;
+        });
+    };
+    const drop = async (): Promise<void> => {
+        await dialog.evaluate((node) => {
+            node.style.removeProperty('max-height');
+            node.style.removeProperty('overflow');
+        });
+    };
+
+    await lift();
+    try {
+        const box = await card.boundingBox();
+        const viewport = page.viewportSize();
+        if (box === null || viewport === null) {
+            throw new Error(`${name}: the card has no box to capture`);
+        }
+        const bottom = box.y + box.height;
+        if (box.y < 0 || bottom > viewport.height) {
+            throw new Error(
+                `${name}: the card spans y=${String(Math.round(box.y))}..${String(Math.round(bottom))} in a ${String(viewport.height)}px window, so the capture would be a fragment. Give the card shot a taller viewport.`,
+            );
+        }
+
+        const path = join(OUT_DIR, `${name}.png`);
+        await card.screenshot({ path, animations: 'disabled' });
+        // Chromium's clip rectangle is the enclosing integer rect, so the frame may be a pixel larger than the
+        // element on each side. Anything further off is a fragment, not rounding.
+        const size = pngSize(path);
+        expect(size.width, `${name} must be the whole card, not a fragment of it`).toBeGreaterThanOrEqual(
+            Math.floor(box.width),
+        );
+        expect(size.width).toBeLessThanOrEqual(Math.ceil(box.width) + 1);
+        expect(size.height, `${name} must be the whole card, not a fragment of it`).toBeGreaterThanOrEqual(
+            Math.floor(box.height),
+        );
+        expect(size.height).toBeLessThanOrEqual(Math.ceil(box.height) + 1);
+    } finally {
+        await drop();
+    }
 }
+
+/**
+ * The room a card capture needs: tall enough for the longest real card (990px plus the dialog's padding, heading
+ * and actions), and never narrower than 420px so the card keeps its desk rules instead of the phone ones.
+ */
+const CARD_SHOT_VIEWPORT = { width: 1440, height: 1500 };
 
 /** Waits until the page has stopped moving on its own. */
 async function settle(page: Page): Promise<void> {
@@ -168,7 +240,9 @@ test.describe('V2-E4 evidence', () => {
         // The 18-character sample is looked up rather than invented: it is one of the real boundaries this
         // project has measured before, and the shortest passage in the snapshot is only 8 characters.
         const short18 = data.highlights.find((item) => nonWhitespace(item.text) === 18) ?? data.shortest;
-        await page.setViewportSize({ width: 1440, height: 900 });
+        // A tall viewport for the cards only: the longest real card is around a thousand pixels, and a card that
+        // cannot fit on screen cannot be photographed whole (see `shotCard`).
+        await page.setViewportSize(CARD_SHOT_VIEWPORT);
         for (const [name, highlight] of [
             ['card-shortest', data.shortest],
             ['card-18', short18],
