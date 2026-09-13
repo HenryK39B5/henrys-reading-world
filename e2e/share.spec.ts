@@ -64,7 +64,7 @@ function loadSnapshot(): RealData {
 
 /** The exact text `复制文字` must produce, built from the same real record the page shows. */
 function expectedCopyText(highlight: Highlight, book: Book | undefined): string {
-    return `${highlight.text}\n\n——《${book?.title ?? '出处缺失'}》${book?.author ?? '作者信息暂缺'}\nHenry's Reading World`;
+    return `${highlight.text}\n\n——《${book?.title ?? '出处缺失'}》${book?.author ?? '作者信息暂缺'}\n\n来自 Henry's Reading World`;
 }
 
 async function openDialogFrom(page: Page, triggerTestId: string): Promise<void> {
@@ -110,14 +110,17 @@ test.describe('sharing the passage on screen', () => {
 
         await page.getByTestId('share-copy-text').click();
         await expect(page.getByTestId('share-status')).toHaveText('已复制');
-        expect(await readClipboard(page)).toBe(expectedCopyText(highlight, data.bookById.get(highlight.bookId)));
+        const copied = await readClipboard(page);
+        expect(copied).toBe(expectedCopyText(highlight, data.bookById.get(highlight.bookId)));
+        // The site name is its own paragraph, never appended to the author's line (docs/17 §7).
+        expect(copied.endsWith("\n\n来自 Henry's Reading World")).toBe(true);
+        expect(copied.split('\n').at(-2)).toBe('');
 
         // The link is the canonical hall link and nothing else: no room, no filter, no tracking.
         await page.getByTestId('share-copy-link').click();
         const copiedLink = await readClipboard(page);
         expect(copiedLink).toBe(`http://127.0.0.1:5173/?h=${encodeURIComponent(highlight.id)}`);
         expect([...new URL(copiedLink).searchParams.keys()]).toEqual(['h']);
-
         // local-only content must say so, on the card and next to the link.
         await expect(page.getByTestId('share-local-hint')).toContainText('仅在这台电脑的本机预览中有效');
         await expect(page.getByTestId('share-card')).toContainText('仅本机 · 未公开审核');
@@ -252,7 +255,12 @@ test.describe('copying honestly', () => {
         await expect(manual).toBeVisible();
         const fallback = await manual.inputValue();
         expect(fallback.startsWith(shown)).toBe(true);
-        expect(fallback).toContain("Henry's Reading World");
+        // The manual fallback is the same text the clipboard would have carried: source line, blank line,
+        // then the site's own provenance (docs/17 §7).
+        const fallbackLines = fallback.split('\n');
+        expect(fallbackLines.at(-1)).toBe("来自 Henry's Reading World");
+        expect(fallbackLines.at(-2)).toBe('');
+        expect(fallbackLines.find((line) => line.startsWith('——《'))).not.toContain("Henry's Reading World");
         expect(await page.evaluate(() => (window as unknown as { __copyCalls: () => number }).__copyCalls())).toBe(1);
 
         // Selecting the fallback text is the manual path, and a later success clears the failure.

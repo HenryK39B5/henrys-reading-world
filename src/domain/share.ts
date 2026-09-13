@@ -68,11 +68,15 @@ export function shareUrl(origin: string, highlightId: string): string {
 /**
  * What `复制文字` puts on the clipboard: the real passage, verbatim, with its real source and the site
  * name. Nothing is rewritten, trimmed, prettified or added.
+ *
+ * The site name gets its own paragraph and the words `来自` in front of it, so what lands in a chat window
+ * or a note reads as two facts — who wrote this, and where the copy came from — instead of the site looking
+ * like a second author tacked onto the end of the attribution line (the user's own report on V2-E4D).
  */
 export function shareText(highlight: Highlight, book: Book | undefined): string {
     const title = orFallback(book?.title, UNKNOWN_TITLE);
     const author = orFallback(book?.author, UNKNOWN_AUTHOR);
-    return `${highlight.text}\n\n——《${title}》${author}\n${SITE_NAME}`;
+    return `${highlight.text}\n\n——《${title}》${author}\n\n来自 ${SITE_NAME}`;
 }
 
 /** A field the snapshot left blank is missing, not an empty thing to print. */

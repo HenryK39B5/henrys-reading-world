@@ -87,8 +87,20 @@ describe('the shared address is one passage and nothing else', () => {
 });
 
 describe('the copied text is the real passage plus its real source', () => {
-    it('formats the passage, the source and the site name in that order', () => {
-        expect(shareText(HIGHLIGHT, BOOK)).toBe(`${PLACEHOLDER}\n\n——《书名占位》作者占位\n${SITE_NAME}`);
+    it('formats the passage, the source and the site provenance in that order', () => {
+        expect(shareText(HIGHLIGHT, BOOK)).toBe(
+            `${PLACEHOLDER}\n\n——《书名占位》作者占位\n\n来自 ${SITE_NAME}`,
+        );
+    });
+
+    it('keeps the site name on its own paragraph, so it does not read as a second author', () => {
+        const text = shareText(HIGHLIGHT, BOOK);
+        const lines = text.split('\n');
+        // blank, source, blank, provenance: the author line never has the site name appended to it.
+        expect(lines.at(-1)).toBe(`来自 ${SITE_NAME}`);
+        expect(lines.at(-2)).toBe('');
+        expect(lines).toContain('——《书名占位》作者占位');
+        expect(lines.find((line) => line.includes('作者占位'))).not.toContain(SITE_NAME);
     });
 
     it('keeps the passage verbatim, including its own line breaks', () => {
@@ -99,11 +111,11 @@ describe('the copied text is the real passage plus its real source', () => {
 
     it('states a missing author or book instead of inventing one', () => {
         expect(shareText(HIGHLIGHT, undefined)).toBe(
-            `${PLACEHOLDER}\n\n——《${UNKNOWN_TITLE}》${UNKNOWN_AUTHOR}\n${SITE_NAME}`,
+            `${PLACEHOLDER}\n\n——《${UNKNOWN_TITLE}》${UNKNOWN_AUTHOR}\n\n来自 ${SITE_NAME}`,
         );
         // A blank field is missing, not an empty thing to print next to a real book title.
         expect(shareText(HIGHLIGHT, { ...BOOK, author: '  ' })).toBe(
-            `${PLACEHOLDER}\n\n——《书名占位》${UNKNOWN_AUTHOR}\n${SITE_NAME}`,
+            `${PLACEHOLDER}\n\n——《书名占位》${UNKNOWN_AUTHOR}\n\n来自 ${SITE_NAME}`,
         );
     });
 });
