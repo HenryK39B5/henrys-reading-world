@@ -33,6 +33,17 @@ function booksHref(year: number | null, themeId: string | null): string {
 }
 
 /**
+ * One book's own URL, carrying the year the visitor was looking at.
+ *
+ * The year filter belongs to both lists (docs/11 §5.3): opening a book from 2024 must show that
+ * book's 2024 passages, not quietly widen back to the whole book. A shelf filter is not passed on —
+ * a shelf is a way of finding books, not a property of one. 返回上一处 restores the library it came from.
+ */
+function bookHref(bookId: string, year: number | null): string {
+    return year === null ? `/books/${bookId}` : `/books/${bookId}?year=${String(year)}`;
+}
+
+/**
  * 所有书: the library with honest filters and batches (docs/12 §2.4).
  *
  * The year filter belongs to this room only — shelves and shelf rooms are never filtered by it. Filters
@@ -104,7 +115,7 @@ export function BooksRoom({ index, year, themeId, batches }: BooksRoomProps) {
             ) : (
                 <ul className="book-list" data-testid="book-list">
                     {visible.map((entry) => (
-                        <BookRow key={entry.book.id} entry={entry} />
+                        <BookRow key={entry.book.id} entry={entry} year={year} />
                     ))}
                 </ul>
             )}
@@ -134,11 +145,11 @@ export function BooksRoom({ index, year, themeId, batches }: BooksRoomProps) {
     );
 }
 
-function BookRow({ entry }: { entry: BookEntry }) {
+function BookRow({ entry, year }: { entry: BookEntry; year: number | null }) {
     const url = coverUrl(entry.book.coverPath);
     return (
         <li className="book-item">
-            <a className="book-link" href={`/books/${entry.book.id}`} data-testid={`book-${entry.book.id}`}>
+            <a className="book-link" href={bookHref(entry.book.id, year)} data-testid={`book-${entry.book.id}`}>
                 <span className="book-cover" aria-hidden="true">
                     {url === undefined ? (
                         <span className="book-cover-fallback">{entry.book.title}</span>

@@ -35,6 +35,12 @@
      * and a wash on top would push the strongest part of the page past it.
      */
     background: var(--aura, var(--accent));
+    /*
+     * A passage change inside a room swaps the book under the same URL, so the tint element survives and
+     * the colour has to travel to the next book instead of jumping (docs/12 §5.2: 颜色变化慢于文字).
+     * The entry animation below belongs to the room switch, which remounts this layer.
+     */
+    transition: background-color 700ms ease-out;
     animation: aura-wake 700ms ease-out both;
 }
 
@@ -140,6 +146,8 @@
 
     .room-aura-tint {
         animation: none;
+        /* An instant, accurate colour: no long arrival, and no transition to watch either. */
+        transition: none;
         opacity: var(--aura-target, 0);
     }
 }

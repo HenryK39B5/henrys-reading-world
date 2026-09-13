@@ -647,7 +647,7 @@ Slice / task IDs：docs/11 §5.1–5.3 与 docs/12 §2–3 — V2-C1 房间路�
 | --- | --- |
 | `npm run check:local` | 149 用例 / 11 文件通过（V2-B 为 120），typecheck + lint 无错误 |
 | `npx playwright test` | **34/34 通过**（V2-B 为 24） |
-| `npm run capture:review` | 六房间 1440 / 390 截图；320/390/768/1440 无横向溢出；最小触控目标 44px |
+| `npm run capture:review` | 320/390/768/1440 无横向溢出；最小触控目标 44px；房间截图（当时未含主题房间 390，已在本页「独立复核修复」补齐） |
 | 对比度（实测） | 正文 14.6、出处与出口 5.62（相对纸色） |
 
 **视图与无障碍**
@@ -786,14 +786,18 @@ b-007 封面均值 rgb(95,114,151) → aura #546992
 
 | 命令 | 结果 |
 | --- | --- |
-| `npm run check:local` | 149 用例 / 11 文件通过，typecheck + lint 无错 |
-| `npx playwright test` | **41/41 通过**（含 `e2e/aura.spec.ts` 6 条） |
+| `npm run check:local` | 149 用例 / 11 文件通过，typecheck + lint 无错（修复后为 151） |
+| `npx playwright test` | **41/41 通过**（含 `e2e/aura.spec.ts` 6 条）（修复后为 44） |
 | `npm run test:public` | 公开（空快照）模式下六个房间 + 未知路径均有诚实空状态，无本机徽标 |
-| `npm run capture:review` | 六房间 1440 / 390、六本封面色、无封面书、398 字最长划线、reduced-motion、对比度 |
+| `npm run capture:review` | 六本封面色、无封面书、398 字最长划线、reduced-motion、对比度；房间截图当时缺主题房间 390、也不含 299 字指定开局（已在本页「独立复核修复」补齐） |
 
 **浏览器证据（私有）**
 
-`.private/review/rooms-batch/`：`hall-1440/390`、`themes-1440/390`、`theme-room-1440`、`books-1440/390`、`book-room-1440`、`book-room-colour-1..6-1440`、`book-room-no-cover-1440/390`、`book-room-longest-passage-1440/390`、`book-room-longest-expanded-1440`。
+`.private/review/rooms-batch/`：`hall-1440/390`、`themes-1440/390`、`theme-room-1440`（390 在本页修复阶段补齐）、`books-1440/390`、`book-room-1440`、`book-room-colour-1..6-1440`、`book-room-no-cover-1440/390`、`book-room-longest-passage-1440/390`、`book-room-longest-expanded-1440`；修复阶段新增 `opening-longest-1440/390`（299 字开局）、`opening-shortest-1440`（18 字）、`theme-room-390`。
+
+**截图读法注意**
+
+`opening-longest-*.png` 等整页截图中，固定定位的环境色层只覆盖首个视口高度，页面下半部分看起来是纯纸色。这是 `fullPage` 截图对 `position: fixed` 层的已知表现，不是运行时上下色差；真实浏览器中固定层始终盖满整个视口。
 
 **偏差 / 判断**
 
@@ -809,6 +813,68 @@ b-007 封面均值 rgb(95,114,151) → aura #546992
 **下一步**
 
 本连续批次（C1 → D → C2）已完成；V2-E（深链、复制、分享、错误态、200% 缩放、完整无障碍）作为最终独立批次，不自行开始。
+
+## 连续房间批次：GPT-5.6 Sol 独立复核与修复（2026-09-13）
+
+```text
+日期 / 执行者：2026-09-13 / 实现 Agent（响应独立复核）
+范围：V2-C1 / V2-D / V2-C2 的 3 项契约偏差 + 1 项证据缺口
+状态：verified（全部修复并重跑全量验证）
+数据模式与许可依据：真实数据 local-only；新增截图仍只在 .private/
+```
+
+复核（GPT-5.6 Sol）在 C1/D/C2 完成后重跑了全部 Gate 并独立提出 4 项；本阶段逐项修复，不重做架构。
+
+**修复 1：书库年份筛选进入单书列表（V2-D 阻塞）**
+
+- 现象：`/books?year=2024` 列出的书链接是 `/books/b-017`，年份在进入书籍房间时丢失，单书顺序列表退回全书全年级。
+- 修改：`src/features/rooms/BooksRoom.tsx` — 新增 `bookHref(bookId, year)`，书库行链接携带当前年份；书架筛选 `?theme=` 不传递（书架是找书的方式，不是一本书的属性）。
+- 测试：`e2e/rooms.spec.ts` 新增 «the year filter follows the visitor into the opened book»：从真实快照挑一本跨年份的书 → 书库链接必须带 `?year=` → 进入后对应年份 chip 为 `aria-current` → 列表里每一条文本都属于该年份 → `返回上一处` 回到同一筛选。
+
+**修复 2：换句时环境色要“走过去”而不是跳过去（V2-C2 阻塞）**
+
+- 现象：`aura-wake 700ms` 只作用在房间进入的 `opacity`；Aura 层只按 `router.path` 设 key，所以同一房间内换句时 `background-color` 直接跳到新值（实测 `transition-duration: 0s`）。
+- 修改：`src/features/rooms/rooms.css` — tint 层增加 `transition: background-color 700ms ease-out`；reduced-motion 块增加 `transition: none`，颜色仍然立即且准确。
+- 测试：`e2e/aura.spec.ts` 新增 «a passage change moves the room colour to the next book instead of jumping»，在页面内用 `requestAnimationFrame` 采样换句后的颜色时间线：声明时长 0.6–0.9s、属性含 `background-color`，**实测 40 个不同中间色**（跳变只会给 2 个）；reduced-motion 一组断言采样只出现 ≤ 2 种颜色且 `transition-property: none`。
+- 同步使 «the book room is the strongest aura» 改为轮询到颜色稳定在封面 accent（封面取色是异步的，颜色本来就不该在第一帧到位）。
+
+**修复 3：同年书籍按稳定 ID 排序（V2-D 契约）**
+
+- 现象：`orderByRecentHighlight()` 同年内先按 `highlightCount` 降序，与 docs/11 §6.1 “稳定同级顺序使用 book ID” 冲突，也等于隐式偏爱划线多的书。
+- 修改：`src/domain/world.ts` — 同年回退到稳定 book ID 比较，划线数量不再参与排序。
+- 测试：`src/domain/world.test.ts` 新增两条：同年 9 条划线的书必须排在 1 条划线的书之后；同一快照任意输入顺序得到同一序列。单测 149 → 151。
+
+**修复 4：补齐遗漏的验收证据**
+
+- 新增 `theme-room-390.png`（此前只有 1440，但文档写成了“六房间 1440/390”，已更正措辞）。
+- 新增 `opening-longest-1440/390.png`：**确定性**地把 299 字开局候选（b-114 / h-4647）放到真正的舞台上。方法不用假深链：公平引擎在同一 scope 内排完一本书之前不会重复选书，所以在 b-114 所属的 t-004（21 本）里连续抽句，最多 21 次必出现它；实测 17–19 次。同一方式也覆盖了真实下限 `opening-shortest-1440.png`（b-116，18 字）。
+- 新增 `e2e/rooms.spec.ts` «a book with nothing shorter can still open, whole»：对全部 4 本带外书（b-114 299 / b-120 242 / b-105 133 / b-116 18）各自在其最小书架内一轮必达，并断言渲染文本与快照逐字一致（非空白字符数相等）、band 正确、无裁剪、1440 与 390 无横向溢出。实测：b-105 21 抽、b-114 12 抽、b-116 2 抽、b-120 5 抽。
+
+**实际命令 → 结果**
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run check:local` | **151 用例 / 11 文件**通过，typecheck + lint 无错 |
+| `npx playwright test` | **44/44 通过**（V2-C2 为 41） |
+| `npm run capture:review` | 通过；新增 `theme-room-390`、`opening-longest-1440/390`、`opening-shortest-1440`；主题房间 390 溢出 0px，299 字开局 1440 为 10 行 / 390 为 19 行、溢出 0px |
+| `npm run test:public` | 1/1 通过（未受本轮修改影响） |
+| `npm run verify:ids` / `smoke:local` | 通过 |
+| `npm run build` / `local-private` 拒绝 | 通过 / 按预期拒绝 |
+
+**复核提出的其余判断**
+
+- 299 字开局、18 字最短开局现已是可重复的仓库断言，不再是“抽样看到过一次”。
+- 仍不新增按长度预筛书或最短句兜底：带外书照常开局，本轮只把它们的排版与可达性变成确定性验收。
+
+**未验证 / 缺口（不变）**
+
+- 真机移动端与 Safari；`color-mix` 已不依赖，但 opacity/transition 层仍需真机确认。
+- 200% 缩放、深链、复制、分享仍属 V2-E；固定一层式的环境色在 `fullPage` 截图里只覆盖首个视口（见上文截图读法注意）。
+- 永久循环背景动画仍未做。
+
+**下一步**
+
+V2-E（最终独立批次），不在本阶段开始。
 
 ## Critique #2 产品结论：从单页平面进入一个个房间（2026-09-13）
 

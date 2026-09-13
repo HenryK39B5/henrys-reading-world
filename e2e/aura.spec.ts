@@ -85,6 +85,42 @@ async function aura(page: Page) {
     });
 }
 
+/**
+ * Asks for another passage and watches the tint while it changes, inside the page so no round trip can
+ * miss the transition. Returns the colour before, every colour observed during the window, and the
+ * settled accent of the book that arrived.
+ */
+async function tintTimeline(
+    page: Page,
+    window = 2000,
+): Promise<{ samples: string[]; from: string; to: string }> {
+    return page.evaluate(async (span: number) => {
+        const tint = document.querySelector<HTMLElement>('[data-testid="room-aura"]');
+        const shell = document.querySelector<HTMLElement>('.shell');
+        const button = document.querySelector<HTMLButtonElement>('[data-testid="next-quote"]');
+        if (tint === null || shell === null || button === null) {
+            return { samples: [], from: '', to: '' };
+        }
+        const from = getComputedStyle(tint).backgroundColor;
+        button.click();
+        const samples: string[] = [];
+        const started = performance.now();
+        while (performance.now() - started < span) {
+            samples.push(getComputedStyle(tint).backgroundColor);
+            await new Promise((resolve) => {
+                requestAnimationFrame(() => {
+                    resolve(null);
+                });
+            });
+        }
+        return {
+            samples,
+            from,
+            to: getComputedStyle(tint).backgroundColor,
+        };
+    }, window);
+}
+
 /** Contrast of the room's text against the tinted paper, computed the way the browser composites it. */
 async function contrast(page: Page) {
     return page.evaluate(() => {
@@ -196,14 +232,21 @@ test.describe('book aura', () => {
         expect(strongest?.room).toBe('book');
         expect(strongest?.target).toBe('0.1');
         expect(strongest?.opacity).toBeGreaterThan(0.09);
-        // A flat tint layer in the book's own accent, not a gradient or a cover wall.
-        expect(strongest?.background).toMatch(/^rgb/u);
-        const channels = (strongest?.background ?? '').match(/\d+/gu) ?? [];
-        const tintHex = `#${channels
-            .slice(0, 3)
-            .map((part) => Number.parseInt(part, 10).toString(16).padStart(2, '0'))
-            .join('')}`;
-        expect(tintHex.toLowerCase()).toBe((strongest?.accent ?? '').toLowerCase());
+        // A flat tint layer in the book's own accent, not a gradient or a cover wall. The colour is
+        // sampled from the cover asynchronously, so it settles onto the accent rather than being there
+        // on the first frame.
+        const hexOf = (value: string): string => {
+            const channels = value.match(/\d+/gu) ?? [];
+            return `#${channels
+                .slice(0, 3)
+                .map((part) => Number.parseInt(part, 10).toString(16).padStart(2, '0'))
+                .join('')}`;
+        };
+        await expect
+            .poll(async () => hexOf((await aura(page))?.background ?? ''), { timeout: 5000 })
+            .toBe((strongest?.accent ?? '').toLowerCase());
+        const tintHex = hexOf((await aura(page))?.background ?? '');
+        expect(tintHex).toMatch(/^#[0-9a-f]{6}$/u);
 
         // The accent really is sampled from that book's cover image, not from a fixed palette.
         const imageUrl = await coverAccent(page, bookId);
@@ -318,6 +361,7 @@ test.describe('book aura', () => {
                 roomAnimation: room === null ? '' : getComputedStyle(room).animationName,
                 tintAnimation: tint === null ? '' : getComputedStyle(tint).animationName,
                 tintTransition: tint === null ? '' : getComputedStyle(tint).transitionDuration,
+                tintTransitionProperty: tint === null ? '' : getComputedStyle(tint).transitionProperty,
                 roomTransform: room === null ? '' : getComputedStyle(room).transform,
                 passageTransition: passage === null ? '' : getComputedStyle(passage).transitionDuration,
             };
@@ -326,6 +370,7 @@ test.describe('book aura', () => {
         expect(styles.roomAnimation).toBe('none');
         expect(styles.tintAnimation).toBe('none');
         expect(Number.parseFloat(styles.tintTransition)).toBeLessThan(0.05);
+        expect(styles.tintTransitionProperty).toBe('none');
         expect(styles.roomTransform).toBe('none');
         expect(Number.parseFloat(styles.passageTransition)).toBeLessThan(0.05);
 
@@ -335,6 +380,54 @@ test.describe('book aura', () => {
         await expect(page.getByTestId('stage-passage')).not.toHaveText(before);
         await expect(page.locator('.stage')).toHaveAttribute('data-phase', 'idle');
         await expect(page.locator('.stage')).toHaveAttribute('data-commit-count', '1');
+
+        // The next book's colour is also simply there: nothing travels, nothing flickers.
+        const colours = await tintTimeline(page);
+        console.log(`reduced-motion tint colours after a draw: ${JSON.stringify(colours)}`);
+        expect(new Set(colours.samples).size).toBeLessThanOrEqual(2);
+    });
+
+    /**
+     * docs/12 §5.2: colour changes slower than the text. A passage change leaves the tint element in
+     * place (the room's URL does not change), so the colour has to travel to the next book instead of
+     * jumping to it when the cover is sampled.
+     */
+    test('a passage change moves the room colour to the next book instead of jumping', async ({ page }) => {
+        await page.goto('/');
+        await expect(page.getByTestId('room-heading')).toBeVisible();
+        await page.waitForTimeout(900);
+
+        const declared = await page.getByTestId('room-aura').evaluate((node) => ({
+            property: getComputedStyle(node).transitionProperty,
+            duration: getComputedStyle(node).transitionDuration,
+        }));
+        expect(declared.property).toContain('background-color');
+        expect(Number.parseFloat(declared.duration)).toBeGreaterThanOrEqual(0.6);
+        expect(Number.parseFloat(declared.duration)).toBeLessThanOrEqual(0.9);
+
+        // Draw until two passages in a row really do belong to differently coloured books.
+        let observed: { samples: string[]; from: string; to: string } | null = null;
+        for (let attempt = 0; attempt < 5 && observed === null; attempt += 1) {
+            const timeline = await tintTimeline(page);
+            if (timeline.from !== timeline.to && timeline.to !== '') {
+                observed = timeline;
+            }
+            await expect(page.locator('.stage')).toHaveAttribute('data-phase', 'idle', { timeout: 3000 });
+            await page.waitForTimeout(800);
+        }
+        expect(observed, 'two draws in a row must end on different books').not.toBeNull();
+        if (observed === null) {
+            return;
+        }
+
+        // Intermediate colours are the difference between travelling and jumping: a jump would only
+        // ever show the old and the new value.
+        const distinct = new Set(observed.samples);
+        console.log(
+            `tint travel: ${String(distinct.size)} distinct colours from ${observed.from} to ${observed.to}`,
+        );
+        expect(distinct.size).toBeGreaterThan(3);
+        expect(distinct.has(observed.to), 'the colour arrives at the new book').toBe(true);
     });
 
     test('rapid draws do not stack the room colour', async ({ page }) => {

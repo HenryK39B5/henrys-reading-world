@@ -162,8 +162,9 @@ test.describe('review capture', () => {
     test.skip(!hasSnapshot, 'private local snapshot is not available');
 
     test('walks every room and prints measurable facts', async ({ page }) => {
-        // A deliberate, thorough review walk: every room, four viewports, motion preferences.
-        test.setTimeout(240_000);
+        // A deliberate, thorough review walk: every room, four viewports, motion preferences, and the
+        // rare-opening walk that draws through a whole shelf to reach a book with nothing shorter.
+        test.setTimeout(600_000);
         mkdirSync(OUT_DIR, { recursive: true });
         const highlights = loadHighlights();
 
@@ -210,6 +211,131 @@ test.describe('review capture', () => {
         await page.waitForTimeout(200);
         await page.screenshot({ path: join(OUT_DIR, 'theme-room-source-1440.png'), fullPage: true });
         await page.getByTestId('close-source').click();
+        // The same room at phone width: a shelf room is a reading surface, not a desktop-only page.
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.screenshot({ path: join(OUT_DIR, 'theme-room-390.png'), fullPage: true });
+        console.log(
+            `theme room at 390: overflow ${String(await overflow(page))}px / stage font ${String((await passageMetrics(page)).fontSize)}px`,
+        );
+        await page.setViewportSize({ width: 1440, height: 900 });
+
+        /**
+         * The rare long opening, in the stage itself (docs/12 §7).
+         *
+         * A book that holds nothing in the preferred 20–120 character band still opens with its own
+         * line. The fair engine covers a whole shelf before it repeats a book, so drawing inside the
+         * shelf that book is filed on reaches it deterministically — no need to fake a deep link that
+         * only V2-E will add.
+         */
+        const starved = await page.evaluate(async () => {
+            const response = await fetch('/__local_snapshot');
+            const snapshot = (await response.json()) as {
+                books: { id: string; themeIds: string[] }[];
+                highlights: { id: string; bookId: string; text: string }[];
+            };
+            const length = (text: string) => [...text].filter((char) => !/\s/u.test(char)).length;
+            const grouped = new Map<string, { id: string; bookId: string; text: string }[]>();
+            for (const highlight of snapshot.highlights) {
+                const list = grouped.get(highlight.bookId);
+                if (list === undefined) {
+                    grouped.set(highlight.bookId, [highlight]);
+                } else {
+                    list.push(highlight);
+                }
+            }
+            const booksWithPassages = new Set(grouped.keys());
+            const entries: { bookId: string; shelfId: string; shelfSize: number; length: number; text: string }[] = [];
+            for (const [bookId, items] of grouped) {
+                if (items.some((item) => length(item.text) >= 20 && length(item.text) <= 120)) {
+                    continue;
+                }
+                const longest = [...items].sort((left, right) => length(right.text) - length(left.text))[0];
+                if (longest === undefined) {
+                    continue;
+                }
+                const shelves = (snapshot.books.find((book) => book.id === bookId)?.themeIds ?? [])
+                    .map((themeId) => ({
+                        themeId,
+                        size: snapshot.books.filter((book) => book.themeIds.includes(themeId) && booksWithPassages.has(book.id))
+                            .length,
+                    }))
+                    .filter((entry) => entry.size > 0)
+                    .sort((left, right) => left.size - right.size);
+                const shelf = shelves[0];
+                if (shelf === undefined) {
+                    continue;
+                }
+                entries.push({
+                    bookId,
+                    shelfId: shelf.themeId,
+                    shelfSize: shelf.size,
+                    length: length(longest.text),
+                    text: longest.text,
+                });
+            }
+            return entries.sort((left, right) => right.length - left.length);
+        });
+        console.log(
+            `books outside the preferred band: ${starved
+                .map((entry) => `${entry.bookId} ${String(entry.length)} chars on ${entry.shelfId}`)
+                .join(', ')}`,
+        );
+
+        const worst = starved[0];
+        if (worst !== undefined) {
+            await page.goto(`/themes/${worst.shelfId}`);
+            await roomReady(page);
+            let draws = 0;
+            for (let step = 0; step <= worst.shelfSize + 2; step += 1) {
+                const shown = (await page.getByTestId('stage-passage').innerText()).trim();
+                if (shown === worst.text.trim()) {
+                    break;
+                }
+                draws += 1;
+                await page.getByTestId('next-quote').click();
+                await expect(page.locator('.stage')).toHaveAttribute('data-phase', 'idle', { timeout: 3000 });
+            }
+            const shown = (await page.getByTestId('stage-passage').innerText()).trim();
+            expect(shown, `${worst.bookId} must open within one cycle of ${worst.shelfId}`).toBe(worst.text.trim());
+            await page.waitForTimeout(800);
+            const metrics = await passageMetrics(page);
+            console.log(
+                `longest possible opening in the stage: ${String(worst.length)} chars after ${String(draws)} draws on ${worst.shelfId}, ${String(metrics.lines)} lines, font ${String(metrics.fontSize)}px, band ${String(
+                    await page.locator('.stage').getAttribute('data-band'),
+                )}`,
+            );
+            console.log(`long opening stage aura: ${JSON.stringify(await auraInfo(page))}`);
+            console.log(`long opening contrast: ${JSON.stringify(await contrastRatios(page))}`);
+            await page.screenshot({ path: join(OUT_DIR, 'opening-longest-1440.png'), fullPage: true });
+            await page.setViewportSize({ width: 390, height: 844 });
+            const narrow = await passageMetrics(page);
+            console.log(
+                `long opening at 390: ${String(narrow.lines)} lines, font ${String(narrow.fontSize)}px, overflow ${String(await overflow(page))}px`,
+            );
+            await page.screenshot({ path: join(OUT_DIR, 'opening-longest-390.png'), fullPage: true });
+            await page.setViewportSize({ width: 1440, height: 900 });
+
+            // The shortest opening of the library, for the other end of the same rule.
+            const shortest = starved[starved.length - 1];
+            if (shortest !== undefined && shortest.bookId !== worst.bookId) {
+                await page.goto(`/themes/${shortest.shelfId}`);
+                await roomReady(page);
+                for (let step = 0; step <= shortest.shelfSize + 2; step += 1) {
+                    if ((await page.getByTestId('stage-passage').innerText()).trim() === shortest.text.trim()) {
+                        break;
+                    }
+                    await page.getByTestId('next-quote').click();
+                    await expect(page.locator('.stage')).toHaveAttribute('data-phase', 'idle', { timeout: 3000 });
+                }
+                await page.waitForTimeout(800);
+                console.log(
+                    `shortest possible opening in the stage: ${String(shortest.length)} chars, band ${String(
+                        await page.locator('.stage').getAttribute('data-band'),
+                    )}`,
+                );
+                await page.screenshot({ path: join(OUT_DIR, 'opening-shortest-1440.png'), fullPage: true });
+            }
+        }
 
         await page.goto('/books');
         await roomReady(page);

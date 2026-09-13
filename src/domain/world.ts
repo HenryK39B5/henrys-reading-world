@@ -58,6 +58,10 @@ export function summarizeBooks(index: SnapshotIndex): BookEntry[] {
 /**
  * Recency ordering for the books list. It is based on highlight years only, so the section must be
  * labelled as recently *highlighted*, never as recently finished reading.
+ *
+ * Books of the same year fall back to stable id order, which is also the order the snapshot assigns.
+ * How many passages a book holds is deliberately not a ranking: within one year, a 531-passage book has
+ * no more claim to the top of the list than a 2-passage one (docs/11 §6.1).
  */
 export function orderByRecentHighlight(entries: BookEntry[]): BookEntry[] {
     return [...entries].sort((left, right) => {
@@ -66,8 +70,8 @@ export function orderByRecentHighlight(entries: BookEntry[]): BookEntry[] {
         if (leftYear !== rightYear) {
             return rightYear - leftYear;
         }
-        if (left.highlightCount !== right.highlightCount) {
-            return right.highlightCount - left.highlightCount;
+        if (left.book.id === right.book.id) {
+            return 0;
         }
         return left.book.id < right.book.id ? -1 : 1;
     });

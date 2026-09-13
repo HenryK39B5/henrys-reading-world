@@ -61,6 +61,39 @@ describe('book summaries', () => {
         expect(ordered).toEqual(['b-001', 'b-002']);
     });
 
+    it('orders books of the same year by stable id, never by how many passages they hold', () => {
+        const index = indexSnapshot({
+            ...snapshot(),
+            highlights: [
+                // b-003 is the largest book of the year and b-001 the smallest: size must not rank them.
+                ...Array.from({ length: 9 }, (_, step) => highlight(`h-9${String(step)}`, 'b-003', 2025)),
+                highlight('h-001', 'b-001', 2025),
+                highlight('h-002', 'b-002', 2025),
+            ],
+        });
+        const entries = summarizeBooks(index);
+        expect(entries.find((entry) => entry.book.id === 'b-003')?.highlightCount).toBe(9);
+        expect(orderByRecentHighlight(entries).map((entry) => entry.book.id)).toEqual([
+            'b-001',
+            'b-002',
+            'b-003',
+        ]);
+    });
+
+    it('is a stable order: the same snapshot always lists the same books first', () => {
+        const index = indexSnapshot({
+            ...snapshot(),
+            highlights: [
+                highlight('h-001', 'b-001', 2025),
+                highlight('h-002', 'b-002', 2025),
+                highlight('h-003', 'b-003', 2025),
+            ],
+        });
+        const first = orderByRecentHighlight(summarizeBooks(index)).map((entry) => entry.book.id);
+        const again = orderByRecentHighlight([...summarizeBooks(index)].reverse()).map((entry) => entry.book.id);
+        expect(again).toEqual(first);
+    });
+
     it('filters books by year and never invents a substitute', () => {
         const entries = summarizeBooks(indexSnapshot(snapshot()));
         expect(filterBooksByYear(entries, 2025).map((entry) => entry.book.id)).toEqual(['b-003']);

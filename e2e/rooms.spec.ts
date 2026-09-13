@@ -65,6 +65,56 @@ function booksOnShelf(data: RealData, themeId: string): Set<string> {
     return new Set(data.books.filter((book) => book.themeIds.includes(themeId)).map((book) => book.id));
 }
 
+function nonWhitespace(text: string): number {
+    return [...text].filter((char) => !/\s/u.test(char)).length;
+}
+
+/**
+ * Books that hold nothing in the stage's preferred 20–120 character band.
+ *
+ * These are the books that make a long (or very short) opening possible: when one of them is drawn, its
+ * own line is shown instead of the draw being filtered away. The map carries the line each of them would
+ * open with — for b-114 in the real snapshot, a single 299-character passage.
+ */
+function starvedBooks(data: RealData): Map<string, { longest: Highlight; length: number }> {
+    const grouped = new Map<string, Highlight[]>();
+    for (const item of data.highlights) {
+        const list = grouped.get(item.bookId);
+        if (list === undefined) {
+            grouped.set(item.bookId, [item]);
+        } else {
+            list.push(item);
+        }
+    }
+    const starved = new Map<string, { longest: Highlight; length: number }>();
+    for (const [bookId, items] of grouped) {
+        if (items.some((item) => nonWhitespace(item.text) >= 20 && nonWhitespace(item.text) <= 120)) {
+            continue;
+        }
+        const longest = items.reduce((left, right) =>
+            nonWhitespace(right.text) > nonWhitespace(left.text) ? right : left,
+        );
+        starved.set(bookId, { longest, length: nonWhitespace(longest.text) });
+    }
+    return starved;
+}
+
+/** The shelf of `bookId` holding the fewest books, so one fair cycle is short. */
+function smallestShelfOf(data: RealData, bookId: string): string | null {
+    const shelfIds = data.books.find((book) => book.id === bookId)?.themeIds ?? [];
+    let best: { id: string; size: number } | null = null;
+    for (const themeId of shelfIds) {
+        const size = [...booksOnShelf(data, themeId)].filter((id) => (data.countByBook.get(id) ?? 0) > 0).length;
+        if (size === 0) {
+            continue;
+        }
+        if (best === null || size < best.size) {
+            best = { id: themeId, size };
+        }
+    }
+    return best?.id ?? null;
+}
+
 async function roomReady(page: Page): Promise<void> {
     await expect(page.getByTestId('room-heading')).toBeVisible();
     await expect(page.locator('.room-region')).toBeVisible();
@@ -498,6 +548,61 @@ test.describe('the whole library stays reachable, in batches', () => {
         );
     });
 
+    test('the year filter follows the visitor into the opened book', async ({ page }) => {
+        const data = loadSnapshot();
+        // A real book that really has passages in more than one year, so the filter can be told apart
+        // from "this book only has one year anyway".
+        const multiYear = data.books
+            .map((book) => ({
+                book,
+                years: [...new Set(data.highlights.filter((item) => item.bookId === book.id && item.year !== undefined).map((item) => item.year as number))].sort(),
+            }))
+            .filter((entry) => entry.years.length >= 2)
+            .at(0);
+        expect(multiYear, 'the snapshot must hold a book with passages in several years').toBeDefined();
+        if (multiYear === undefined) {
+            return;
+        }
+        const bookId = multiYear.book.id;
+        const year = multiYear.years[0] as number;
+        const inYear = data.highlights.filter((item) => item.bookId === bookId && item.year === year);
+        const wholeBook = data.countByBook.get(bookId) ?? 0;
+        expect(inYear.length).toBeLessThan(wholeBook);
+        const keptIds = new Set(inYear.map((item) => item.text.trim()));
+
+        // Reach the book the way a visitor does: filtered library, then the book it lists.
+        await page.goto(`/books?year=${String(year)}`);
+        await roomReady(page);
+        let guard = 0;
+        while ((await page.getByTestId(`book-${bookId}`).count()) === 0 && guard < 10) {
+            await page.getByTestId('books-more').click();
+            guard += 1;
+        }
+        const link = page.getByTestId(`book-${bookId}`);
+        await expect(link).toBeVisible();
+        // The filter is part of where the visitor was, so it travels with the link.
+        await expect(link).toHaveAttribute('href', `/books/${bookId}?year=${String(year)}`);
+        await link.click();
+        await roomReady(page);
+        expect(new URL(page.url()).searchParams.get('year')).toBe(String(year));
+
+        // And the book room's own list is the filtered one, not the whole book.
+        await expect(page.getByTestId(`book-year-${String(year)}`)).toHaveAttribute('aria-current', 'true');
+        await expect(page.getByTestId('book-batch-label')).toHaveText(
+            inYear.length > 10
+                ? `显示 10 / ${String(inYear.length)}`
+                : `已显示全部 ${String(inYear.length)} 处`,
+        );
+        for (const text of await page.locator('.passage-text').allInnerTexts()) {
+            expect(keptIds.has(text.trim()), `${text.slice(0, 12)} is not a ${String(year)} passage`).toBe(true);
+        }
+
+        // Leaving the book returns to the same filtered library.
+        await page.getByTestId('room-back').click();
+        await roomReady(page);
+        await expect(page.getByTestId(`year-${String(year)}`)).toHaveAttribute('aria-current', 'true');
+    });
+
     test('a book without a cover falls back to its real title, and long passages stay complete', async ({ page }) => {
         const data = loadSnapshot();
         const parsed = JSON.parse(readFileSync(SNAPSHOT_PATH, 'utf8')) as {
@@ -567,5 +672,99 @@ test.describe('the whole library stays reachable, in batches', () => {
         await expect(page.getByTestId('books-batch-label')).toHaveText(
             `显示 ${String(Math.min(12, booksOnShelf(data, shelf.id).size))} / ${String(booksOnShelf(data, shelf.id).size)}`,
         );
+    });
+});
+
+/**
+ * The rare long opening (docs/07, docs/12 §7).
+ *
+ * The fair engine draws a book first and only then looks at lengths, so a book that holds nothing in the
+ * preferred band still opens — with its own longest line. These tests prove that path is reachable
+ * inside one fair cycle of a shelf the book belongs to, and that the text arrives whole at both widths
+ * rather than being clipped or shortened to fit a band.
+ *
+ * Reduced motion is used here purely to make the draw loop fast: it changes only the transition
+ * durations, never the selection or the typography.
+ */
+test.describe('a book with nothing shorter can still open, whole', () => {
+    test.skip(!hasSnapshot, 'private local snapshot is not available');
+
+    test('the longest and the shortest real opening arrive in one shelf cycle', async ({ page }) => {
+        test.setTimeout(240_000);
+        await page.emulateMedia({ reducedMotion: 'reduce' });
+        const data = loadSnapshot();
+        const starved = starvedBooks(data);
+        expect(starved.size, 'this snapshot has books outside the preferred band').toBeGreaterThan(0);
+
+        const report: string[] = [];
+        for (const [bookId, entry] of starved) {
+            const shelfId = smallestShelfOf(data, bookId);
+            expect(shelfId, `${bookId} must be filed on a shelf`).not.toBeNull();
+            if (shelfId === null) {
+                continue;
+            }
+            const shelfSize = [...booksOnShelf(data, shelfId)].filter(
+                (id) => (data.countByBook.get(id) ?? 0) > 0,
+            ).length;
+
+            await page.goto(`/themes/${shelfId}`);
+            await roomReady(page);
+
+            // One fair cycle covers every book of the shelf, so the budget is the shelf itself.
+            let found = false;
+            let draws = 0;
+            for (let step = 0; step <= shelfSize + 2 && !found; step += 1) {
+                const record = await stageRecord(page);
+                if (record.bookId === bookId) {
+                    found = true;
+                    break;
+                }
+                draws += 1;
+                await page.getByTestId('next-quote').click();
+                await expect(page.locator('.stage')).toHaveAttribute('data-phase', 'idle', { timeout: 3000 });
+            }
+            expect(found, `${bookId} must appear within one cycle of ${shelfId}`).toBe(true);
+
+            const shown = (await page.getByTestId('stage-passage').innerText()).trim();
+            expect(data.byText.get(shown)?.bookId).toBe(bookId);
+            // Whole, not trimmed to a band: the rendered line is exactly the stored one.
+            expect(nonWhitespace(shown)).toBe(entry.length);
+            await expect(page.locator('.stage')).toHaveAttribute(
+                'data-band',
+                entry.length <= 40 ? 'short' : entry.length <= 120 ? 'medium' : 'long',
+            );
+
+            const metrics = await page.getByTestId('stage-passage').evaluate((node) => ({
+                scrollWidth: node.scrollWidth,
+                clientWidth: node.clientWidth,
+                overflow: window.getComputedStyle(node).overflow,
+                whiteSpace: window.getComputedStyle(node).whiteSpace,
+                font: window.getComputedStyle(node).fontSize,
+            }));
+            expect(metrics.overflow).not.toBe('hidden');
+            expect(metrics.whiteSpace).toBe('pre-wrap');
+            expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth + 1);
+            const overflow = await page.evaluate(
+                () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+            );
+            expect(overflow, 'the long opening must not push the page sideways').toBeLessThanOrEqual(1);
+            report.push(`${bookId}/${shelfId}: ${String(entry.length)} chars, ${String(draws)} draws, ${metrics.font}`);
+
+            // And the same line is complete on a phone-width screen.
+            await page.setViewportSize({ width: 390, height: 844 });
+            const narrow = await page.getByTestId('stage-passage').evaluate((node) => ({
+                scrollWidth: node.scrollWidth,
+                clientWidth: node.clientWidth,
+            }));
+            expect(narrow.scrollWidth).toBeLessThanOrEqual(narrow.clientWidth + 1);
+            const narrowOverflow = await page.evaluate(
+                () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+            );
+            expect(narrowOverflow).toBeLessThanOrEqual(1);
+            expect(nonWhitespace((await page.getByTestId('stage-passage').innerText()).trim())).toBe(entry.length);
+            await page.setViewportSize({ width: 1440, height: 900 });
+        }
+
+        console.log(`rare openings, each reached inside one shelf cycle:\n${report.join('\n')}`);
     });
 });
