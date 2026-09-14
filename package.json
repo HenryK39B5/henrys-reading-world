@@ -29,9 +29,11 @@
     "capture:review": "playwright test --config playwright.capture.config.ts",
     "capture:v2e": "playwright test --config playwright.capture-v2e.config.ts",
     "capture:v2e4": "playwright test --config playwright.capture-v2e4.config.ts",
+    "capture:release-a": "playwright test --config playwright.capture-release-a.config.ts && playwright test --config playwright.capture-publication.config.ts",
     "publication:init": "node scripts/publication-init.ts",
     "publication:review": "vite --mode review-private",
     "publication:preview": "node scripts/publication-preview.ts",
+    "isolation:public": "node scripts/check-public-isolation.ts",
     "covers:fetch": "node scripts/fetch-covers.ts"
   },
   "dependencies": {

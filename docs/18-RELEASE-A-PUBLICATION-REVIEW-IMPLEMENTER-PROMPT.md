@@ -1,6 +1,8 @@
 # 18 — Release-A 发布审核系统 Continuous Implementer Prompt
 
-> 状态：**下一批唯一开工提示词**。
+> 状态：**已执行完毕**（Release-A1 V2-E4E → A2 有限随机书籍轮 → A3 发布清单与本机审核器 → A4 私有 preview 与隔离 Gate）。
+>
+> 四个阶段均已实现、测试并提交（`dbf7c87` / `72c02c9` / `73b80af` / 与本文件同批的收尾提交），执行记录见 `docs/08` 的 Release-A1～A4 四节。下一步不属于本 Prompt：先由用户完成 130 本审核，再讨论 Release-B。
 >
 > 日期：2026-09-13。
 >
@@ -411,3 +413,16 @@ git diff --check
 - 正式 public snapshot 仍为空；
 - 未创建 repo、未 push、未部署；
 - 下一步是用户实际完成 130 本审核，然后决定 Release-B。
+
+---
+
+## 12. 实现者回填：交付后的实际状态
+
+- **V2-E4E 修正的确实是剪贴板纯文本**（不是卡片）：`shareText()` 现在是 `原文 + 空行 + 出处 + 空行 + 来自 Henry's Reading World`；E4D 的卡片 imprint 分层保留未回退。
+- **书籍房间**：一轮恰好 N 次、N 个不同的 stable ID；完成后提示且**不自动重置**；`重新看一轮` 由用户触发；单书年份筛选与顺序列表已移除，`/books/:id?year=` 规范化为 `/books/:id`（replace，不新增历史）。
+- **真实数据可达证明**：最大书 b-013 一轮 **531 / 531、0 重复**；130 本各一轮并集 **4,663 / 4,663**，`unreachableHighlights` 为空。
+- **一个只在 React 双渲染下出现的真实缺陷已被定位并修复**：`useBookWalks` 曾在 render 阶段写 ref 缓存，使被丢弃的那次 render 与提交状态不一致（2 条书会出现“进度 2/2 但文案不变”，并行回归 5/6 失败）。现在缓存只从 effect 写入，事件只推进已提交状态。
+- **审核器安全实测**：伪造 `Origin: https://example.invalid` → **403** 且清单文件字节不变；非 JSON → 415；其他方法 → 405；跨项目 target → 422；普通服务器上无读写接口；从产品服务器打开审核器会诚实报错。
+- **隔离 Gate**：`npm run isolation:public` 对 dist 校验审核入口/policy 字段与路由/真实书名/真实划线/封面/凭证/参考图；`--mode local-private` 与 `--mode review-private` 两种生产构建都被拒绝。
+- **正式 public snapshot 仍为空**（schema 2 / public / 0 / 0 / 0）；未创建 repo、未 push、未部署、未复制 public cover。
+- **测试基线**：241 单测 / 18 文件；103 local E2E；9 审核器 E2E；1 public 空态；5 真实数据 smoke。

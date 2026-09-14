@@ -1,19 +1,16 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * The publication reviewer's own run (docs/18 §5.3).
+ * Release-A evidence on the reviewer side (docs/18 §6.3).
  *
- * It serves a different document on a different port, and — importantly — it starts the server with
- * `READING_WORLD_PUBLICATION_DIR` pointing at a test directory: the automated run must never save over the
- * decisions a person is making in the real review file. One worker, because every test in this file reads
- * and writes that one policy.
+ * Its own server on its own port, with the policy redirected into the capture's directory so a mixed
+ * review can be photographed without overwriting anything a person has decided.
  */
 export default defineConfig({
     testDir: './e2e/publication',
-    testIgnore: ['**/capture-publication.spec.ts'],
+    testMatch: '**/capture-publication.spec.ts',
     fullyParallel: false,
     workers: 1,
-    forbidOnly: true,
     retries: 0,
     reporter: [['list']],
     use: {
@@ -27,7 +24,7 @@ export default defineConfig({
         command: 'npm run publication:review',
         url: 'http://127.0.0.1:5174/publication-review.html',
         reuseExistingServer: false,
-        env: { READING_WORLD_PUBLICATION_DIR: '.private/review/release-a/test-policy' },
+        env: { READING_WORLD_PUBLICATION_DIR: '.private/review/release-a/capture-policy' },
         stdout: 'ignore',
         stderr: 'pipe',
         timeout: 60_000,

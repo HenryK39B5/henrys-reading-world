@@ -23,8 +23,8 @@
 | 出处展开（Slice 3） | 已完成 | 原位展开、真实收录计数、再看一处 / 收起、焦点回归、耗尽与单条明确说明 |
 | 书籍 / 主题 / About（Slice 4） | 已完成 | 书籍区与书详情、5 个主题的跨书连线、真实年份筛选与空交集处理、真实计数 About |
 | 导航 | 全部放开 | 随机 / 书 / 主题 / 关于 均为真链接，无禁用项 |
-| 浏览器验证 | V2-E4D 后已独立复核 | Playwright + Chromium（本机）：**100 个 local 用例**；`scroll-lock` `--repeat-each=10` 80/80、`share`+`share-card` `--repeat-each=5` 95/95；1 个 public 空态用例通过。V2-E 曾出现一次 dialog 背景滚到 210px，已在 V2-E4A 定位根因并修复 |
-| 本机检查 | V2-E4D 后已独立复核 | `check:local` 全绿：typecheck + lint + **195 个单测（15 文件）** + schema 2 数据校验；`verify:ids`、smoke、public build 与 local-private build 拒绝均通过 |
+| 浏览器验证 | Release-A4 后已独立重跑 | Playwright + Chromium（本机）：**103 个 local 用例** + **9 个审核器用例**；`scroll-lock` `--repeat-each=10`、`share`+`share-card` `--repeat-each=5` 均通过；1 个 public 空态用例通过 |
+| 本机检查 | Release-A4 后已独立重跑 | `check:local` 全绿：typecheck + lint + **241 个单测（18 文件）** + schema 2 数据校验；`verify:ids`、smoke、public build、`isolation:public` 与两种 local 模式 build 拒绝均通过 |
 | 视觉检查（Astra） | 已执行 | 1440 / 390 实际截图；发现并修正孤字成行、26px 点击目标、出处行间距、移动端书目节奏 |
 | 评审证据工具 | 已建立 | `npm run capture:review`：截图 + 可读数字（字号 / 行数 / 对比度 / 点击目标 / 溢出 / 延迟）|
 | 封面与色彩（视觉修复） | 已完成 | 127 张真实书封下载到 `.private/covers/`；`local-covers/` 仅由 dev:local 服务；每本书主色从封面实时提取并降饱和 |
@@ -39,10 +39,10 @@
 | Product Critique #2 | 已完成方向评审 | 用户确认房间式结构、Book Aura 色彩归属、返回保留现场与轻盈呼吸动效；见 `docs/12` |
 | V2-C1 房间路由与现场记忆 | 已完成 | 六个真实路径、每房间独立舞台会话、批次与滚动记忆；149 单测 / 34 Playwright；详见下方 V2-C1 执行记录 |
 | V2-C2 Book Aura 与呼吸动效 | 已完成（含复核修复） | 真实封面环境色、房间进入/换句 700ms、reduced-motion；最终 local Playwright 总数 44；详见下方记录 |
-| V2-D 全量分批浏览 | 已完成；将由 Release-A1 更新单书入口 | 书库 12→130 保留；单书 10→531 顺序列表将在已确认的 Release-A 中迁移为有限随机轮，4,663 条可达契约不变 |
+| V2-D 全量分批浏览 | 已由 Release-A1 接管单书入口 | 书库 12→130 保留；单书顺序列表已迁移为有限随机轮，4,663 条可达契约由每书一轮的并集证明 |
 | V2-E1/E2/E3 | 已完成并独立复核 | 深链、固定 ID 分享、复制失败、200%/键盘/privacy 均成立；基线 `a8083ef` |
 | V2-E4 交接准备 | 已执行完毕 | 交接 Prompt 为 `docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md`；E4A/E4B/E4C/E4D 均已实现、测试并提交 |
-| Release-A 公开审核准备 | ready-for-implementation | 用户确认项目 Pages 路径、public repo、130 本逐书审核、单条排除、逐书封面关闭与有限随机书籍房间；权威 `docs/17`，唯一 Prompt `docs/18` |
+| Release-A 公开审核准备 | 已执行完毕 | V2-E4E、有限随机书籍轮、书级 publication policy/单条排除/封面开关、本机审核器与私有 preview 均已实现并验收；详见下方 Release-A1～A4 四节；权威 `docs/17`，Prompt `docs/18` |
 | 真实访客 Gate | 未进行 | 用户本人体验反馈非常积极（V2-E4D 就是其反馈驱动的收尾），但尚无首次访客结果，不冒充产品 Gate 通过 |
 
 原始返回、更新包、候选池、快照与截图全部留在 `.private/`，已被 `.gitignore` 排除，未进入前端包。
@@ -993,6 +993,77 @@ V2-E（最终独立批次），不在本阶段开始。
 DeepSeek v4.1 Flash 按 `docs/16` 连续完成 E4A → E4B → E4C。每阶段测试、记录、commit，Gate 通过后直接继续；全部完成后统一汇报。不部署、不 push、不生成 public snapshot。
 
 > 本记录交存的是交接当时的状态（`状态：ready-for-implementation`）。实际执行与验收见上方 V2-E4C 与下方 V2-E4D 记录；本批次的真实结果以那两节为准。
+
+## Release-A4 私有 preview、隔离 Gate 与全批次验收（2026-09-13）
+
+```text
+日期 / 执行者：2026-09-13 / 实现 Agent（DeepSeek v4.1 Flash）
+范围：Release-A4 — 私有 publication preview/audit、隔离 Gate、证据与全量验证
+状态：verified（本机 Chromium）；真机与 Safari 未验证；正式 public snapshot 仍为空
+数据模式：真实数据 local-only；未创建 GitHub repo、未 push、未部署、未复制 public cover
+代码基线：73b80af（Release-A3）
+```
+
+### 完成内容
+
+- `npm run publication:preview` 只写 `.private/publication-preview-snapshot.json` 与 `.private/publication-audit.json`；投影 `visibility` 恒为 `local-only`；audit 只含 ID / 数量 / 长度与状态，不复制被排除原文；`releaseReady` 只在无未审核书、引用完整、至少一条公开内容且决定合法时为 `true`。
+- 新增 `npm run isolation:public`（`scripts/check-public-isolation.ts`）：对 `dist` 做反向泄漏探针，任何一项命中即非零退出，供 Release-B/C 继续复用。
+- 新增 `npm run capture:release-a`：一次生成 10 张证据（产品侧 5 张 + 审核器侧 5 张）到 `.private/review/release-a/`。
+
+### 隔离 Gate（全部实跑）
+
+| 检查 | 结果 |
+| --- | --- |
+| `src/data/public-snapshot.json` | schema 2 / visibility public / books 0 / themes 0 / highlights 0（未被任何命令修改） |
+| `npm run build` | 成功；dist 只有 3 个文件 |
+| `npm run isolation:public` | **clean**：审核入口/审核页标记/policy 字段/policy 路由/policy 文件名/预览文件名/审核备注占位全部 absent |
+| dist 真实内容探针 | 真实书名 0 / 真实划线 0 / 封面路径 0；凭证与参考图探针全 absent |
+| `npx vite build --mode local-private` | 按预期拒绝（退出码 1） |
+| `npx vite build --mode review-private` | **同样拒绝**（同一个 build 守卫，审核模式也不能进生产包） |
+| 普通服务器上的 policy 接口 | 读不到清单内容（响应无 `reviewComplete`/`excludedHighlightIds`）；PUT 非 200，且清单文件字节前后一致 |
+| 产品服务器上的审核器 | 打开 `/publication-review.html` 时显示诚实错误态，不出现可用的审核页；产品文档不引用审核器 |
+| `.private` / `@fs` / 编码变体 | 仍不可读（privacy 用例组） |
+| Git | 无 remote、无 `.github/` workflow、`.private` 被跟踪数 0；新增三个私有文件均被 `.gitignore` 覆盖 |
+
+### 命令 → 实际结果（全部实跑）
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run check:local` | **241 单测 / 18 文件**通过 |
+| `npm run verify:ids` | 20 本 / 46 条稳定 ID 不变；4,663 / 130 |
+| `npm run smoke:local` | **5/5**（含真实最大书 531 与全库 4,663 的随机轮可达证明） |
+| `npx playwright test` | **103 通过**（含新的 policy 隔离用例） |
+| `npm run test:publication` | **9/9 通过** |
+| `npm run test:public` | 1/1 |
+| `npm run publication:init` ×2 | 第一次生成 130 本全部未审核；第二次 `already in step`，**不覆盖** |
+| `npm run publication:preview` | `published 0 / excluded 0 / unreviewed 130`；`releaseReady: false — 还有 130 本书未审核；没有任何划线会被公开`；public snapshot 未写 |
+| `npm run capture:release-a` | 通过，10 张图写入 `.private/review/release-a/` |
+| `npm run capture:v2e` / `capture:v2e4` / `capture:review` | 全部通过（无回归） |
+| `npm run build` | 成功；dist 仍为 3 个文件 |
+| `git diff --check` | 干净 |
+
+### 证据（`.private/review/release-a/`，10 张，已逐张查看）
+
+- `review-overview-1440/390`、`review-progress-mixed`（公开筛选下 4 本）、`review-book-open-1440`（b-013 的 531 条真实划线）、`review-highlight-excluded`（被排除那一条的行元素截图：`排除这条` 勾选、行变淡但**不被隐藏**）；
+- `book-walk-1440/390`（《晚年周恩来》531 条 → `本轮已看 1 / 531`）、`book-walk-complete`（2 条书一轮看完：`这本书收录的 2 处划线已经看过一遍了` + `重新看一轮`）、`book-walk-restarted`（新轮从 1 开始）、`clipboard-provenance`（剪贴板被拒时的回退文本：出处后空一行再接 `来自 Henry's Reading World`）。
+
+两对截图最初字节完全相同（我把同一视图拍了两次），已改为真正不同的证据：筛选后的列表与“被排除行的元素截图”。
+
+### 未验证项（诚实列明）
+
+- 真机与 Safari 未验证（本机只有 Chromium）；
+- 未做真实 130 本审核（属用户下一步）；未生成正式 public snapshot、未复制 public covers、未创建 repo/未 push/未部署；
+- 审核器 390 宽度的观感属人工项；长引用提示（≥200 字）只是风险暴露，不是法律结论。
+
+### 偏差 / 设计判断
+
+- **随机书籍房间不是版权过滤**：docs/17 §2 已明确；本阶段的预览/审计按实际投影的全部文字计算累计字符与长引用，不按首屏只显示一句计算。
+- **审核器不复用产品视觉**：工具以信息密度为功能；产品页面的克制不适用于审核屏。
+- **测试写入被重定向**：`READING_WORLD_PUBLICATION_DIR` 保证自动化测试永不覆盖你的真实清单。
+
+### 下一步（不属于 Release-A）
+
+1. 用户自行完成 130 本审核（`npm run publication:review`）；2. Release-B：正式 `publication:export`、public 缩略图、反向泄漏与 Git 历史扫描；3. Release-C：Pages `base`、静态房间入口与 404、手动 workflow；4. Release-D/E：人工发布 Gate 与实际部署（需用户再次明确授权）。
 
 ## Release-A3 publication policy 与本机审核器（2026-09-13）
 

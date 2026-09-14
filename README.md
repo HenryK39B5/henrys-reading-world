@@ -4,8 +4,8 @@
 
 ## 当前状态
 
-- 阶段：v1 Slice 0–4、V2-A～V2-E4D 均已完成；当前准备 **Release-A 发布审核系统**。
-- 下一阶段（已确认、尚未实现）：V2-E4E 复制文本来源分层 → 书籍房间有限随机轮 → 书级 publication policy（支持单条排除与逐书封面开关）→ 本机审核器与私有 publication preview。正式 public snapshot、GitHub repo、push 与部署仍未授权。
+- 阶段：v1 Slice 0–4、V2-A～V2-E4D 均已完成；**Release-A（V2-E4E → 有限随机书籍轮 → 发布清单与本机审核器 → 私有 preview 与隔离 Gate）已实现并验收**。
+- 下一阶段：由你完成 130 本审核，然后才讨论 Release-B（正式 public snapshot 与封面缩略图）、Release-C（Pages base/静态入口/workflow）与部署。未生成 public snapshot、未创建 GitHub repo、未 push。
 - 产品方向：轻松漫游与公平原则见 `docs/10`，房间/Book Aura 见 `docs/12`；公开审核、随机书籍房间和 GitHub Pages 目标以 `docs/17-PUBLICATION-DIRECTION-AND-RELEASE-A.md` 为最新权威；下一批唯一实现 Prompt 为 `docs/18-RELEASE-A-PUBLICATION-REVIEW-IMPLEMENTER-PROMPT.md`。
 - 硬约束：所有开发只使用 Henry 本人的真实划线，不使用 fake / demo 数据；主题属于书籍，不做逐句人格标签。
 - 当前页面数据（local-only）：**4,663 条真实划线 · 130 本书 · 14 个主题书架 · 2024–2026**；房间一次只渲染一个视觉中心，全部内容通过舞台、主题书架与单书房间分批可达。
@@ -40,7 +40,12 @@ npm run test:e2e            # Playwright，真实 Chromium，103 个用例（房
 npm run test:publication    # 发布审核器的浏览器验收（独立服务器与端口，使用临时清单目录）
 npm run capture:review      # 生成评审截图 + 可读数字，输出到 .private/review/rooms-batch/
 npm run capture:v2e         # 生成 V2-E 证据截图（dialog、卡片、200% 缩放、剪贴板失败），输出到 .private/review/v2-e/
-npm run capture:v2e4        # 生成 V2-E4 卡片证据（整张卡片、三本书的色域、200%、剪贴板失败），输出到 .private/review/v2-e4/
+npm run capture:v2e4        # 生成 V2-E4 卡片证据（整张卡片、三本书的色域、200%、剪贴板失败），输出到 .private/review/v2e4/
+npm run capture:release-a   # Release-A 证据：书轮与复制文本（产品）+ 审核器五个状态，输出到 .private/review/release-a/
+npm run isolation:public    # 对 dist 做反向泄漏探针（审核器、policy、真实内容、凭证）
+npm run publication:init       # 生成私有发布清单（全部未审核；已存在时不覆盖）
+npm run publication:review     # 本机逐书审核界面（127.0.0.1:5174，不进入生产包）
+npm run publication:preview    # 只写 .private/ 的私有投影与 audit
 npm run covers:fetch        # 下载真实书封到 .private/covers/（只由 dev:local 服务）
 npm run smoke:local         # 用真实快照做渲染冒烟检查
 npm run test:public         # 公开（空快照）模式下每个房间的诚实空状态

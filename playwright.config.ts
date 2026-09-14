@@ -13,6 +13,7 @@ export default defineConfig({
         '**/capture.spec.ts',
         '**/capture-v2e.spec.ts',
         '**/capture-v2e4.spec.ts',
+        '**/capture-release-a.spec.ts',
         '**/empty-state.spec.ts',
         '**/publication/**',
     ],

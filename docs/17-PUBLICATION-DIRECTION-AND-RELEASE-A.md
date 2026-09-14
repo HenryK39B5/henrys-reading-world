@@ -2,9 +2,11 @@
 
 > 日期：2026-09-13
 >
-> 状态：**用户已确认，可进入 Release-A 实现准备**。
+> 状态：**Release-A 已实现并验收**（V2-E4E → 有限随机书籍轮 → 发布清单与本机审核器 → 私有 preview 与隔离 Gate）。执行记录见 `docs/08` 的 Release-A1～A4 四节。
 >
 > 本文件是 Public Release 阶段的产品与数据权威。它不自动授权生成正式 public snapshot、创建 GitHub 仓库、push 或部署；这些外部动作仍须在 Release-D / Release-E 由用户明确批准。
+>
+> 下一步（不属于已实现的 Release-A）：用户用 `npm run publication:review` 完成 130 本审核，然后才讨论 Release-B。
 >
 > 既有轻松漫游、公平抽样、主题属于 Book、稳定 ID、Book Aura、隐私隔离继续成立。与 `docs/11` 的“单书顺序列表”冲突时，本文件的新书籍房间决定优先。
 
