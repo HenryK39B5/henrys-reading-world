@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { hasSnapshot, loadSnapshot } from './support/snapshot.ts';
@@ -156,6 +156,40 @@ test.describe('private files stay private', () => {
         const sanctioned = await page.request.get('/__local_snapshot');
         expect(sanctioned.status()).toBe(200);
         expect(sanctioned.headers()['cache-control']).toContain('no-store');
+    });
+
+    test('the publication policy cannot be read or written from the ordinary server', async ({ page }) => {
+        await page.goto('/');
+        await expect(page.getByTestId('stage-passage')).toBeVisible();
+
+        const policyFile = join(process.cwd(), '.private', 'curation', 'publication-policy.json');
+        const before = existsSync(policyFile) ? readFileSync(policyFile, 'utf8') : null;
+
+        // Reading it is not a thing this server does at all — and it must not hand out decisions.
+        const read = await page.request.get('/__publication_policy');
+        const readBody = await read.text();
+        expect(readBody.includes('reviewComplete'), 'the policy must not be served here').toBe(false);
+        expect(readBody.includes('excludedHighlightIds'), 'the policy must not be served here').toBe(false);
+
+        // Writing is refused, and — the part that matters — the file is untouched either way.
+        const write = await page.request.put('/__publication_policy', {
+            headers: { Origin: 'http://127.0.0.1:5173', 'Content-Type': 'application/json' },
+            data: { schemaVersion: 1, target: { repository: 'x', basePath: '/' }, reviewComplete: true, books: {} },
+        });
+        expect(write.status(), 'the ordinary server must not accept a policy').not.toBe(200);
+        const after = existsSync(policyFile) ? readFileSync(policyFile, 'utf8') : null;
+        expect(after, 'the policy file must be exactly as it was').toBe(before);
+
+        // The reviewer document is a project file, so a dev server will serve it — what matters is that the
+        // door it needs is not there: opened from the product's own server it must fail honestly instead of
+        // showing a working review screen.
+        await page.goto('/publication-review.html');
+        await expect(page.getByTestId('review-problem')).toBeVisible();
+        await expect(page.getByTestId('review')).toHaveCount(0);
+        await expect(page.getByTestId('review-problem')).not.toContainText('schemaVersion');
+
+        // And the production bundle has no review entry at all: the A4 isolation gate scans `dist` for it
+        // (docs/18 §6.2), because `index.html` is the only build input.
     });
 
     test('the page says out loud that it is local and not yet public', async ({ page }) => {

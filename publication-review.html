@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <!-- A private tool: never indexed, never linked from the product. -->
+        <meta name="robots" content="noindex, nofollow" />
+        <title>发布审核 · Henry's Reading World</title>
+    </head>
+    <body>
+        <div id="review-root"></div>
+        <!--
+            The reviewer is a second document, not a route of the product. Vite's production build only
+            takes `index.html` as its input, so this screen — and the policy endpoints it talks to — cannot
+            end up in a public build.
+        -->
+        <script type="module" src="/src/review/main.tsx"></script>
+    </body>
+</html>

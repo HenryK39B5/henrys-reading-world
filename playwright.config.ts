@@ -6,13 +6,15 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
     testDir: './e2e',
-    // Review captures and the public-mode empty-state check are run explicitly:
-    // `npm run capture:review`, `npm run capture:v2e`, `npm run capture:v2e4` and `npm run test:public`.
+    // Review captures, the reviewer's own run and the public-mode empty-state check are run explicitly:
+    // `npm run capture:review`, `npm run capture:v2e`, `npm run capture:v2e4`, `npm run test:public` and
+    // `npm run test:publication`. The reviewer talks to a different server on a different port.
     testIgnore: [
         '**/capture.spec.ts',
         '**/capture-v2e.spec.ts',
         '**/capture-v2e4.spec.ts',
         '**/empty-state.spec.ts',
+        '**/publication/**',
     ],
     fullyParallel: false,
     forbidOnly: true,

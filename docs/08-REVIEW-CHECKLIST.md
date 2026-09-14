@@ -994,6 +994,67 @@ DeepSeek v4.1 Flash 按 `docs/16` 连续完成 E4A → E4B → E4C。每阶段�
 
 > 本记录交存的是交接当时的状态（`状态：ready-for-implementation`）。实际执行与验收见上方 V2-E4C 与下方 V2-E4D 记录；本批次的真实结果以那两节为准。
 
+## Release-A3 publication policy 与本机审核器（2026-09-13）
+
+```text
+日期 / 执行者：2026-09-13 / 实现 Agent（DeepSeek v4.1 Flash）
+范围：Release-A3 — 书级 publication policy、单条排除、逐书封面开关、本机审核器与安全保存（docs/18 §5）
+状态：verified（本机 Chromium）；真机与 Safari 未验证；未生成正式 public snapshot
+数据模式：真实数据 local-only；只新增只读审核工具与 .private 写入，未改快照/稳定 ID/主题
+代码基线：72c02c9（Release-A1）
+```
+
+### 完成内容
+
+- **纯领域契约** `src/domain/publication.ts`：`initialPublicationPolicy` / `reconcilePublicationPolicy` / `validatePublicationPolicy` / `publicationSummary` / `bookStats` / `selectedHighlights` / `projectPublicationPreview` / `releaseReadiness` 与一组纯编辑函数（书级决定、封面开关、单条排除、私有 note、审核完成）。无 I/O。
+- **默认拒绝**：新书一律 `unreviewed`；不在清单里的书也当 `unreviewed` 处理；`projectPublicationPreview` 只投影 `publish` 的书。
+- **单条排除**：`excludedHighlightIds` 必须属于该书且不重复，否则校验器报错（附 stable ID，不打印原文）；排除项在书被改为 `exclude` 再改回 `publish` 后仍然保留。
+- **封面独立**：`cover` 与 `decision` 分开；关闭封面只是不把 `coverPath` 写进投影，书本身仍在。
+- **书架重算**：只保留仍有公开划线的书架；`themeIds` 不悬空；空书（公开但一条不剩）被列为阻断项。
+- **预览永不冒充发布**：投影 `visibility` 恒为 `local-only`，无论决定如何。
+- **`npm run publication:init`**：不存在时生成；存在时只追加新书为 `unreviewed`，已有决定与单条排除一律保留；清单校验失败时**拒绝写入并报告**，不修复。
+- **`npm run publication:preview`**：只写 `.private/publication-preview-snapshot.json` 与 `.private/publication-audit.json`；audit 只含 ID / 数量 / 长度，不含被排除原文；允许生成工作预览但 `releaseReady=false`。
+- **本机审核器**：`npm run publication:review`（模式 `review-private`，端口 5174，严格本机）。独立文档 `publication-review.html` + `src/review/`；总进度、书级三态、封面开关、概览数字（划线条数 / 累计字符 / 最长 / ≥200 字条数）、展开后的真实划线（可按稳定 ID / 长度 / 年份排序）、单条排除、私有 note、保存与重载、审核完成开关。
+
+### 写接口的安全边界（docs/18 §5.4）
+
+只在 `review-private` 注册 `/__publication_policy`（GET/PUT）：
+
+- 其他方法 405；非 `application/json` 415；body 上限 8 MB（超出 413）；
+- **Origin 必须为本机且端口匹配**（伪造 `https://example.invalid` 实测 403，文件字节不变）；
+- 写前用真实快照校验整份清单，不合法 422（例如指向别的项目或悬空 ID）；
+- 临时文件 + `rename` 原子替换；`Cache-Control: no-store`；固定路径，请求不能指定文件；
+- 普通 `dev` / `build` / `preview` 不存在该接口；从产品自己的服务器打开审核器会诚实报错而不是出现一个可用的审核页；
+- `READING_WORLD_PUBLICATION_DIR` 只作为**进程环境变量**重定向可写文件，供自动化测试使用，绝不是请求参数——你的真实审核清单不会被测试覆盖。
+
+### 命令 → 实际结果
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run typecheck` / `lint` | 无错误 |
+| `npm run check:local` | **241 单测 / 18 文件**通过（+32：`publication` 26 条 + 脚本 6 条） |
+| `npx playwright test` | **103 通过**（+1：普通服务器上 policy 不可读写） |
+| `npx playwright test --config playwright.publication.config.ts` | **9/9 通过**（审核器 UI、保存与重载、单条排除、封面开关、拒绝 premature complete、接口形状、伪造 Origin） |
+| `npm run publication:init`（临时目录） | 生成 130 本全部未审核；第二次运行输出 `already in step`，不覆盖 |
+| `npm run publication:preview`（全部未审核） | `books: published 0, excluded 0, unreviewed 130`；预览 `books/highlights/themes` 均为空；`releaseReady: false — 还有 130 本书未审核 / 没有任何划线会被公开` |
+| `src/data/public-snapshot.json` | 前后字节完全一致（脚本测试断言） |
+| 审核器实测（真实数据） | 已审核 4 / 130、预计公开 1055 条 / 118323 字符、长引用 156 条、书架 4 / 10；b-013 显示 531 条 / 85589 字符 / 最长 398 / ≥200 字 148 条 |
+
+### 未验证项
+
+- 真机与 Safari 未验证；审核器 390 宽度的观感属人工项；
+- 未做真实 130 本审核（属用户下一步）；未生成正式 public snapshot、未复制 public covers。
+
+### 偏差 / 设计判断
+
+- **审核器不复用产品的视觉语言**：它是工具，信息密度是功能而非风格；产品页面的克制不属于审核屏。
+- **面向界面的理由用中文**：`releaseReadiness.reasons` 直接展示给审核者，因此改为中文（单测同步）。
+- **`visibility` 用 `local-only`**：预览不是发布，不应伪称 public。
+
+### 下一步
+
+Release-A4：私有 preview 证据、隔离 Gate 与全批次验证。
+
 ## Release-A2 书籍房间有限随机轮（2026-09-13）
 
 ```text
