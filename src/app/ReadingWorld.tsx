@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { indexSnapshot } from '../domain/snapshot.ts';
 import type { Snapshot } from '../domain/types.ts';
-import { INITIAL_BOOK_BATCH, INITIAL_PASSAGE_BATCH } from '../domain/reading.ts';
+import { INITIAL_BOOK_BATCH } from '../domain/reading.ts';
 import { ALL_SCOPE, type StageScope } from '../domain/selection.ts';
 import { useStageSessions } from '../features/encounter/useStageSessions.ts';
 import { AboutRoom } from '../features/rooms/AboutRoom.tsx';
@@ -13,8 +13,7 @@ import { ThemeRoom } from '../features/rooms/ThemeRoom.tsx';
 import { ThemesRoom } from '../features/rooms/ThemesRoom.tsx';
 import { UnknownRoom } from '../features/rooms/UnknownRoom.tsx';
 import { useBatches } from '../features/rooms/useBatches.ts';
-import { useBookRooms } from '../features/rooms/useBookRoom.ts';
-import { useRoomMemory } from '../features/rooms/useRoomMemory.ts';
+import { useBookWalks } from '../features/rooms/useBookRoom.ts';import { useRoomMemory } from '../features/rooms/useRoomMemory.ts';
 import { ShareDialog } from '../features/share/ShareDialog.tsx';
 import { useShare } from '../features/share/useShare.ts';
 import { Nav } from './Nav.tsx';
@@ -94,11 +93,9 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
     const { openDeepLink } = stage;
 
     const activeBookId = route.name === 'book' ? route.bookId : '';
-    const bookRooms = useBookRooms(activeBookId, index.snapshot.books, index.snapshot.highlights);
-    // Two stores: a library screen and a passage list are different collections with different first
-    // batches, and neither should inherit the other's "show more" position.
+    const bookWalks = useBookWalks(activeBookId, index);
+    // A library screen and a book room are different collections; only the library still batches.
     const bookBatches = useBatches(INITIAL_BOOK_BATCH);
-    const passageBatches = useBatches(INITIAL_PASSAGE_BATCH);
 
     /**
      * Sharing lives beside the rooms, not inside one: it holds a locked passage id and nothing else, so
@@ -247,10 +244,8 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
                     <BookRoom
                         index={index}
                         bookId={route.bookId}
-                        year={route.year}
                         nowYear={nowYear}
-                        batches={passageBatches}
-                        room={bookRooms}
+                        room={bookWalks}
                         onBack={router.previousPath === null ? null : goBack}
                         onShare={share.open}
                     />

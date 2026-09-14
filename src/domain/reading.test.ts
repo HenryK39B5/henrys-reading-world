@@ -3,8 +3,6 @@ import { indexSnapshot } from './snapshot.ts';
 import {
     BOOK_BATCH_STEP,
     INITIAL_BOOK_BATCH,
-    INITIAL_PASSAGE_BATCH,
-    PASSAGE_BATCH_STEP,
     batchLabel,
     countThemeYear,
     expandCount,
@@ -54,15 +52,6 @@ describe('batches stay bounded and honest', () => {
         expect(hasMore(loaded, 130)).toBe(false);
     });
 
-    it('reaches the end of the largest real book exactly', () => {
-        let loaded = INITIAL_PASSAGE_BATCH;
-        while (hasMore(loaded, 531)) {
-            loaded = expandCount(loaded, 531, PASSAGE_BATCH_STEP);
-        }
-        expect(loaded).toBe(531);
-        expect(hasMore(loaded, 531)).toBe(false);
-    });
-
     it('describes the current batch without rounding', () => {
         expect(batchLabel(10, 253)).toBe('显示 10 / 253');
         expect(batchLabel(531, 531)).toBe('显示 531 / 531');
@@ -79,11 +68,6 @@ describe('book passages', () => {
 
     it('lists one book in stable id order, never in array order', () => {
         expect(passagesOfBook(index, 'b-001').map((item) => item.id)).toEqual(['h-001', 'h-003']);
-    });
-
-    it('filters by a real year only', () => {
-        expect(passagesOfBook(index, 'b-001', 2024).map((item) => item.id)).toEqual(['h-003']);
-        expect(passagesOfBook(index, 'b-001', 1999)).toEqual([]);
     });
 
     it('returns nothing for a book the snapshot does not hold', () => {

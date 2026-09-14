@@ -122,20 +122,6 @@ test.describe('the full keyboard journey', () => {
             return;
         }
 
-        // A year of this book that holds more passages than one batch, so the batch control really exists.
-        const perYear = new Map<number, number>();
-        for (const highlight of data.highlights) {
-            if (highlight.bookId === bookId && highlight.year !== undefined) {
-                perYear.set(highlight.year, (perYear.get(highlight.year) ?? 0) + 1);
-            }
-        }
-        const busiestYear = [...perYear.entries()].sort((left, right) => right[1] - left[1])[0];
-        test.skip(busiestYear === undefined || busiestYear[1] <= 10, 'need a year holding more than one batch');
-        if (busiestYear === undefined) {
-            return;
-        }
-        const [year] = busiestYear;
-
         const entry = data.firstOfBook.get(bookId);
         expect(entry).toBeTruthy();
         if (entry === undefined) {
@@ -169,27 +155,20 @@ test.describe('the full keyboard journey', () => {
         await expect(page.getByTestId('room-heading')).toContainText(book.title);
         expect(new URL(page.url()).pathname).toBe(`/books/${bookId}`);
 
-        // ---- 单书的年份筛选 ----
-        await tabUntil(page, `book-year-${String(year)}`);
+        // ---- 单书的随机轮 ----
+        // The book room walks one book in rounds (docs/17 §3): a passage, an honest progress line, and
+        // another passage on request. There is no per-book year filter and no batched list to tab through.
+        await expect(page.getByTestId('book-walk-progress')).toContainText('本轮已看 1 / ');
+        await tabUntil(page, 'book-random');
         await page.keyboard.press('Enter');
-        await expect(page.getByTestId(`book-year-${String(year)}`)).toHaveAttribute('aria-current', 'true');
-
-        // ---- 单书的批次 ----
-        await tabUntil(page, 'book-more');
-        const labelBefore = await page.getByTestId('book-batch-label').innerText();
+        await expect(page.getByTestId('book-walk-progress')).toContainText('本轮已看 2 / ');
+        expect(await page.locator('[data-testid^="book-year-"]').count()).toBe(0);
         await page.keyboard.press('Enter');
-        await expect(page.getByTestId('book-batch-label')).not.toHaveText(labelBefore);
+        await expect(page.getByTestId('book-walk-progress')).toContainText('本轮已看 3 / ');
 
         // ---- 返回上一处 ----
-        // A filter is its own history entry (docs/02 §6), so the first step back is the same book without
-        // the filter and the second is the hall. Both go through the same `history.back()` the browser
-        // button uses, rather than a second, private notion of "back".
-        await tabUntil(page, 'room-back');
-        await page.keyboard.press('Enter');
-        await expect(page.getByTestId('room-heading')).toContainText(book.title);
-        await expect(page.getByTestId('book-year-all')).toHaveAttribute('aria-current', 'true');
-        expect(new URL(page.url()).search).toBe('');
-
+        // The book was opened straight from the hall, so one step back is the hall itself. It goes through
+        // the same `history.back()` the browser button uses, rather than a second, private notion of "back".
         await tabUntil(page, 'room-back');
         await page.keyboard.press('Enter');
         await expect(page.getByTestId('room-heading')).toHaveText('随便看看');

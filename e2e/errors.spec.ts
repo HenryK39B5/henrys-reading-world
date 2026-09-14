@@ -41,12 +41,13 @@ test.describe('unreachable addresses stay honest and escapable', () => {
 
         await page.goto('/books/b-does-not-exist');
         await expect(page.getByTestId('book-missing')).toBeVisible();
-        await expect(page.getByTestId('book-passages')).toHaveCount(0);
+        await expect(page.getByTestId('book-random-area')).toHaveCount(0);
+        await expect(page.getByTestId('book-walk-progress')).toHaveCount(0);
         await page.getByTestId('exit-books').click();
         await expect(page.getByTestId('room-heading')).toContainText('所有书');
     });
 
-    test('a filter with no results explains itself and can be cleared', async ({ page }) => {
+    test('a book room ignores a filter left over from the library', async ({ page }) => {
         const data = loadSnapshot();
         const bookId = data.biggestBookId ?? data.books[0]?.id;
         test.skip(bookId === undefined, 'need a book');
@@ -54,21 +55,19 @@ test.describe('unreachable addresses stay honest and escapable', () => {
             return;
         }
 
-        // A year this book never had is not offered, so ask for the year of another book.
-        const ownYears = new Set(
-            data.highlights.filter((item) => item.bookId === bookId).map((item) => item.year ?? 0),
-        );
-        const foreignYear = data.highlights.map((item) => item.year ?? 0).find((year) => !ownYears.has(year));
-        test.skip(foreignYear === undefined, 'every real year is present in this book');
-        if (foreignYear === undefined) {
-            return;
-        }
-
-        await page.goto(`/books/${encodeURIComponent(bookId)}?year=${String(foreignYear)}`);
-        await expect(page.getByTestId('book-list-empty')).toBeVisible();
-        await expect(page.getByTestId('book-passages')).toHaveCount(0);
-        await page.getByTestId('book-year-all').click();
-        await expect(page.getByTestId('book-passages')).toBeVisible();
+        // A stale `?year=` link is normalised instead of producing an empty room: the round covers the
+        // whole book, so "this book showed nothing in that year" is no longer a state the room can be in
+        // (docs/17 §3.3). The address is rewritten after the room paints, so the check waits for it.
+        await page.goto(`/books/${encodeURIComponent(bookId)}?year=1998`);
+        await expect(page.getByTestId('book-random-text')).toBeVisible();
+        await expect
+            .poll(() => new URL(page.url()).search, {
+                message: 'the library filter must be dropped from the book room address',
+            })
+            .toBe('');
+        await expect(page.getByTestId('book-walk-progress')).toContainText('本轮已看 1 / ');
+        await expect(page.getByTestId('book-list-empty')).toHaveCount(0);
+        await expect(page.getByTestId('book-year-all')).toHaveCount(0);
     });
 });
 

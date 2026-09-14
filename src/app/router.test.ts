@@ -13,7 +13,7 @@ describe('routes are parsed from real paths', () => {
         expect(parseRoute('/themes')).toEqual({ name: 'themes' });
         expect(parseRoute('/themes/t-001')).toEqual({ name: 'theme', themeId: 't-001' });
         expect(parseRoute('/books')).toEqual({ name: 'books', year: null, themeId: null });
-        expect(parseRoute('/books/b-013')).toEqual({ name: 'book', bookId: 'b-013', year: null });
+        expect(parseRoute('/books/b-013')).toEqual({ name: 'book', bookId: 'b-013' });
         expect(parseRoute('/about')).toEqual({ name: 'about' });
     });
 
@@ -21,7 +21,9 @@ describe('routes are parsed from real paths', () => {
         expect(parseRoute('/books', '?year=2025')).toEqual({ name: 'books', year: 2025, themeId: null });
         expect(parseRoute('/books', '?theme=t-002')).toEqual({ name: 'books', year: null, themeId: 't-002' });
         expect(parseRoute('/books', '?year=2025&theme=t-002')).toEqual({ name: 'books', year: 2025, themeId: 't-002' });
-        expect(parseRoute('/books/b-001', '?year=2024')).toEqual({ name: 'book', bookId: 'b-001', year: 2024 });
+        // A book room names a book and nothing else: the library's year filter stays in the library
+        // (docs/17 §3.3). The stale parameter is not carried into the room's identity.
+        expect(parseRoute('/books/b-001', '?year=2024')).toEqual({ name: 'book', bookId: 'b-001' });
         // A year that is not a year, or is out of any plausible range of digits, is not invented.
         expect(parseRoute('/books', '?year=2025-01')).toEqual({ name: 'books', year: null, themeId: null });
         expect(parseRoute('/books', '?year=abc')).toEqual({ name: 'books', year: null, themeId: null });
@@ -53,11 +55,17 @@ describe('routes are rebuilt as canonical URLs', () => {
             '/books',
             '/books/b-013',
             '/about',
-            '/books/b-013?year=2025',
         ]) {
             const [pathname = '/', search = ''] = path.split('?');
             expect(routePath(parseRoute(pathname, search))).toBe(path);
         }
+    });
+
+    it('normalises a filtered book link left over from the library', () => {
+        // The room is the same room, so the canonical address drops the filter instead of keeping it
+        // (docs/17 §3.3). The page replaces the address; 返回上一处 still restores the filtered library.
+        expect(routePath(parseRoute('/books/b-013', '?year=2025'))).toBe('/books/b-013');
+        expect(routeKey(parseRoute('/books/b-013', '?year=2025'))).toBe('/books/b-013');
     });
 
     it('writes filters in a stable order', () => {
@@ -71,7 +79,7 @@ describe('routes are rebuilt as canonical URLs', () => {
         expect(route).toEqual({ name: 'theme', themeId: '中文' });
         expect(routePath(route)).toBe('/themes/%E4%B8%AD%E6%96%87');
         expect(routeKey(route)).toBe('/themes/%E4%B8%AD%E6%96%87');
-        expect(bookRoomKey('b-001', 2025)).toBe('/books/b-001?year=2025');
+        expect(bookRoomKey('b-001')).toBe('/books/b-001');
     });
 
     it('gives the six rooms distinct memory keys', () => {
@@ -81,7 +89,7 @@ describe('routes are rebuilt as canonical URLs', () => {
             routeKey({ name: 'theme', themeId: 't-001' }),
             routeKey({ name: 'books', year: null, themeId: null }),
             routeKey({ name: 'books', year: 2025, themeId: null }),
-            routeKey({ name: 'book', bookId: 'b-001', year: null }),
+            routeKey({ name: 'book', bookId: 'b-001' }),
             routeKey({ name: 'about' }),
         ];
         expect(new Set(keys).size).toBe(keys.length);
@@ -104,7 +112,6 @@ describe('a deep link names a passage inside the hall', () => {
         expect(parseRoute('/books/b-013', '?h=h-001&year=2025')).toEqual({
             name: 'book',
             bookId: 'b-013',
-            year: 2025,
         });
     });
 

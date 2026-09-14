@@ -1,39 +1,33 @@
 import { CoverImage } from '../../app/CoverImage.tsx';
+import { walkProgress } from '../../domain/bookWalk.ts';
+import { passagesOfBook } from '../../domain/reading.ts';
 import type { SnapshotIndex } from '../../domain/snapshot.ts';
-import { PASSAGE_BATCH_STEP, batchLabel, hasMore, passagesOfBook } from '../../domain/reading.ts';
 import { describeBookCollection, relativeYearLabel } from '../../domain/timeLabel.ts';
-import { summarizeThemes, yearOptions } from '../../domain/world.ts';
-import type { BatchStore } from './useBatches.ts';
+import { summarizeThemes } from '../../domain/world.ts';
 import type { BookRoomController } from './useBookRoom.ts';
 
 export type BookRoomProps = {
     index: SnapshotIndex;
     bookId: string;
-    /** The year filter belongs to this book's own list only. */
-    year: number | null;
     nowYear: number;
-    batches: BatchStore;
     room: BookRoomController;
     /** Present only when the visitor arrived from another room in this session. */
     onBack: (() => void) | null;
-    /** Shares the random passage at the top of the room; the list below it has no share controls. */
+    /** Shares the passage at the top of the room, which is the room's only visual centre. */
     onShare: (highlightId: string) => void;
 };
 
-function listHref(bookId: string, year: number | null): string {
-    return year === null ? `/books/${bookId}` : `/books/${bookId}?year=${String(year)}`;
-}
-
 /**
- * 书籍房间: one book with its own colour, one random real passage, and its passages in batches
- * (docs/12 §2.5).
+ * 书籍房间: one book, its own colour, and one real passage at a time (docs/17 §3).
  *
- * The random passage and the list are this room's own state. Reading here never consumes the cycle of the
- * hall or a shelf, so returning to those rooms shows the sentence that was there.
+ * The room used to unfold the whole book in batches. It now walks it: every available passage appears
+ * once in a round, the round reports how far it has come, and when it is over the room says so and waits
+ * for the visitor to start again. The full list only exists in the local publication reviewer, which is
+ * a tool rather than a room (docs/17 §5).
  */
-export function BookRoom({ index, bookId, year, nowYear, batches, room, onBack, onShare }: BookRoomProps) {
+export function BookRoom({ index, bookId, nowYear, room, onBack, onShare }: BookRoomProps) {
     const book = index.booksById.get(bookId);
-    const passages = book === undefined ? [] : (index.highlightsByBook.get(bookId) ?? []);
+    const passages = book === undefined ? [] : passagesOfBook(index, bookId);
 
     if (book === undefined || passages.length === 0) {
         return (
@@ -56,16 +50,11 @@ export function BookRoom({ index, bookId, year, nowYear, batches, room, onBack, 
         );
     }
 
-    const cover = book.coverPath;
     const current = room.state.currentId === null ? undefined : index.highlightsById.get(room.state.currentId);
     const shelves = summarizeThemes(index).filter((entry) => book.themeIds.includes(entry.theme.id));
-    const filtered = passagesOfBook(index, bookId, year);
-    const batchKey = `${bookId}|${year === null ? 'all' : String(year)}`;
-    const loaded = batches.loadedFor(batchKey, filtered.length);
-    const visible = filtered.slice(0, loaded);
-    const more = hasMore(loaded, filtered.length);
-    const years = yearOptions(index).filter((option) => passages.some((item) => item.year === option));
+    const progress = walkProgress(room.state, passages);
     const timeLabel = current === undefined ? null : relativeYearLabel(current.year, nowYear);
+    const single = passages.length <= 1;
 
     return (
         <section className="room room-book" aria-labelledby="book-heading" data-room="book">
@@ -73,7 +62,7 @@ export function BookRoom({ index, bookId, year, nowYear, batches, room, onBack, 
                 <span className="book-head-cover" aria-hidden="true">
                     <CoverImage
                         title={book.title}
-                        coverPath={cover}
+                        coverPath={book.coverPath}
                         className="book-head-cover-image"
                         alt=""
                         fallback={<span className="book-cover-fallback">{book.title}</span>}
@@ -110,16 +99,21 @@ export function BookRoom({ index, bookId, year, nowYear, batches, room, onBack, 
                         {timeLabel === null ? null : <p className="book-random-time">{timeLabel}</p>}
                     </blockquote>
                 )}
+
+                <p className="book-walk-progress" data-testid="book-walk-progress" role="status">
+                    本轮已看 {progress.seen} / {progress.total}
+                </p>
+
                 <p className="book-random-actions">
-                    <button
-                        type="button"
-                        className="next-button"
-                        data-testid="book-random"
-                        disabled={passages.length <= 1}
-                        onClick={room.random}
-                    >
-                        随机看一处
-                    </button>
+                    {single ? null : progress.complete ? (
+                        <button type="button" className="next-button" data-testid="book-restart" onClick={room.restart}>
+                            重新看一轮
+                        </button>
+                    ) : (
+                        <button type="button" className="next-button" data-testid="book-random" onClick={room.next}>
+                            再看一处
+                        </button>
+                    )}
                     {current === undefined ? null : (
                         <button
                             type="button"
@@ -133,80 +127,19 @@ export function BookRoom({ index, bookId, year, nowYear, batches, room, onBack, 
                             分享
                         </button>
                     )}
-                    {passages.length <= 1 ? (
+                    {single ? (
                         <span className="room-note" data-testid="book-random-note">
                             这本书目前只收录了一处划线。
                         </span>
                     ) : null}
                 </p>
+
+                {single || !progress.complete ? null : (
+                    <p className="book-walk-complete room-note" data-testid="book-walk-complete">
+                        这本书收录的 {progress.total} 处划线已经看过一遍了
+                    </p>
+                )}
             </div>
-
-            <section className="book-list-section" aria-labelledby="book-list-heading">
-                <h2 id="book-list-heading" className="section-heading">
-                    这本书的划线
-                </h2>
-                <div className="filter-row">
-                    <span className="filter-label">年份</span>
-                    <a
-                        className="chip"
-                        href={listHref(bookId, null)}
-                        data-testid="book-year-all"
-                        aria-current={year === null ? 'true' : undefined}
-                    >
-                        全部
-                    </a>
-                    {years.map((option) => (
-                        <a
-                            key={option}
-                            className="chip"
-                            href={listHref(bookId, option)}
-                            data-testid={`book-year-${String(option)}`}
-                            aria-current={year === option ? 'true' : undefined}
-                        >
-                            {option}
-                        </a>
-                    ))}
-                </div>
-
-                {visible.length === 0 ? (
-                    <p className="room-note" data-testid="book-list-empty">
-                        这本书在 {String(year)} 年没有收录划线。
-                        <a className="link-button" href={listHref(bookId, null)}>
-                            显示全部
-                        </a>
-                    </p>
-                ) : (
-                    <ul className="passage-list" data-testid="book-passages">
-                        {visible.map((item) => (
-                            <li key={item.id} className="passage-item" data-testid={`book-passage-${item.id}`}>
-                                <p className="passage-text">{item.text}</p>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-
-                {more ? (
-                    <p className="batch-row">
-                        <button
-                            type="button"
-                            className="link-button"
-                            data-testid="book-more"
-                            onClick={() => {
-                                batches.expand(batchKey, filtered.length, PASSAGE_BATCH_STEP);
-                            }}
-                        >
-                            再看 {String(Math.min(PASSAGE_BATCH_STEP, filtered.length - loaded))} 处
-                        </button>
-                        <span className="batch-label" data-testid="book-batch-label">
-                            {batchLabel(loaded, filtered.length)}
-                        </span>
-                    </p>
-                ) : (
-                    <p className="batch-label" data-testid="book-batch-label">
-                        {filtered.length === 0 ? '' : `已显示全部 ${String(filtered.length)} 处`}
-                    </p>
-                )}
-            </section>
 
             <nav className="room-exits" aria-label="去别的房间">
                 {onBack === null ? null : (

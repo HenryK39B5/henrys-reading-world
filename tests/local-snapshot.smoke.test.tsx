@@ -5,6 +5,9 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { StatusPanel } from '../src/app/StatusPanel.tsx';
 import { loadSnapshot } from '../src/app/snapshotSource.ts';
+import { walkRound } from '../src/domain/bookWalk.ts';
+import { indexSnapshot } from '../src/domain/snapshot.ts';
+import { passagesOfBook, unreachableHighlights } from '../src/domain/reading.ts';
 
 /**
  * Real-data smoke check for the local development path.
@@ -72,4 +75,77 @@ describe.skipIf(!hasLocalSnapshot)('local snapshot smoke', () => {
             }
         }
     });
+
+    /**
+     * Reachability, proven against the real library (docs/17 §3.4).
+     *
+     * The book room stopped unfolding a batched list, so "walk the list to its end" is no longer the proof
+     * that everything is reachable. The replacement is stronger: one round of one book visits *every* passage
+     * of that book exactly once, so the union over the 130 books is the whole library. Drawing 4,663 times
+     * here is a deterministic script over real data, not a browser journey, and no passage text is printed.
+     */
+    it('reaches every real passage through one round per book', async () => {
+        const parsed: unknown = JSON.parse(await readFile(SNAPSHOT_PATH, 'utf8'));
+        const result = await loadSnapshot('local', fileFetcher(parsed));
+        expect(result.status).toBe('ready');
+        if (result.status !== 'ready') {
+            return;
+        }
+        const index = indexSnapshot(result.snapshot);
+        expect(unreachableHighlights(index)).toEqual([]);
+
+        // A deterministic RNG: the sweep and an always-same draw must both cover the book.
+        const covered = new Set<string>();
+        for (const book of index.booksInUse) {
+            const passages = passagesOfBook(index, book.id);
+            const round = walkRound(book.id, passages, sweepish(13));
+            expect(round.length, `${book.id} must show every passage once`).toBe(passages.length);
+            expect(new Set(round).size, `${book.id} must not repeat inside a round`).toBe(passages.length);
+            for (const id of round) {
+                covered.add(id);
+            }
+        }
+
+        // The union is the whole library: every real passage is reachable by walking its own book.
+        expect(covered.size).toBe(result.snapshot.highlights.length);
+        for (const highlight of result.snapshot.highlights) {
+            expect(covered.has(highlight.id)).toBe(true);
+        }
+    });
+
+    it('walks the largest real book to its last passage inside one round', async () => {
+        const parsed: unknown = JSON.parse(await readFile(SNAPSHOT_PATH, 'utf8'));
+        const result = await loadSnapshot('local', fileFetcher(parsed));
+        expect(result.status).toBe('ready');
+        if (result.status !== 'ready') {
+            return;
+        }
+        const index = indexSnapshot(result.snapshot);
+        const largest = [...index.highlightsByBook.entries()].sort((left, right) => right[1].length - left[1].length)[0];
+        expect(largest).toBeDefined();
+        if (largest === undefined) {
+            return;
+        }
+        const [bookId, all] = largest;
+        expect(all.length).toBeGreaterThan(200);
+
+        const first = (): number => 0;
+        const last = (): number => 0.999_999;
+        for (const rng of [first, last, sweepish(97)]) {
+            const round = walkRound(bookId, all, rng);
+            expect(round).toHaveLength(all.length);
+            expect(new Set(round).size).toBe(all.length);
+            expect([...round].sort()).toEqual(all.map((item) => item.id).sort());
+        }
+        console.log(`largest real book: ${String(all.length)} passages, covered in one round with 0 repeats`);
+    });
 });
+
+/** A fixed sweep over [0, 1): deterministic and evenly spread, so the draw never depends on luck. */
+function sweepish(steps: number): () => number {
+    let cursor = 0;
+    return () => {
+        cursor = (cursor + 1) % steps;
+        return cursor / steps;
+    };
+}

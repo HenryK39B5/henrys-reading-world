@@ -33,14 +33,14 @@ function booksHref(year: number | null, themeId: string | null): string {
 }
 
 /**
- * One book's own URL, carrying the year the visitor was looking at.
+ * One book's own URL.
  *
- * The year filter belongs to both lists (docs/11 §5.3): opening a book from 2024 must show that
- * book's 2024 passages, not quietly widen back to the whole book. A shelf filter is not passed on —
- * a shelf is a way of finding books, not a property of one. 返回上一处 restores the library it came from.
+ * The library's year filter is where the visitor was, not a property of the book: the room walks the
+ * whole book in rounds, so the link no longer carries `?year=` (docs/17 §3.3). 返回上一处 still restores
+ * the filtered library it came from, because that address is the library's own.
  */
-function bookHref(bookId: string, year: number | null): string {
-    return year === null ? `/books/${bookId}` : `/books/${bookId}?year=${String(year)}`;
+function bookHref(bookId: string): string {
+    return `/books/${bookId}`;
 }
 
 /**
@@ -115,7 +115,7 @@ export function BooksRoom({ index, year, themeId, batches }: BooksRoomProps) {
             ) : (
                 <ul className="book-list" data-testid="book-list">
                     {visible.map((entry) => (
-                        <BookRow key={entry.book.id} entry={entry} year={year} />
+                        <BookRow key={entry.book.id} entry={entry} />
                     ))}
                 </ul>
             )}
@@ -145,10 +145,10 @@ export function BooksRoom({ index, year, themeId, batches }: BooksRoomProps) {
     );
 }
 
-function BookRow({ entry, year }: { entry: BookEntry; year: number | null }) {
+function BookRow({ entry }: { entry: BookEntry }) {
     return (
         <li className="book-item">
-            <a className="book-link" href={bookHref(entry.book.id, year)} data-testid={`book-${entry.book.id}`}>
+            <a className="book-link" href={bookHref(entry.book.id)} data-testid={`book-${entry.book.id}`}>
                 <span className="book-cover" aria-hidden="true">
                     <CoverImage
                         title={entry.book.title}

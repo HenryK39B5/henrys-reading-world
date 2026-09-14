@@ -27,7 +27,11 @@ export type RoomRoute =
     | { name: 'themes' }
     | { name: 'theme'; themeId: string }
     | ({ name: 'books' } & BookFilters)
-    | { name: 'book'; bookId: string; year: number | null }
+    /**
+     * 书籍房间. It names a book and nothing else: the room walks that book's passages in rounds, so a
+     * filter from the library cannot narrow what the room shows (docs/17 §3.3).
+     */
+    | { name: 'book'; bookId: string }
     | { name: 'about' }
     /** A path this build does not know; the page shows a quiet, escapable state. */
     | { name: 'unknown'; path: string };
@@ -82,7 +86,9 @@ export function parseRoute(pathname: string, search = ''): RoomRoute {
             return { name: 'books', year: readYear(params), themeId: params.get('theme') };
         }
         if (segments.length === 2 && second !== undefined) {
-            return { name: 'book', bookId: second, year: readYear(params) };
+            // A `?year=` left over from the library is not part of the book room: `routePath` drops it and
+            // the page replaces the address, so a stale filtered link still lands on the book (docs/17 §3.3).
+            return { name: 'book', bookId: second };
         }
     }
     if (head === 'about' && segments.length === 1) {
@@ -114,8 +120,7 @@ export function routePath(route: RoomRoute): string {
             return query.length === 0 ? '/books' : `/books?${query}`;
         }
         case 'book': {
-            const path = `/books/${encodeURIComponent(route.bookId)}`;
-            return route.year === null ? path : `${path}?year=${String(route.year)}`;
+            return `/books/${encodeURIComponent(route.bookId)}`;
         }
         case 'unknown':
             return route.path;
@@ -142,8 +147,8 @@ export function routeKey(route: RoomRoute): string {
 }
 
 /** The room a book room was opened from, so its return control can exist without inventing a target. */
-export function bookRoomKey(bookId: string, year: number | null = null): string {
-    return routeKey({ name: 'book', bookId, year });
+export function bookRoomKey(bookId: string): string {
+    return routeKey({ name: 'book', bookId });
 }
 
 type HistoryEntryState = { path?: string; previous?: string | null };

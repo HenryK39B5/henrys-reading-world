@@ -994,6 +994,73 @@ DeepSeek v4.1 Flash 按 `docs/16` 连续完成 E4A → E4B → E4C。每阶段�
 
 > 本记录交存的是交接当时的状态（`状态：ready-for-implementation`）。实际执行与验收见上方 V2-E4C 与下方 V2-E4D 记录；本批次的真实结果以那两节为准。
 
+## Release-A2 书籍房间有限随机轮（2026-09-13）
+
+```text
+日期 / 执行者：2026-09-13 / 实现 Agent（DeepSeek v4.1 Flash）
+范围：Release-A2 — 书籍房间从分批顺序列表迁移为有限、无重复的随机轮（docs/18 §4）
+状态：verified（本机 Chromium）；真机与 Safari 未验证
+数据模式：真实数据 local-only；未修改快照、稳定 ID、主题或发布状态
+代码基线：dbf7c87（V2-E4E）
+```
+
+### 完成内容
+
+- 新增纯领域模块 `src/domain/bookWalk.ts`：`startWalk` / `nextInWalk` / `restartWalk` / `walkProgress` / `walkRound`。候选按 stable ID 排序；所有抽取注入 RNG。
+- `BookRoom` 删除顺序列表、`显示 X / N`、`再看 一处` 批次与单书年份筛选；现在显示书籍信息 + **一句**真实划线 + `本轮已看 X / N` + `再看一处` + 分享。
+- 完成态：最后一条出现后显示 `这本书收录的 N 处划线已经看过一遍了`，`再看一处` 换成 `重新看一轮`；**不自动重置**。单条书：进入即完成，仍可看出处与分享。
+- 单书年份筛选移除，`/books/:id?year=` 规范化为 `/books/:id`（replace，不新增历史）；书库年份筛选与返回现场不变。
+- 会话内回到同一本书恢复当前句与进度；刷新开新的一轮；无 localStorage / 账号 / 跨设备状态。
+- 删除不再使用的 `.passage-list` / `.passage-item` / `.passage-text` / `.book-list-section` / `.section-heading` 样式与 `INITIAL_PASSAGE_BATCH` / `PASSAGE_BATCH_STEP`。
+
+### 发现并修复的真实缺陷（StrictMode + ref 缓存）
+
+首次并行回归中，一本**只有 2 条的**书稳定出现：进度走到 `2 / 2`，但屏幕上仍是第一条原文（页面快照确认）。这不是测试问题：
+
+- 旧写法在 **render 阶段**把新建的 walk 写进 `sessions` ref（`useState` 初始化器 + 切书时的 render 内 setState）；
+- React 开发模式会丢弃第一次 render，而 ref 已被那次被丢弃的 render 写过；于是“屏幕上显示的 walk”与“事件处理器从缓存读到的 walk”是两份不同状态；
+- 点击 `再看一处` 时，处理器基于第二份状态取“未见过”的条目，正好可能是第一份状态已经显示的那一条 → 文本不变、进度前进。
+
+修复（`useBookRoom.ts` 重写）：
+
+1. **每书缓存只从 effect 写入**（即只写 React 真正提交过的状态），被丢弃的 render 无法污染它；
+2. **事件处理器只推进已提交的 state**，不再读缓存取当前状态；缓存只在进入一本书时用于恢复。
+
+修复后同一用例并行 `--repeat-each=6` 18/18；修复前 5/6 失败。这是本阶段的主要收获：一个仅在 React 双渲染下出现的状态错位，在单跑中永远看不到。
+
+### 可达性证明的迁移（docs/17 §3.4）
+
+旧证明是“把分批列表走到末尾”；新证明更强，且不再依赖浏览器点击：
+
+| 证明 | 结果 |
+| --- | --- |
+| 纯函数属性测试（`bookWalk.test.ts`） | 1 / 2 / 3 / 10 / 57 / 531 条：一轮恰好 N 次、N 个不同 ID、结束时 complete 且只能在最后一条后成立 |
+| 真实最大书 b-013（`tests/local-snapshot.smoke.test.tsx`） | **531 条一轮 531 次，重复 0**（三种固定 RNG 各验一次） |
+| 全部 130 本各一轮并集 | **4,663 / 4,663**；`unreachableHighlights` 为空 |
+| 浏览器小样本书一轮走完 | 真实 2 条书：一轮 2 条不重复 → 完成提示 → 显式重开 → 新轮 1 / 2 |
+
+### 命令 → 实际结果
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run typecheck` / `lint` | 无错误 |
+| `npm run check:local` | **209 单测 / 16 文件**通过（+13：`bookWalk` 12 条 + 阅读层调整） |
+| `npm run smoke:local` | **5/5**（+2 条真实数据随机轮证明） |
+| `npx playwright test` | **102 通过**（100 → 102：新增整轮完成/返回恢复两条） |
+| `npx playwright test e2e/rooms.spec.ts -g "whole round|largest book|leaving and returning" --repeat-each=6` | **18/18** |
+| `npm run capture:review` | 通过；书籍房间 `passageNodes 1` / `totalElements 60–61`（同一房间以前是 10 条列表），最大书 6 次抽取 339ms |
+| `npm run verify:ids` | 20 本 / 46 条不变；4,663 / 130 |
+| 浏览器实测 | 《黑天鹅》157 条 → `本轮已看 1 / 157`；最大书 b-013 531 条 → `1 / 531`；320/390/768/1440 溢出 0px |
+
+### 未验证项
+
+- 真机与 Safari 未验证；完成态/重开态的视觉观感属于人工判断项；
+- 若一本书的可用划线在会话中变化（本产品不会发生），`nextInWalk` 会诚实报“本轮结束”而不是静默重复。
+
+### 下一步
+
+Release-A3：publication policy 与本机发布审核器。
+
 ## Release-A1 / V2-E4E 复制文本来源分层（2026-09-13）
 
 ```text

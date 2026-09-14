@@ -51,8 +51,13 @@ function byId(left: Highlight, right: Highlight): number {
     return left.id < right.id ? -1 : left.id > right.id ? 1 : 0;
 }
 
-/** Uniform draw over an already-ordered list; the tail is clamped so no candidate is unreachable. */
-function pickUniform<T>(items: T[], rng: () => number): T | null {
+/**
+ * Uniform draw over an already-ordered list; the tail is clamped so no candidate is unreachable.
+ *
+ * Exported because the book room's own walk (docs/17 §3) draws from a subset the same way: one place
+ * decides what "uniform" means, so the walk and the stage cannot drift apart.
+ */
+export function pickUniform<T>(items: T[], rng: () => number): T | null {
     if (items.length === 0) {
         return null;
     }

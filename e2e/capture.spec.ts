@@ -139,7 +139,9 @@ async function smallestTarget(page: Page): Promise<number> {
 
 async function density(page: Page) {
     return page.evaluate(() => ({
-        passageNodes: document.querySelectorAll('.passage-text').length,
+        // Passages the page has rendered at once. A book room shows exactly one now (docs/17 §3), so this
+        // is the number that proves the room did not grow back into a list.
+        passageNodes: document.querySelectorAll('.book-random-text, .stage-text').length,
         bookRows: document.querySelectorAll('.book-item').length,
         shelfRows: document.querySelectorAll('.shelf-item').length,
         images: document.querySelectorAll('img').length,
@@ -349,7 +351,7 @@ test.describe('review capture', () => {
         await page.screenshot({ path: join(OUT_DIR, 'book-room-1440.png'), fullPage: true });
         console.log(`book room heading: ${await page.getByTestId('room-heading').innerText()}`);
         console.log(`book room aura: ${JSON.stringify(await auraInfo(page))}`);
-        console.log(`book room batch label: ${await page.getByTestId('book-batch-label').innerText()}`);
+        console.log(`book room walk progress: ${await page.getByTestId('book-walk-progress').innerText()}`);
         console.log(`book room density: ${JSON.stringify(await density(page))}`);
         console.log(`book room contrast: ${JSON.stringify(await contrastRatios(page))}`);
 
@@ -470,18 +472,17 @@ test.describe('review capture', () => {
             const [bookId, count] = largest;
             await page.goto(`/books/${bookId}`);
             await roomReady(page);
-            console.log(`largest book first batch: ${await page.getByTestId('book-batch-label').innerText()}`);
+            console.log(`largest book walk progress: ${await page.getByTestId('book-walk-progress').innerText()}`);
             const started = Date.now();
-            guard = 0;
-            while ((await page.getByTestId('book-more').count()) > 0 && guard < 40) {
-                await page.getByTestId('book-more').click();
-                guard += 1;
+            // A bounded number of draws, not the whole round: the point of the capture is that a
+            // 531-passage book opens as one passage and stays responsive (docs/17 §3).
+            for (let step = 0; step < 5; step += 1) {
+                await page.getByTestId('book-random').click();
             }
-            await expect(page.getByTestId('book-passages').locator('.passage-item')).toHaveCount(count);
             console.log(
-                `largest book walked to its last passage: ${await page.getByTestId('book-batch-label').innerText()} in ${String(Date.now() - started)}ms`,
+                `largest book after six draws: ${await page.getByTestId('book-walk-progress').innerText()} in ${String(Date.now() - started)}ms, real count ${String(count)}`,
             );
-            console.log(`largest book expanded density: ${JSON.stringify(await density(page))}`);
+            console.log(`largest book walk density: ${JSON.stringify(await density(page))}`);
             await page.screenshot({ path: join(OUT_DIR, 'book-room-longest-expanded-1440.png'), fullPage: true });
         }
 
@@ -520,16 +521,18 @@ test.describe('review capture', () => {
         }
 
         if (edges.longest !== null) {
-            await page.goto(`/books/${edges.longest.bookId}`);
+            // The longest line in the library is shown through its own address: inside a book room a passage
+            // now arrives through the round, so a specific one cannot be asked for there (docs/17 §3).
+            await page.goto(`/?h=${encodeURIComponent(edges.longest.id)}`);
             await roomReady(page);
             await page.waitForTimeout(700);
-            const metrics = await passageMetrics(page, '.book-random-text');
+            const metrics = await passageMetrics(page, '.stage-text');
             console.log(
                 `longest real passage on screen: ${String(edges.longestLength)} characters, ${String(metrics.lines)} lines, font ${String(metrics.fontSize)}px`,
             );
-            await page.screenshot({ path: join(OUT_DIR, 'book-room-longest-passage-1440.png'), fullPage: true });
+            await page.screenshot({ path: join(OUT_DIR, 'opening-longest-1440.png'), fullPage: true });
             await page.setViewportSize({ width: 390, height: 844 });
-            await page.screenshot({ path: join(OUT_DIR, 'book-room-longest-passage-390.png'), fullPage: true });
+            await page.screenshot({ path: join(OUT_DIR, 'opening-longest-390.png'), fullPage: true });
             await page.setViewportSize({ width: 1440, height: 900 });
         }
 

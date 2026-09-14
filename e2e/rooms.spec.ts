@@ -220,13 +220,15 @@ test.describe('rooms and their URLs', () => {
 
         const density = await page.evaluate(() => ({
             elements: document.querySelectorAll('*').length,
-            passageNodes: document.querySelectorAll('.passage-text').length,
+            passageNodes: document.querySelectorAll('.book-random-text, .stage-text').length,
             bookRows: document.querySelectorAll('.book-item').length,
             shelfRows: document.querySelectorAll('.shelf-item').length,
         }));
         // The hall is one room: a sentence, its attribution and three quiet exits.
         expect(density.elements).toBeLessThan(120);
-        expect(density.passageNodes).toBe(0);
+        // One rendered passage is the hall's whole point; the number that matters is that it is one
+        // passage rather than a list of them.
+        expect(density.passageNodes).toBe(1);
         expect(density.bookRows).toBe(0);
         expect(density.shelfRows).toBe(0);
         console.log(`hall density: ${JSON.stringify(density)}`);
@@ -348,7 +350,8 @@ test.describe('a room comes back the way it was left', () => {
         // Away into a book, then back.
         await target.click();
         await expect(page.getByTestId('room-heading')).toContainText('《');
-        await expect(page.getByTestId('book-passages')).toBeVisible();
+        await expect(page.getByTestId('book-walk-progress')).toBeVisible();
+        await expect(page.getByTestId('book-random-text')).toBeVisible();
         await page.goBack();
         await roomReady(page);
 
@@ -378,8 +381,17 @@ test.describe('a room comes back the way it was left', () => {
 
         await page.getByTestId('book-random').click();
         const second = (await page.getByTestId('book-random-text').innerText()).trim();
-        expect(data.byText.get(second)?.bookId, '随机看一处 never leaves the book').toBe(bookId);
+        expect(data.byText.get(second)?.bookId, '再看一处 never leaves the book').toBe(bookId);
         expect(second).not.toBe(first);
+
+        // The room walks the book in rounds: the progress is this book's round, not a reading statistic.
+        await expect(page.getByTestId('book-walk-progress')).toHaveText(
+            `本轮已看 2 / ${String(bookCountFor(data, bookId))}`,
+        );
+        // And the full list no longer lives in the room at all (docs/17 §5).
+        await expect(page.getByTestId('book-more')).toHaveCount(0);
+        await expect(page.getByTestId('book-batch-label')).toHaveCount(0);
+        await expect(page.locator('.book-random-text')).toHaveCount(1);
 
         await page.getByTestId('nav-hall').click();
         await roomReady(page);
@@ -440,7 +452,7 @@ test.describe('the whole library stays reachable, in batches', () => {
         expect(total).toBe(data.books.length);
     });
 
-    test('the largest book walks to its last passage', async ({ page }) => {
+    test('the largest book walks one passage at a time to the end of its round', async ({ page }) => {
         const data = loadSnapshot();
         const biggest = [...data.countByBook.entries()].sort((left, right) => right[1] - left[1])[0];
         expect(biggest).toBeDefined();
@@ -452,21 +464,111 @@ test.describe('the whole library stays reachable, in batches', () => {
 
         await page.goto(`/books/${bookId}`);
         await roomReady(page);
-        await expect(page.getByTestId('book-passages').locator('.passage-item')).toHaveCount(10);
-        await expect(page.getByTestId('book-batch-label')).toHaveText(`显示 10 / ${String(count)}`);
+        await expect(page.getByTestId('book-count')).toHaveText(`这里收录了 ${String(count)} 处划线`);
+        await expect(page.getByTestId('book-walk-progress')).toHaveText(`本轮已看 1 / ${String(count)}`);
+        // One passage is rendered, however many the book holds: the round is the visitor's pace.
+        await expect(page.locator('.book-random-text')).toHaveCount(1);
+        // A bounded room even for the largest book in the library: no list, no batch controls.
+        expect(await page.locator('.room-book *').count()).toBeLessThan(140);
 
-        let guard = 0;
-        while ((await page.getByTestId('book-more').count()) > 0 && guard < 40) {
-            await page.getByTestId('book-more').click();
-            guard += 1;
+        // Walking twice never repeats a passage inside the round and never skips ahead of it.
+        const seen = new Set([(await page.getByTestId('book-random-text').innerText()).trim()]);
+        for (let step = 2; step <= 6; step += 1) {
+            await page.getByTestId('book-random').click();
+            // Wait for the round to actually advance before reading the sentence: a re-render is not a
+            // promise, and reading the text a moment early is how this check would go flaky.
+            await expect(page.getByTestId('book-walk-progress')).toHaveText(`本轮已看 ${String(step)} / ${String(count)}`);
+            const text = (await page.getByTestId('book-random-text').innerText()).trim();
+            expect(seen.has(text), 'a round must not repeat a passage').toBe(false);
+            seen.add(text);
         }
-        await expect(page.getByTestId('book-passages').locator('.passage-item')).toHaveCount(count);
-        await expect(page.getByTestId('book-batch-label')).toHaveText(`已显示全部 ${String(count)} 处`);
-        // The initial paint is bounded even for the largest book in the library.
-        expect(guard).toBeGreaterThan(20);
+        expect(seen.size).toBe(6);
+        // The round is long, so the completion note and the restart control are still ahead.
+        await expect(page.getByTestId('book-walk-complete')).toHaveCount(0);
+        await expect(page.getByTestId('book-restart')).toHaveCount(0);
     });
 
-    test('a sampled book opens with its real count in a bounded first batch', async ({ page }) => {
+    test('a whole round completes, says so, and only restarts when asked', async ({ page }) => {
+        const data = loadSnapshot();
+        // A small real book: the point is the end of a round, and a 500-passage book is not needed to
+        // reach it. The 531-passage round is proven deterministically against the real snapshot in
+        // `tests/local-snapshot.smoke.test.tsx` instead of by hundreds of clicks here.
+        const small = [...data.countByBook.entries()]
+            .filter(([, count]) => count >= 2)
+            .sort((left, right) => left[1] - right[1])[0];
+        expect(small, 'the snapshot must hold a book with more than one passage').toBeDefined();
+        if (small === undefined) {
+            return;
+        }
+        const [bookId, count] = small;
+
+        await page.goto(`/books/${bookId}`);
+        await roomReady(page);
+        await expect(page.getByTestId('book-walk-progress')).toHaveText(`本轮已看 1 / ${String(count)}`);
+
+        const seen = new Set([(await page.getByTestId('book-random-text').innerText()).trim()]);
+        for (let step = 2; step <= count; step += 1) {
+            await page.getByTestId('book-random').click();
+            // Advance by observation, not by hoping the re-render already happened.
+            await expect(page.getByTestId('book-walk-progress')).toHaveText(
+                `本轮已看 ${String(step)} / ${String(count)}`,
+            );
+            const text = (await page.getByTestId('book-random-text').innerText()).trim();
+            expect(seen.has(text), `passage ${String(step - 1)} of the round must be new`).toBe(false);
+            seen.add(text);
+        }
+
+        // Every passage of the book was shown exactly once, and the room says the round is over.
+        expect(seen.size).toBe(count);
+        await expect(page.getByTestId('book-walk-progress')).toHaveText(`本轮已看 ${String(count)} / ${String(count)}`);
+        await expect(page.getByTestId('book-walk-complete')).toHaveText(
+            `这本书收录的 ${String(count)} 处划线已经看过一遍了`,
+        );
+        // No silent restart: 再看一处 is gone and the visitor is offered a new round instead.
+        await expect(page.getByTestId('book-random')).toHaveCount(0);
+        await expect(page.getByTestId('book-restart')).toBeVisible();
+
+        const atTheEnd = (await page.getByTestId('book-random-text').innerText()).trim();
+        await page.getByTestId('book-restart').click();
+        await expect(page.getByTestId('book-walk-progress')).toHaveText(`本轮已看 1 / ${String(count)}`);
+        await expect(page.getByTestId('book-walk-complete')).toHaveCount(0);
+        await expect(page.getByTestId('book-random')).toBeVisible();
+        expect(data.byText.get(atTheEnd)?.bookId).toBe(bookId);
+    });
+
+    test('leaving and returning to a book keeps its passage and its progress', async ({ page }) => {
+        const data = loadSnapshot();
+        const biggest = [...data.countByBook.entries()].sort((left, right) => right[1] - left[1])[0];
+        expect(biggest).toBeDefined();
+        if (biggest === undefined) {
+            return;
+        }
+        const [bookId, count] = biggest;
+
+        await page.goto(`/books/${bookId}`);
+        await roomReady(page);
+        await page.getByTestId('book-random').click();
+        await expect(page.getByTestId('book-walk-progress')).toHaveText(`本轮已看 2 / ${String(count)}`);
+        const before = (await page.getByTestId('book-random-text').innerText()).trim();
+
+        // Out to the library and back, without reloading the document.
+        await page.getByTestId('exit-books').click();
+        await roomReady(page);
+        await expect(page.getByTestId('room-heading')).toHaveText('所有书');
+        await page.goBack();
+        await roomReady(page);
+
+        // Same passage, same round: the walk is this session's memory (docs/17 §3.2).
+        await expect(page.getByTestId('book-random-text')).toHaveText(before);
+        await expect(page.getByTestId('book-walk-progress')).toHaveText(`本轮已看 2 / ${String(count)}`);
+
+        // A fresh load starts a fresh round rather than storing state outside the session.
+        await page.reload();
+        await roomReady(page);
+        await expect(page.getByTestId('book-walk-progress')).toHaveText(`本轮已看 1 / ${String(count)}`);
+    });
+
+    test('a sampled book opens with its real count and one passage at a time', async ({ page }) => {
         const data = loadSnapshot();
         const counts = [...data.countByBook.entries()].sort((left, right) => right[1] - left[1]);
         const largest = counts[0];
@@ -481,10 +583,13 @@ test.describe('the whole library stays reachable, in batches', () => {
             await page.goto(`/books/${bookId}`);
             await roomReady(page);
             await expect(page.getByTestId('book-count')).toHaveText(`这里收录了 ${String(count)} 处划线`);
-            const shown = Math.min(10, count);
-            await expect(page.getByTestId('book-passages').locator('.passage-item')).toHaveCount(shown);
-            const visible = await page.getByTestId('book-passages').locator('.passage-item').count();
-            expect(visible).toBeLessThanOrEqual(10);
+            await expect(page.getByTestId('book-walk-progress')).toHaveText(
+                `本轮已看 1 / ${String(count)}`,
+            );
+            // Bounded initial paint: one passage node and a small DOM however large the book is.
+            await expect(page.locator('.book-random-text')).toHaveCount(1);
+            expect(await page.locator('.room-book *').count()).toBeLessThan(140);
+            await expect(page.getByTestId('book-random-text')).not.toHaveText('');
         }
     });
 
@@ -548,7 +653,7 @@ test.describe('the whole library stays reachable, in batches', () => {
         );
     });
 
-    test('the year filter follows the visitor into the opened book', async ({ page }) => {
+    test('the year filter stays in the library and does not reshape the book room', async ({ page }) => {
         const data = loadSnapshot();
         // A real book that really has passages in more than one year, so the filter can be told apart
         // from "this book only has one year anyway".
@@ -568,7 +673,6 @@ test.describe('the whole library stays reachable, in batches', () => {
         const inYear = data.highlights.filter((item) => item.bookId === bookId && item.year === year);
         const wholeBook = data.countByBook.get(bookId) ?? 0;
         expect(inYear.length).toBeLessThan(wholeBook);
-        const keptIds = new Set(inYear.map((item) => item.text.trim()));
 
         // Reach the book the way a visitor does: filtered library, then the book it lists.
         await page.goto(`/books?year=${String(year)}`);
@@ -580,27 +684,28 @@ test.describe('the whole library stays reachable, in batches', () => {
         }
         const link = page.getByTestId(`book-${bookId}`);
         await expect(link).toBeVisible();
-        // The filter is part of where the visitor was, so it travels with the link.
-        await expect(link).toHaveAttribute('href', `/books/${bookId}?year=${String(year)}`);
+        // The filter belongs to the library: the book's own address names the book and nothing else.
+        await expect(link).toHaveAttribute('href', `/books/${bookId}`);
         await link.click();
         await roomReady(page);
-        expect(new URL(page.url()).searchParams.get('year')).toBe(String(year));
+        await expect.poll(() => new URL(page.url()).search, { message: 'the book address names the book' }).toBe('');
 
-        // And the book room's own list is the filtered one, not the whole book.
-        await expect(page.getByTestId(`book-year-${String(year)}`)).toHaveAttribute('aria-current', 'true');
-        await expect(page.getByTestId('book-batch-label')).toHaveText(
-            inYear.length > 10
-                ? `显示 10 / ${String(inYear.length)}`
-                : `已显示全部 ${String(inYear.length)} 处`,
-        );
-        for (const text of await page.locator('.passage-text').allInnerTexts()) {
-            expect(keptIds.has(text.trim()), `${text.slice(0, 12)} is not a ${String(year)} passage`).toBe(true);
-        }
+        // The room walks the whole book in rounds instead of narrowing to the year (docs/17 §3.3).
+        await expect(page.getByTestId('book-walk-progress')).toHaveText(`本轮已看 1 / ${String(wholeBook)}`);
+        await expect(page.locator('[data-testid^="book-year-"]')).toHaveCount(0);
+        await expect(page.getByTestId('book-count')).toHaveText(`这里收录了 ${String(wholeBook)} 处划线`);
 
         // Leaving the book returns to the same filtered library.
         await page.getByTestId('room-back').click();
         await roomReady(page);
         await expect(page.getByTestId(`year-${String(year)}`)).toHaveAttribute('aria-current', 'true');
+
+        // A stale filtered book link from before this change still lands on the book, normalised.
+        await page.goto(`/books/${bookId}?year=${String(year)}`);
+        await roomReady(page);
+        await expect(page.getByTestId('room-heading')).toContainText(multiYear.book.title);
+        await expect.poll(() => new URL(page.url()).search, { message: 'a stale filter is normalised' }).toBe('');
+        await expect(page.getByTestId('book-walk-progress')).toHaveText(`本轮已看 1 / ${String(wholeBook)}`);
     });
 
     test('a book without a cover falls back to its real title, and long passages stay complete', async ({ page }) => {
@@ -622,8 +727,13 @@ test.describe('the whole library stays reachable, in batches', () => {
         // No invented image: the real title is typeset in place of the cover.
         await expect(page.locator('.book-head-cover .book-cover-fallback')).toHaveText(target.title);
         await expect(page.locator('.book-head-cover img')).toHaveCount(0);
+        // The room still shows a real passage of that same book.
+        const shown = (await page.getByTestId('book-random-text').innerText()).trim();
+        expect(data.byText.get(shown)?.bookId).toBe(target.id);
 
-        // The longest real passage in the library is rendered whole, never clipped.
+        // The longest real passage in the library is rendered whole, never clipped. It is opened through
+        // its own stable link, which is the address that names one passage (docs/15 §4.1); inside a book
+        // room a passage arrives through the round instead of being addressable.
         const longest = parsed.highlights
             .map((item) => ({ item, length: [...item.text].filter((char) => !/\s/u.test(char)).length }))
             .sort((left, right) => right.length - left.length)[0];
@@ -631,16 +741,11 @@ test.describe('the whole library stays reachable, in batches', () => {
         if (longest === undefined) {
             return;
         }
-        await page.goto(`/books/${longest.item.bookId}`);
+        await page.goto(`/?h=${encodeURIComponent(longest.item.id)}`);
         await roomReady(page);
-        let guard = 0;
-        while ((await page.getByTestId('book-more').count()) > 0 && guard < 40) {
-            await page.getByTestId('book-more').click();
-            guard += 1;
-        }
-        const rendered = page.locator('.passage-text').filter({ hasText: longest.item.text.slice(0, 12) });
-        await expect(rendered).toHaveCount(1);
-        const metrics = await rendered.first().evaluate((element) => ({
+        const rendered = page.locator('.stage-text');
+        await expect(rendered).toHaveText(longest.item.text);
+        const metrics = await rendered.evaluate((element) => ({
             scrollWidth: element.scrollWidth,
             clientWidth: element.clientWidth,
             overflow: window.getComputedStyle(element).overflow,

@@ -75,8 +75,6 @@
 .filter-row,
 .book-list,
 .shelf-list,
-.passage-list,
-.book-list-section,
 .batch-row,
 .about-line,
 .about-text {
@@ -86,8 +84,7 @@
 /* Sentence before controls, controls before the rest: the reading order of one room. */
 .stage,
 .book-random,
-.room-note,
-.book-list-section {
+.room-note {
     animation-delay: 60ms;
 }
 
@@ -95,7 +92,6 @@
 .filter-row,
 .book-list,
 .shelf-list,
-.passage-list,
 .batch-row {
     animation-delay: 120ms;
 }
@@ -136,8 +132,6 @@
     .filter-row,
     .book-list,
     .shelf-list,
-    .passage-list,
-    .book-list-section,
     .batch-row,
     .about-line,
     .about-text {
@@ -499,44 +493,23 @@
     color: var(--ink-soft);
 }
 
+.book-walk-progress {
+    margin: 18px 0 0;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    color: var(--ink-soft);
+}
+
+.book-walk-complete {
+    margin: 10px 0 0;
+}
+
 .book-random-actions {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 14px;
-    margin: 24px 0 0;
-}
-
-.book-list-section {
-    margin-top: 40px;
-}
-
-.section-heading {
-    font-family: var(--stage-font);
-    font-size: 20px;
-    font-weight: 400;
-    margin: 0 0 6px;
-}
-
-.passage-list {
-    list-style: none;
-    margin: 12px 0 0;
-    padding: 0;
-    max-width: 40em;
-}
-
-.passage-item {
-    border-top: 1px solid var(--rule);
-    padding: 14px 0;
-}
-
-.passage-text {
-    margin: 0;
-    font-family: var(--stage-font);
-    font-size: 17px;
-    line-height: 1.8;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
+    margin: 16px 0 0;
 }
 
 .about-line {
