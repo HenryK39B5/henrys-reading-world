@@ -5,7 +5,7 @@
 ## 当前状态
 
 - 阶段：v1 Slice 0–4、V2-A～V2-E4D 均已完成；**Release-A（V2-E4E → 有限随机书籍轮 → 发布清单与本机审核器 → 私有 preview 与隔离 Gate）已实现并验收**。
-- 下一阶段：由你完成 130 本审核，然后才讨论 Release-B（正式 public snapshot 与封面缩略图）、Release-C（Pages base/静态入口/workflow）与部署。未生成 public snapshot、未创建 GitHub repo、未 push。
+- 发布审核：用户已完成两轮审核，私有清单当前为 **108 本公开 / 22 本排除 / 6 条单独排除**，`reviewComplete=true`；下一阶段才讨论 Release-B（正式 public snapshot 与封面缩略图）、Release-C（Pages base/静态入口/workflow）与部署。未生成 public snapshot、未创建 GitHub repo、未 push。
 - 产品方向：轻松漫游与公平原则见 `docs/10`，房间/Book Aura 见 `docs/12`；公开审核、随机书籍房间和 GitHub Pages 目标以 `docs/17-PUBLICATION-DIRECTION-AND-RELEASE-A.md` 为最新权威；下一批唯一实现 Prompt 为 `docs/18-RELEASE-A-PUBLICATION-REVIEW-IMPLEMENTER-PROMPT.md`。
 - 硬约束：所有开发只使用 Henry 本人的真实划线，不使用 fake / demo 数据；主题属于书籍，不做逐句人格标签。
 - 当前页面数据（local-only）：**4,663 条真实划线 · 130 本书 · 14 个主题书架 · 2024–2026**；房间一次只渲染一个视觉中心，全部内容通过舞台、主题书架与单书房间分批可达。
@@ -36,7 +36,7 @@ npm run snapshot:local      # 生成全量 local-only 快照
 ```powershell
 npm run check:local         # typecheck + lint + 单测 + 快照校验（开发主校验）
 npm run verify:ids          # 20 本 / 46 条稳定 ID 指向同一真实材料
-npm run test:e2e            # Playwright，真实 Chromium，103 个用例（房间、随机书籍轮、深链、分享与卡片、滚动锁、缩放、键盘、错误、隐私）
+npm run test:e2e            # Playwright，真实 Chromium，104 个用例（房间、随机书籍轮、深链、分享与卡片、滚动锁、缩放、键盘、错误、隐私）
 npm run test:publication    # 发布审核器的浏览器验收（独立服务器与端口，使用临时清单目录）
 npm run capture:review      # 生成评审截图 + 可读数字，输出到 .private/review/rooms-batch/
 npm run capture:v2e         # 生成 V2-E 证据截图（dialog、卡片、200% 缩放、剪贴板失败），输出到 .private/review/v2-e/
@@ -92,7 +92,9 @@ npm run publication:preview    # 只写 .private/ 的私有投影与 audit，不
 npm run test:publication       # 审核器的浏览器验收（用临时目录，不碰你真实清单）
 ```
 
-规则：**未审核 = 不公开**；书是主要单位（公开/排除），公开书可单独排除个别划线；封面默认公开但可逐书关闭；130 本必须先全部做出决定才能标记“审核完成”。随机书籍房间改善的是浏览体验，**不减少实际发布的文字量**——版权与隐私按真正进入投影的全部内容计算。
+规则：**未审核 = 不公开**；书是主要单位（公开/排除），公开书可单独排除个别划线；封面默认公开但可逐书关闭；130 本必须先全部做出决定才能标记“审核完成”。当前审核已完成（108 / 22 / 6）。随机书籍房间改善的是浏览体验，**不减少实际发布的文字量**——版权与隐私按真正进入投影的全部内容计算。
+
+外部导入文件若带有 `.epub`、来源后缀或错误作者，可在 `.private/curation/book-metadata-overrides.json` 用稳定项目 book ID 做用户批准的标题/作者修正；原始采集记录保持不变，备注不会进入快照。
 
 稳定深链 `/?h=<highlightId>` 可直接打开某一条真实划线；刷新、书签、新标签页都指向同一条；从其他房间带 `h` 会被规范化为该房间地址。地址里的划线失效时页面提示 `这条划线暂不可用` 并正常公平开局。
 

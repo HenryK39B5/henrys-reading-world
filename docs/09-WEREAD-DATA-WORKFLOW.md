@@ -98,6 +98,16 @@
 
 每一个快照都使用 `03` 的最小字段结构。原始 book / bookmark ID、账号 VID、原始 deepLink、精确时间、私密想法和返回 envelope 不进入前端。`coverPath` 只接受 `covers/`（公开）与 `local-covers/`（仅本机服务）两种前缀，详见 `03 §2`。
 
+### 6.1 用户批准的书籍元数据清洗
+
+外部导入记录有时把文件名、`.epub`、来源后缀或错误作者带入平台标题。不得直接改写原始 notebooks / fetch-plan 回包；用户批准后，在仅本机文件 `.private/curation/book-metadata-overrides.json` 中以稳定项目 book ID 记录 title / author 修正：
+
+- schemaVersion 固定为 1；只接受 `b-xxx` 项目 ID，不接受 sourceBookId、账号或平台原始 ID；
+- title / author 至少修正一项；可写私有 note 说明依据，note 不进入快照；
+- `npm run snapshot:local` 严格校验后应用 override；引用不存在的书、空值或多余字段时拒绝重建；
+- 原始采集记录、stable book/highlight ID、原文、主题与年份不变；public preview 只看到清洗后的访客元数据；
+- 目前用户批准清洗 4 本外部导入记录；具体决定与依据留在 `.private`，不把来源备注写进公开数据。
+
 没有审核许可不把记录标为 public；即使 `secret=0`，也不自动把 Henry 的整本书所有划线公开。API secret 状态是风险信号，不是本站出版许可。
 
 用户已给予全部书籍的开发使用与传输许可。开发快照可直接把所选真实划线记为 `usePermission=local-only`（意为“尚未做发布决定”），不需逐条确认；`public` 状态留待公开发布前的确认。隔离方案见 `02 §4`。

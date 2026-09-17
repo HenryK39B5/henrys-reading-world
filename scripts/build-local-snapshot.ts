@@ -9,14 +9,16 @@
  *   .private/curation/fetch-plan.json     - the real book list; titles and authors come from here
  *   .private/curation/id-map-v2.json      - permanent project-local ids for books and passages
  *   .private/curation/book-themes.json    - broad theme shelves, assigned per book (docs/11 §3)
+ *   .private/curation/book-metadata-overrides.json - optional, user-approved title/author corrections
  *   .private/curation/covers.json         - index of locally downloaded cover art
  *
  * Outputs (private):
  *   .private/local-snapshot.json                  - what dev:local serves
  *   .private/curation/snapshot-source-map.json    - highlight id -> source ids, for traceability
  *
- * Book titles and authors always come from the real capture, never from typed-in values. Passage text
- * is never printed. Original book/bookmark ids stay in the private source map.
+ * Book titles and authors come from the real capture unless a private, user-approved override corrects
+ * imported-file debris or bad metadata. The capture remains untouched and every override is keyed by a
+ * stable project ID. Passage text is never printed. Original book/bookmark ids stay in the private source map.
  *
  * Usage: npm run snapshot:local
  */
@@ -31,6 +33,7 @@ import {
     type Theme,
 } from '../src/domain/types.ts';
 import { validateSnapshot } from '../src/domain/validate.ts';
+import { parseBookMetadataOverrides, type BookMetadataOverrides } from './bookMetadataOverrides.ts';
 
 type Candidate = {
     candidateId: string;
@@ -46,6 +49,7 @@ const POOL_PATH = join(ROOT, '.private/curation/candidate-pool.json');
 const PLAN_PATH = join(ROOT, '.private/curation/fetch-plan.json');
 const ID_MAP_PATH = join(ROOT, '.private/curation/id-map-v2.json');
 const THEMES_PATH = join(ROOT, '.private/curation/book-themes.json');
+const METADATA_OVERRIDES_PATH = join(ROOT, '.private/curation/book-metadata-overrides.json');
 const COVERS_PATH = join(ROOT, '.private/curation/covers.json');
 const COVERS_DIR = join(ROOT, '.private/covers');
 const SNAPSHOT_PATH = join(ROOT, '.private/local-snapshot.json');
@@ -151,6 +155,15 @@ async function main(): Promise<void> {
             ...(description === undefined ? {} : { description }),
         };
     });
+    let metadataOverrides: BookMetadataOverrides = new Map();
+    try {
+        metadataOverrides = parseBookMetadataOverrides(await readJson(METADATA_OVERRIDES_PATH));
+    } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+            throw error;
+        }
+    }
+
     const themeIds = new Set(themes.map((theme) => theme.id));
     const themeIdsByPlanIndex = new Map<number, string[]>();
     for (const entry of asRecordArray(themeSource['books'], 'book themes')) {
@@ -204,6 +217,7 @@ async function main(): Promise<void> {
     const sourceMap: Record<string, unknown>[] = [];
     const warnings: string[] = [];
     const bookIds = new Set<string>();
+    const appliedMetadataOverrideIds = new Set<string>();
 
     const planIndexes = [...candidatesByPlanIndex.keys()].sort((left, right) => left - right);
     for (const planIndex of planIndexes) {
@@ -220,7 +234,14 @@ async function main(): Promise<void> {
         }
         bookIds.add(bookId);
 
-        const authorRaw = String(planEntry['author'] ?? '').trim();
+        const capturedTitle = requireString(planEntry['title'], `plan[${String(planIndex)}].title`);
+        const capturedAuthor = String(planEntry['author'] ?? '').trim();
+        const metadataOverride = metadataOverrides.get(bookId);
+        if (metadataOverride !== undefined) {
+            appliedMetadataOverrideIds.add(bookId);
+        }
+        const title = metadataOverride?.title ?? capturedTitle;
+        const author = metadataOverride?.author ?? (capturedAuthor.length > 0 ? capturedAuthor : UNKNOWN_AUTHOR_LABEL);
         const assignedThemes = themeIdsByPlanIndex.get(planIndex) ?? [];
         if (assignedThemes.length === 0) {
             warnings.push(`book planIndex ${String(planIndex)} has no theme shelf assigned`);
@@ -229,8 +250,8 @@ async function main(): Promise<void> {
 
         books.push({
             id: bookId,
-            title: requireString(planEntry['title'], `plan[${String(planIndex)}].title`),
-            author: authorRaw.length > 0 ? authorRaw : UNKNOWN_AUTHOR_LABEL,
+            title,
+            author,
             themeIds: assignedThemes,
             ...(coverFileName === undefined ? {} : { coverPath: `local-covers/${coverFileName}` }),
         });
@@ -254,6 +275,11 @@ async function main(): Promise<void> {
                 sourceBookmarkId: candidate.sourceBookmarkId,
             });
         }
+    }
+
+    const staleMetadataOverrideIds = [...metadataOverrides.keys()].filter((id) => !appliedMetadataOverrideIds.has(id));
+    if (staleMetadataOverrideIds.length > 0) {
+        throw new Error(`book metadata overrides reference unknown or empty books: ${staleMetadataOverrideIds.join(', ')}`);
     }
 
     highlights.sort((left, right) => highlightNumber(left.id) - highlightNumber(right.id));
@@ -288,6 +314,7 @@ async function main(): Promise<void> {
     const withCovers = result.snapshot.books.filter((book) => book.coverPath !== undefined).length;
     console.log(`books with a local cover: ${String(withCovers)}; without: ${String(result.snapshot.books.length - withCovers)}`);
     console.log(`source map entries: ${String(sourceMap.length)}`);
+    console.log(`metadata overrides applied: ${String(appliedMetadataOverrideIds.size)}`);
     console.log(`coverage warnings: ${String(result.warnings.length + warnings.length)}`);
     for (const warning of [...warnings, ...result.warnings]) {
         console.log(`  - ${warning}`);

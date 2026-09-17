@@ -6,7 +6,7 @@
 >
 > 本文件是 Public Release 阶段的产品与数据权威。它不自动授权生成正式 public snapshot、创建 GitHub 仓库、push 或部署；这些外部动作仍须在 Release-D / Release-E 由用户明确批准。
 >
-> 下一步（不属于已实现的 Release-A）：用户用 `npm run publication:review` 完成 130 本审核，然后才讨论 Release-B。
+> 用户已于 2026-09-17 完成两轮公开审核：私有清单为 108 本公开、22 本排除、6 条单独排除，`reviewComplete=true`；About 已补充原文语境说明，四本外部导入记录使用私有 metadata override 清洗展示信息。下一步才讨论 Release-B。
 >
 > 既有轻松漫游、公平抽样、主题属于 Book、稳定 ID、Book Aura、隐私隔离继续成立。与 `docs/11` 的“单书顺序列表”冲突时，本文件的新书籍房间决定优先。
 

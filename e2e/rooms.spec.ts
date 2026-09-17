@@ -187,6 +187,16 @@ test.describe('rooms and their URLs', () => {
         }
     });
 
+    test('about keeps real excerpts distinct from complete context or personal endorsement', async ({ page }) => {
+        await page.goto('/about');
+        await roomReady(page);
+
+        const context = page.getByTestId('about-context');
+        await expect(context).toContainText('原文划线');
+        await expect(context).toContainText('可能失去部分上下文');
+        await expect(context).toContainText('不代表我认同作者的全部观点');
+    });
+
     test('an unknown path explains itself and offers a way out', async ({ page }) => {
         await page.goto('/nope');
         await roomReady(page);

@@ -23,14 +23,15 @@
 | 出处展开（Slice 3） | 已完成 | 原位展开、真实收录计数、再看一处 / 收起、焦点回归、耗尽与单条明确说明 |
 | 书籍 / 主题 / About（Slice 4） | 已完成 | 书籍区与书详情、5 个主题的跨书连线、真实年份筛选与空交集处理、真实计数 About |
 | 导航 | 全部放开 | 随机 / 书 / 主题 / 关于 均为真链接，无禁用项 |
-| 浏览器验证 | Release-A4 后已独立重跑 | Playwright + Chromium（本机）：**103 个 local 用例** + **9 个审核器用例**；`scroll-lock` `--repeat-each=10`、`share`+`share-card` `--repeat-each=5` 均通过；1 个 public 空态用例通过 |
-| 本机检查 | Release-A4 后已独立重跑 | `check:local` 全绿：typecheck + lint + **241 个单测（18 文件）** + schema 2 数据校验；`verify:ids`、smoke、public build、`isolation:public` 与两种 local 模式 build 拒绝均通过 |
+| 浏览器验证 | 公开审核收口后已重跑 | Playwright + Chromium（本机）：**104 个 local 用例** + **9 个审核器用例**；1 个 public 空态用例通过；About 语境说明已截图人工查看 |
+| 本机检查 | 公开审核收口后已重跑 | `check:local` 全绿：typecheck + lint + **248 个单测（19 文件）** + schema 2 数据校验；`verify:ids`、6 个真实数据 smoke、public build、`isolation:public` 与 local-private build 拒绝均通过 |
 | 视觉检查（Astra） | 已执行 | 1440 / 390 实际截图；发现并修正孤字成行、26px 点击目标、出处行间距、移动端书目节奏 |
 | 评审证据工具 | 已建立 | `npm run capture:review`：截图 + 可读数字（字号 / 行数 / 对比度 / 点击目标 / 溢出 / 延迟）|
 | 封面与色彩（视觉修复） | 已完成 | 127 张真实书封下载到 `.private/covers/`；`local-covers/` 仅由 dev:local 服务；每本书主色从封面实时提取并降饱和 |
 | 连续换句录屏 | 有意不做 | 见下方“证据策略” |
 | 公开构建 | 已执行 | `npm run build` 成功；local 模式构建被拒绝；公开快照当前为空 |
-| 可公开快照 | 留到发布前 | 公开清单未审核，真实内容未进入 `src/data/` |
+| 发布审核清单 | 已完成两轮审核 | 私有 policy：108 本公开 / 22 本排除 / 6 条单独排除，`reviewComplete=true`，private preview `releaseReady=true` |
+| 可公开快照 | 仍未生成 | `src/data/public-snapshot.json` 保持 0 本 / 0 条；正式 export、public covers、repo、push 与部署留给后续 Release-B～E |
 | 数据覆盖缺口 | 已更新 | 真实划线无原始换行样本（唯一剩余警告）；年份仅 2024–2026；V2-A 后已不再限于 30–50 条样本 |
 | Product Critique #1 | 已完成方向评审 | 用户确认：不以塑造 Henry 印象为算法目标；改为全量真实划线的轻松漫游、书籍主题书架与公平两阶段抽样 |
 | v2 施工准备 | 已完成 | 最新产品决定见 `docs/10`，迁移与验收路线见 `docs/11` |
@@ -993,6 +994,62 @@ V2-E（最终独立批次），不在本阶段开始。
 DeepSeek v4.1 Flash 按 `docs/16` 连续完成 E4A → E4B → E4C。每阶段测试、记录、commit，Gate 通过后直接继续；全部完成后统一汇报。不部署、不 push、不生成 public snapshot。
 
 > 本记录交存的是交接当时的状态（`状态：ready-for-implementation`）。实际执行与验收见上方 V2-E4C 与下方 V2-E4D 记录；本批次的真实结果以那两节为准。
+
+## 公开审核收口：语境说明与元数据清洗（2026-09-17）
+
+```text
+日期 / 执行者：2026-09-17 / 实现 Agent
+范围：用户两轮公开审核收口；About 语境说明；四本外部导入记录元数据清洗
+状态：verified（本机 Chromium）；正式 public snapshot 仍为空
+数据模式：完整 local-only 快照 + 私有 publication policy / preview
+代码基线：dd25989（Release-A3）
+```
+
+### 用户决定与结果
+
+- 第一轮书级审核完成后，第二轮独立扫描覆盖 110 本 / 3,787 条；用户最终整本排除 2 本，并逐条审核讨论项。
+- 当前 policy：**108 本公开 / 22 本排除 / 0 未审核 / 6 条单独排除**，`reviewComplete=true`；private preview 为 **3,462 条 / 265,059 非空白字符 / 134 条 ≥200 字**，`releaseReady=true`。
+- 高划线书与重复版本按用户决定保留；敏感词不自动等于排除，逐条结合文学/学术语境判断。
+- `src/data/public-snapshot.json` 仍为 0 本 / 0 条，没有执行正式 export、封面复制、repo、push 或部署。
+
+### About 语境说明
+
+新增访客可见说明：`这里展示的是我在阅读中留下的原文划线。单句脱离原书后可能失去部分上下文，也不代表我认同作者的全部观点。`
+
+- 放在 `/about`，不污染每一次随机阅读；
+- 不为个别划线生成 AI 注释，不伪造前后段落，不改变原文；
+- 新增 local E2E，锁定“原文划线 / 上下文 / 不代表完整认同”三个语义。
+
+浏览器证据：`npm run capture:review` 通过；`.private/review/rooms-batch/about-1440.png` 已人工查看，1440 宽度下层级、行宽、留白与出口正常。
+
+### 私有 metadata override
+
+- 新增严格解析器 `scripts/bookMetadataOverrides.ts` 与 6 个单测；私有输入 `.private/curation/book-metadata-overrides.json` 只接受 schema 1、稳定 `b-xxx` ID、title / author / 私有 note。
+- `npm run snapshot:local` 在不改原始 notebooks / fetch-plan 的前提下应用 4 项用户批准修正；未知 ID、空值、原始 source ID 或多余字段会拒绝重建。
+- 清洗移除了外部文件名 / `.epub` / Z-Library 后缀、书名前不可见字符和错误作者；稳定 book/highlight ID、划线原文、主题与年份不变；私有 note 不进入快照。
+- 真实数据 smoke 锁定四本清洗后的 title / author，并断言快照中无 `Z-Library`、`.epub` 或私有决定备注。
+
+### 实际命令 → 结果
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run snapshot:local` | 4,663 / 130 / 14；127 本有封面；metadata overrides **4**；唯一原有换行警告 |
+| `npm run publication:preview` | 108 / 22 / 0；3,462 条；6 条单独排除；`releaseReady=true`；public snapshot 未写 |
+| `npm run check:local` | **248 单测 / 19 文件**通过 |
+| `npm run verify:ids` | 20 本 / 46 条稳定 ID 不变；总量 4,663 / 130 |
+| `npm run smoke:local` | **6/6** |
+| `npx playwright test` | **104/104** |
+| `npm run test:publication` | **9/9** |
+| `npm run test:public` | 1/1 |
+| `npm run capture:review` | 1/1；About 截图人工查看通过 |
+| `npm run build` | 成功；dist 仍为 3 个文件 |
+| `npm run isolation:public` | clean |
+| `npx vite build --mode local-private` | 按预期拒绝（退出码 1） |
+
+### 未验证 / 下一步
+
+- 真机与 Safari 未验证；公开快照、public cover 缩略图、历史扫描、Pages base 与部署均未开始。
+- 下一步只讨论 Release-B 的正式 export 与封面/泄漏 Gate；不得因 private preview `releaseReady=true` 自动进入公开发布。
 
 ## Release-A4 私有 preview、隔离 Gate 与全批次验收（2026-09-13）
 

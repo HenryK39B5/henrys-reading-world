@@ -52,6 +52,22 @@ describe.skipIf(!hasLocalSnapshot)('local snapshot smoke', () => {
         expect(html).toContain('真实划线数据已就绪');
     });
 
+    it('applies user-approved metadata cleanup without exposing correction provenance', async () => {
+        const snapshot = JSON.parse(await readFile(SNAPSHOT_PATH, 'utf8')) as {
+            books: { id: string; title: string; author: string }[];
+        };
+        const byId = new Map(snapshot.books.map((book) => [book.id, book]));
+        expect(byId.get('b-025')).toMatchObject({ title: '软件设计的哲学', author: '约翰·奥斯特豪特' });
+        expect(byId.get('b-031')).toMatchObject({ title: '客户的游艇在哪里：华尔街奇谈（典藏版）', author: '小弗雷德·施韦德' });
+        expect(byId.get('b-048')).toMatchObject({ title: '人月神话（二十周年纪念版）', author: '弗雷德里克·P.布鲁克斯' });
+        expect(byId.get('b-074')).toMatchObject({ title: '个人主义与经济秩序', author: '弗里德里希·冯·哈耶克' });
+
+        const serialized = JSON.stringify(snapshot);
+        expect(serialized).not.toContain('Z-Library');
+        expect(serialized).not.toContain('.epub');
+        expect(serialized).not.toContain('用户 2026-09-17');
+    });
+
     it('keeps source identifiers and raw capture fields out of the payload', async () => {
         const raw = await readFile(SNAPSHOT_PATH, 'utf8');
         for (const forbidden of ['planIndex', 'sourceBookId', 'bookmarkId', 'userVid', 'deepLink', 'secret']) {

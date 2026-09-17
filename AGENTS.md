@@ -13,7 +13,7 @@
 ## 执行规则
 
 - 先检查目录、现有实现及 Git 状态；保护既有工作，不因为本交接写着“无代码”就覆盖后续代码。
-- 当前 Slice 0–4、V2-A～V2-E4D 与 **Release-A（A1～A4）** 均已完成。下一步是用户自行完成 130 本审核（`npm run publication:review`），然后才讨论 **Release-B**（正式 public snapshot、封面缩略图、泄漏/历史扫描）与 **Release-C**（Pages base、静态房间入口、workflow）。不得自行公开导出、创建 repo、push 或部署。
+- 当前 Slice 0–4、V2-A～V2-E4D 与 **Release-A（A1～A4）** 均已完成；用户已完成两轮书级/逐条审核，当前私有清单为 108 本公开、22 本排除、6 条单独排除，`reviewComplete=true`。下一步才讨论 **Release-B**（正式 public snapshot、封面缩略图、泄漏/历史扫描）与 **Release-C**（Pages base、静态房间入口、workflow）。不得自行公开导出、创建 repo、push 或部署。
 - 使用 Windows 原生 Node/npm/Git 与 PowerShell。不要混用 WSL 路径。
 - 不在非空项目根目录直接运行可能覆盖文档的脚手架；优先逐文件建立 Vite 配置。
 - 版本首次安装时选择彼此兼容的稳定版本并提交 npm 锁文件，不凭空声称某版本是最新。

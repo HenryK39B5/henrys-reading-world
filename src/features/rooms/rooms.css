@@ -525,6 +525,11 @@
     max-width: 38em;
 }
 
+.about-context {
+    margin: 18px 0 0;
+    max-width: 46em;
+}
+
 @media (max-width: 640px) {
     .shelf-description {
         margin-left: 0;

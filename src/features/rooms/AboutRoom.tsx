@@ -29,6 +29,9 @@ export function AboutRoom({ index }: AboutRoomProps) {
                 {describeCollection(index)}；每条划线都保留原始文字与出处。
             </p>
             {about === undefined ? null : <p className="about-text">{about}</p>}
+            <p className="room-note about-context" data-testid="about-context">
+                这里展示的是我在阅读中留下的原文划线。单句脱离原书后可能失去部分上下文，也不代表我认同作者的全部观点。
+            </p>
 
             <nav className="room-exits" aria-label="去别的房间">
                 <a className="room-exit" href="/" data-testid="exit-hall">

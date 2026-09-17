@@ -6,19 +6,19 @@
 >
 > 施工细节与切片：`docs/11-V2-IMPLEMENTATION-PLAN.md`。
 >
-> 下一批唯一开工提示词：无。`docs/18` 的 Release-A（A1～A4）已全部完成；下一步由用户完成 130 本审核，然后才讨论 Release-B（正式 public snapshot / 封面缩略图 / 扫描）与 Release-C（Pages base 与 workflow）。
+> 下一批唯一开工提示词：无。`docs/18` 的 Release-A（A1～A4）及用户两轮公开审核均已完成；私有清单为 108 本公开、22 本排除、6 条单独排除。下一步才讨论 Release-B（正式 public snapshot / 封面缩略图 / 扫描）与 Release-C（Pages base 与 workflow）。
 
-## 当前状态（2026-09-13）
+## 当前状态（2026-09-17）
 
 - 当前代码基线：`73b80af Release-A2: local book-first publication review` + 本批次收尾提交，React / TypeScript / Vite。
 - v1 Slice 0–4、V2-A～V2-E4D 与 Release-A1～A4 均已完成。
 - schemaVersion 2；local-only 快照 **4,663 条真实划线 / 130 本书 / 14 个书籍主题书架**；127 本有本地封面。
 - v1 的 20 本 / 46 条项目稳定 ID 已保留；`npm run verify:ids` 提供永久回归防线。
-- 最近验证：**241 单测 / 18 文件、103 local Playwright、9 审核器 Playwright、1 public 空态**、5 真实数据 smoke；实现 Agent 开工时仍须重跑，不照抄数字。
+- 最近验证：**248 单测 / 19 文件、104 local Playwright、9 审核器 Playwright、1 public 空态**、6 真实数据 smoke；实现 Agent 开工时仍须重跑，不照抄数字。
 - 用户已实际使用并确认核心体验与分享卡片风格的一致性成立；卡片现已改为锁定书籍 Book Aura 派生的深色出版卡片，正文与次要文字在真实卡面上实测 9.33–11.49 与 5.94–7.31。
 - GPT-5.6 Sol 独立验收中首次全量 E2E 为 80/81，dialog 背景滚动偶发到 210px；已在 V2-E4A 定位根因（聚焦把页面拉回顶部、`overflow:hidden` 不阻止程序化滚动、StrictMode 第二次锁录取到被钳制的 0）并修复。
 - 真机移动端与 Safari 仍未验证（见 `docs/08` 的 V2-E4C 未验证项）。
-- 公开快照仍为空；开发可使用全部真实内容，发布仍待 PUB-01～PUB-07 决定。
+- 公开快照仍为空；私有 policy 已完成审核并可生成 private preview，但正式 export、public covers、repo、push 与部署仍未授权。
 
 ## 已确认的产品方向
 
