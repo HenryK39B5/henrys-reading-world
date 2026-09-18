@@ -2,7 +2,7 @@
 
 > 日期：2026-09-18
 >
-> 状态：Batch 0 施工权威。V3 由当前实现 Agent连续承担产品细化、代码、测试、内容生产、文档与本地提交；不再建立交给其他模型的唯一 Implementer Prompt。
+> 状态：V3 施工权威；Batch 0–2 已完成到用户词表 Gate。V3 由当前实现 Agent连续承担产品细化、代码、测试、内容生产、文档与本地提交；不再建立交给其他模型的唯一 Implementer Prompt。
 >
 > Release-B 暂停。V3 不自动授权正式 public snapshot、public covers、repo、push、workflow 或部署。
 

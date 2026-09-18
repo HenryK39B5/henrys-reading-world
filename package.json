@@ -38,8 +38,13 @@
     "embeddings:prepare": "node scripts/embedding-prepare.ts",
     "embeddings:baseline": "node scripts/embedding-baseline.ts",
     "embeddings:evaluate": "node scripts/embedding-evaluate.ts",
+    "embeddings:generate": "node scripts/embedding-generate.ts",
     "embeddings:compare": "node scripts/embedding-compare.ts",
-    "embeddings:neighbours": "node scripts/embedding-neighbours.ts"
+    "embeddings:neighbours": "node scripts/embedding-neighbours.ts",
+    "tags:sample": "node scripts/tag-discovery-sample.ts",
+    "tags:clusters": "node scripts/tag-discovery-clusters.ts",
+    "tags:seeds": "node scripts/tag-candidate-seeds.ts",
+    "tags:audit": "node scripts/tag-candidate-audit.ts"
   },
   "dependencies": {
     "react": "^19.3.0",

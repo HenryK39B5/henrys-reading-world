@@ -4,7 +4,7 @@
 
 | 项目 | 状态 | 说明 |
 | --- | --- | --- |
-| 产品基线 | V3 权威已建立 | PRODUCT_BRIEF 保留历史基线；产品 / 施工以 `docs/19–22` 为准，Batch 1 实况见 `docs/23` |
+| 产品基线 | V3 权威已建立 | PRODUCT_BRIEF 保留历史基线；产品 / 施工以 `docs/19–22` 为准，Batch 1–2 实况见 `docs/23–24` |
 | 开发文档 | 已准备 | 用户追加“只用真实数据”已纳入 |
 | Codex skill 移植 | 完成 | 项目 `.agents/skills/weread-skills/`，原安装未改 |
 | skill 版本 | 1.0.4 | 官方更新包已审查，项目约束已重新应用 |
@@ -46,6 +46,7 @@
 | Release-A 公开审核准备 | 已执行完毕 | V2-E4E、有限随机书籍轮、书级 publication policy/单条排除/封面开关、本机审核器与私有 preview 均已实现并验收；详见下方 Release-A1～A4 四节；权威 `docs/17`，Prompt `docs/18` |
 | V3 Batch 0 顶层设计 | 已完成 | 新增 `docs/19–22`，重置权威顺序并完成产品、标签 / 地图、视觉与施工顶层设计；Release-B 暂停，未改代码 / schema / 快照 |
 | V3 Batch 1 embedding 评测 | 已完成 | provider-neutral 管线、300 条真实评测集、SiliconFlow 三模型实测与人工 neighbour review；默认 `bge-large-zh-v1.5`，回退 `bge-m3` |
+| V3 Batch 2 标签发现 | 等待用户 Gate | 全量 4,663 条 embedding、300 条按书公平样本、53 个私有候选标签、35 组边界、159 条人工种子已完成；未进入试标 |
 | 真实访客 Gate | 未进行 | 用户本人体验反馈非常积极（V2-E4D 就是其反馈驱动的收尾），但尚无首次访客结果，不冒充产品 Gate 通过 |
 
 原始返回、更新包、候选池、快照与截图全部留在 `.private/`，已被 `.gitignore` 排除，未进入前端包。
@@ -309,6 +310,81 @@ Qwen 估算费用       ¥0.0012572
 ### 下一步
 
 Batch 1 完成后停止汇报，不自动进入 Batch 2。下一批将用默认模型为 4,663 条建立全量私有 embedding，并据此生成 250–300 条按书公平、多样性覆盖的标签发现样本，随后建立第一版标签词表与用户 Gate。
+
+## V3 Batch 2 — 标签发现与词表 Gate（2026-09-18）
+
+```text
+日期 / 执行者：2026-09-18 / 当前实现 Agent
+范围：全量 embedding、多样性样本、开放归纳、候选词表、人工种子与边界 Gate
+状态：实现与私有内容生产 verified；等待用户词表 Gate
+代码基线：53aaf00
+```
+
+### 完成范围
+
+1. 新增 `embeddings:generate`：复用 Batch 1 默认模型与同一 text-hash cache，从 300 条评测缓存增量补齐全部 4,663 条；每批原子保存，失败可续跑。
+2. 新增 `tagDiscovery.ts` 与 `tags:sample`：每书先选 embedding 中心点，再选书内语义边缘；按主 Book Theme 轮转补足第三条，每书最多三条。
+3. 实际发现样本为 300 条 / 130 本 / 14 Book Theme；中心点 130、语义边缘 111、主题补位 59；短中长 111 / 138 / 51。
+4. 新增确定性 spherical k-means 辅助报告：36 簇、farthest-first 初始化；簇只用于观察局部邻域和离群，不等同标签或 assignment。
+5. 在 `.private/tags/candidate-vocabulary.json` 建立 53 个候选标签、6 个内部概念家族、定义 / includes / excludes / aliases 和 35 组相邻边界。
+6. 新增 `tags:seeds`：对候选定义生成私有 query embedding，从全量语料按书去重召回每标签 8 条，共 424 条，并为每组边界生成交界候选。
+7. 人工阅读候选和全文检索后建立 159 条策展种子：每标签 3 条、来自三本不同书；自动邻居未被冒充为人工通过。
+8. 新增 `tags:audit`：严格检查词表规模、family 引用、种子存在性、每标签跨三书、候选按书去重、弱召回与种子重叠观察项。
+9. 新增 `docs/24-BATCH-2-TAG-DISCOVERY.md`；候选名称、完整定义、向量、原文、理由和 Gate workbook 继续只保留在 `.private/tags/`。
+10. public / local 消费者、schema 2、publication policy、public snapshot 与稳定 ID 均未修改。
+
+### 内容结果与真实诊断
+
+```text
+全量向量                    4,663 / 4,663
+标签发现样本                  300
+书籍覆盖                     130 / 130
+Book Theme                   14 / 14
+候选标签                      53
+内部概念家族                    6
+相邻边界                      35
+embedding 候选种子            424
+人工复核种子                  159
+```
+
+- 8 个候选的定义 query top-5 平均 cosine 低于内部观察线；全文关键词复核仍确认跨书材料，因此保留到试标，不用单一相似度删词；
+- 11 组标签的 top-8 种子重叠至少三条，优先在试标中判断应合并还是允许多标签共存；
+- 关系类词语可召回软件“依赖关系”等伪相关，证明 Batch 3 不得自动接受 nearest neighbours；
+- 36 个簇大小不均衡，包含单点与较大混合簇；如实保留，不把聚类修饰成天然标签体系；
+- 当前建议先保留 53 个候选进入 250–300 条试标，再以真实频次、跨书覆盖、多标签比例和边界冲突决定合并 / 删除。
+
+### 实际命令与结果
+
+| 命令 | 结果 |
+| --- | --- |
+| 首次 `npm run embeddings:generate -- --provider siliconflow --model BAAI/bge-large-zh-v1.5 --dimensions 1024 --batch-size 32` | 从 300 条补齐 4,363 条；最终 4,663 / 4,663 |
+| 同命令重跑 | `newly requested: 0`；cache / resume 验证通过 |
+| `npm run tags:sample` | 300 条 / 130 本 / 14 书架；每书 1–3；短中长 111 / 138 / 51 |
+| `npm run tags:clusters` | 36 个私有语义簇；无空簇 |
+| `npm run tags:seeds` | 53 标签 / 424 候选种子 / 35 边界 |
+| `npm run tags:audit` | 159 人工种子；每标签 3 条、三本不同书；8 个弱召回 / 11 组重叠观察项 |
+| `npm run check:local` | typecheck、lint、**263 单测 / 23 文件**、schema 2 local 校验通过；唯一警告仍为无原始换行 |
+| `npm run verify:ids` | 20 本 / 46 条种子 ID 稳定；总量 4,663 / 130 |
+| `npm run smoke:local` | **6 / 6** 真实数据 smoke 通过 |
+| `npm run test:public` | **1 / 1** public 空态 E2E 通过 |
+| `npm run build` | public build 成功；0 本 / 0 条 |
+| `npm run isolation:public` | clean；private tags 文件名、向量、凭证和真实内容均 absent |
+| `npx vite build --mode local-private` | 按预期退出 1，保持原保护错误原文 |
+| 凭证反向扫描 | source 0 命中；private embeddings / tags 0 命中；`.private` tracked 0 |
+
+### 浏览器、视觉与数据状态
+
+- 本阶段没有消费者 UI / CSS 变化，因此不生成视觉截图；
+- public 空态 E2E 与 isolation 只证明私有内容生产工具未进入产品构建，不冒充主题小径体验验收；
+- local snapshot 仍为 schema 2、4,663 条 / 130 本 / 14 Book Theme；
+- public snapshot 仍为 schema 2、0 本 / 0 条；
+- publication policy 仍为 108 publish / 22 exclude / 6 条单独 exclude；
+- API 请求只发送划线正文或候选定义文本与模型参数，没有发送 stable ID、书 ID、账号字段、policy 或私有 note；
+- API key 未进入终端、缓存、报告、代码、Git 或 public build。
+
+### Gate 与下一步
+
+Batch 2 停在用户词表 Gate。用户需要审核名称 / 定义、相邻边界、缺失主题、过宽 / 过细标签，并明确是否允许进入 Batch 3。批准前不开始 Local Tag Studio、250–300 条正式试标、schema 3、主题小径或地图。
 
 ## 授权更新记录
 

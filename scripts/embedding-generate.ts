@@ -11,11 +11,9 @@ import {
     snapshotEmbeddingHash,
     type EmbeddingCache,
     type EmbeddingProviderName,
-    type EvaluationCorpus,
 } from './embeddings/core.ts';
-import { evaluateEmbeddings, parseEvaluationLabels } from './embeddings/evaluation.ts';
 import { embeddingPrivatePaths, LOCAL_SNAPSHOT_PATH } from './embeddings/privatePaths.ts';
-import { apiKeyForProviderOrEnvFile, createEmbeddingProvider, providerDefaults } from './embeddings/providers.ts';
+import { apiKeyForProviderOrEnvFile, createEmbeddingProvider } from './embeddings/providers.ts';
 
 type Args = {
     provider: EmbeddingProviderName;
@@ -23,8 +21,6 @@ type Args = {
     dimensions?: number;
     batchSize?: number;
     delayMs: number;
-    pricePerMillionTokens?: number;
-    priceCurrency?: 'USD' | 'CNY';
 };
 
 function readArgs(argv: string[]): Args {
@@ -58,7 +54,6 @@ function readArgs(argv: string[]): Args {
     };
     const dimensions = numberArg('dimensions');
     const batchSize = numberArg('batch-size');
-    const pricePerMillionTokens = numberArg('price-per-million-tokens');
     if (dimensions !== undefined && !Number.isInteger(dimensions)) {
         throw new Error('--dimensions must be an integer');
     }
@@ -66,21 +61,12 @@ function readArgs(argv: string[]): Args {
         throw new Error('--batch-size must be an integer');
     }
     const model = values.get('model');
-    const priceCurrencyRaw = values.get('price-currency');
-    if (priceCurrencyRaw !== undefined && priceCurrencyRaw !== 'USD' && priceCurrencyRaw !== 'CNY') {
-        throw new Error('--price-currency must be USD or CNY');
-    }
-    if (priceCurrencyRaw !== undefined && pricePerMillionTokens === undefined) {
-        throw new Error('--price-currency requires --price-per-million-tokens');
-    }
     return {
         provider,
         ...(model === undefined ? {} : { model }),
         ...(dimensions === undefined ? {} : { dimensions }),
         ...(batchSize === undefined ? {} : { batchSize }),
         delayMs: numberArg('delay-ms') ?? 0,
-        ...(pricePerMillionTokens === undefined ? {} : { pricePerMillionTokens }),
-        ...(pricePerMillionTokens === undefined ? {} : { priceCurrency: priceCurrencyRaw ?? 'USD' }),
     };
 }
 
@@ -132,23 +118,13 @@ async function loadCache(path: string, expected: Omit<EmbeddingCache, 'generated
 async function main(): Promise<void> {
     const args = readArgs(process.argv.slice(2));
     const paths = embeddingPrivatePaths();
-    if (!existsSync(paths.corpus) || !existsSync(paths.labels)) {
-        throw new Error('evaluation corpus is missing; run npm run embeddings:prepare first');
-    }
     const snapshotRaw = JSON.parse(await readFile(LOCAL_SNAPSHOT_PATH, 'utf8')) as unknown;
     const checked = validateSnapshot(snapshotRaw, { expectedVisibility: 'local-only' });
     if (!checked.ok) {
         throw new Error(`local snapshot does not validate: ${checked.errors.join('; ')}`);
     }
     const snapshot: Snapshot = checked.snapshot;
-    const corpus = JSON.parse(await readFile(paths.corpus, 'utf8')) as EvaluationCorpus;
-    const labels = parseEvaluationLabels(JSON.parse(await readFile(paths.labels, 'utf8')) as unknown);
-    const currentSnapshotHash = snapshotEmbeddingHash(snapshot);
-    if (corpus.snapshotHash !== currentSnapshotHash || corpus.entries.length !== corpus.targetCount) {
-        throw new Error('evaluation corpus is stale; run npm run embeddings:prepare again');
-    }
-
-    const defaults = providerDefaults(args.provider);
+    const snapshotHash = snapshotEmbeddingHash(snapshot);
     const provider = createEmbeddingProvider(args.provider, {
         apiKey: await apiKeyForProviderOrEnvFile(args.provider),
         ...(args.model === undefined ? {} : { model: args.model }),
@@ -161,31 +137,24 @@ async function main(): Promise<void> {
         model: provider.model,
         dimensions: provider.dimensions,
         inputVersion: EMBEDDING_INPUT_VERSION,
-        snapshotHash: currentSnapshotHash,
+        snapshotHash,
     } as const;
     const cachePath = resolve(paths.cache, `${provider.name}--${safeName(provider.model)}--${String(provider.dimensions)}.json`);
     const cache = await loadCache(cachePath, expected);
-    const highlights = new Map(snapshot.highlights.map((highlight) => [highlight.id, highlight]));
-    const pending = corpus.entries.filter((entry) => {
-        const highlight = highlights.get(entry.id);
-        if (highlight === undefined) {
-            throw new Error(`evaluation corpus references missing highlight ${entry.id}`);
-        }
-        return cache.vectors[entry.id]?.textHash !== highlightTextHash(highlight);
-    });
-
+    const highlights = [...snapshot.highlights].sort((left, right) => left.id.localeCompare(right.id));
+    const pending = highlights.filter((highlight) => cache.vectors[highlight.id]?.textHash !== highlightTextHash(highlight));
+    const previousCachedHighlights = Object.keys(cache.vectors).length;
     const startedAt = Date.now();
+
     for (let offset = 0; offset < pending.length; offset += batchSize) {
         const batch = pending.slice(offset, offset + batchSize);
-        const texts = batch.map((entry) => normalizeEmbeddingText(highlights.get(entry.id)?.text ?? ''));
-        const result = await provider.embed(texts);
-        batch.forEach((entry, index) => {
+        const result = await provider.embed(batch.map((highlight) => normalizeEmbeddingText(highlight.text)));
+        batch.forEach((highlight, index) => {
             const vector = result.vectors[index];
-            const highlight = highlights.get(entry.id);
-            if (vector === undefined || highlight === undefined) {
+            if (vector === undefined) {
                 throw new Error('embedding provider returned an incomplete batch');
             }
-            cache.vectors[entry.id] = { textHash: highlightTextHash(highlight), values: vector };
+            cache.vectors[highlight.id] = { textHash: highlightTextHash(highlight), values: vector };
         });
         cache.requests += 1;
         if (result.usage.inputTokens !== undefined) {
@@ -200,103 +169,72 @@ async function main(): Promise<void> {
         }
     }
 
-    if (Object.keys(cache.vectors).length < corpus.entries.length) {
-        throw new Error('embedding cache is incomplete after the run');
+    for (const highlight of highlights) {
+        if (cache.vectors[highlight.id]?.textHash !== highlightTextHash(highlight)) {
+            throw new Error(`full embedding cache is incomplete for ${highlight.id}`);
+        }
     }
-    if (labels.cases.length === 0) {
-        throw new Error('evaluation labels are empty; curate private labels before comparing providers');
-    }
-    const metrics = evaluateEmbeddings(corpus, labels, cache.vectors);
-    const elapsedMilliseconds = Date.now() - startedAt;
-    const estimatedCost =
-        args.pricePerMillionTokens === undefined || cache.inputTokens === undefined || args.priceCurrency === undefined
-            ? undefined
-            : {
-                  currency: args.priceCurrency,
-                  amount: (cache.inputTokens / 1_000_000) * args.pricePerMillionTokens,
-              };
-    const report = {
+    const generatedAt = new Date().toISOString();
+    const summaryPath = resolve(paths.root, `full-generation--${provider.name}--${safeName(provider.model)}--${String(provider.dimensions)}.json`);
+    await writeJsonAtomic(summaryPath, {
         schemaVersion: 1,
-        generatedAt: new Date().toISOString(),
+        generatedAt,
         provider: provider.name,
         model: provider.model,
         dimensions: provider.dimensions,
-        corpusHighlights: corpus.entries.length,
-        evaluationCases: labels.cases.length,
+        snapshotHash,
+        totalHighlights: highlights.length,
+        previousCachedHighlights,
+        requestedHighlights: pending.length,
+        cachedHighlights: Object.keys(cache.vectors).length,
         requests: cache.requests,
         inputTokens: cache.inputTokens ?? null,
-        elapsedMilliseconds,
-        estimatedCost: estimatedCost ?? null,
-        metrics,
-    };
-    const reportPath = resolve(paths.reports, `${provider.name}--${safeName(provider.model)}--${String(provider.dimensions)}.json`);
-    await writeJsonAtomic(reportPath, report);
-    const runKey = `${provider.name}:${provider.model}:${String(provider.dimensions)}`;
-    let manifest: {
-        schemaVersion: 1;
+        elapsedMilliseconds: Date.now() - startedAt,
+    });
+
+    if (!existsSync(paths.manifest)) {
+        throw new Error('embedding manifest is missing; run npm run embeddings:prepare first');
+    }
+    const manifest = JSON.parse(await readFile(paths.manifest, 'utf8')) as {
+        schemaVersion: number;
         updatedAt: string;
         snapshotHash: string;
-        inputVersion: typeof EMBEDDING_INPUT_VERSION;
+        inputVersion: string;
         evaluation: { corpus: number; cases: number };
-        runs: Record<
-            string,
-            {
-                provider: EmbeddingProviderName;
-                model: string;
-                dimensions: number;
-                cache: string;
-                report: string;
-                inputTokens: number | null;
-                estimatedCost: { currency: 'USD' | 'CNY'; amount: number } | null;
-                cachedHighlights: number;
-            }
-        >;
+        runs: Record<string, Record<string, unknown>>;
         baselines: Record<string, unknown>;
-    } = {
-        schemaVersion: 1,
-        updatedAt: new Date().toISOString(),
-        snapshotHash: currentSnapshotHash,
-        inputVersion: EMBEDDING_INPUT_VERSION,
-        evaluation: { corpus: corpus.entries.length, cases: labels.cases.length },
-        runs: {},
-        baselines: {},
     };
-    if (existsSync(paths.manifest)) {
-        const stored = JSON.parse(await readFile(paths.manifest, 'utf8')) as typeof manifest;
-        if (
-            stored.schemaVersion !== 1 ||
-            stored.snapshotHash !== currentSnapshotHash ||
-            stored.inputVersion !== EMBEDDING_INPUT_VERSION ||
-            typeof stored.runs !== 'object' ||
-            stored.runs === null ||
-            typeof stored.baselines !== 'object' ||
-            stored.baselines === null
-        ) {
-            throw new Error('existing embedding manifest is stale or invalid');
-        }
-        manifest = stored;
+    if (
+        manifest.schemaVersion !== 1 ||
+        manifest.snapshotHash !== snapshotHash ||
+        manifest.inputVersion !== EMBEDDING_INPUT_VERSION ||
+        typeof manifest.runs !== 'object' ||
+        manifest.runs === null
+    ) {
+        throw new Error('existing embedding manifest is stale or invalid');
     }
-    manifest.updatedAt = new Date().toISOString();
-    manifest.evaluation = { corpus: corpus.entries.length, cases: labels.cases.length };
+    const runKey = `${provider.name}:${provider.model}:${String(provider.dimensions)}`;
+    const existingRun = manifest.runs[runKey] ?? {};
+    manifest.updatedAt = generatedAt;
     manifest.runs[runKey] = {
+        ...existingRun,
         provider: provider.name,
         model: provider.model,
         dimensions: provider.dimensions,
         cache: relative(paths.root, cachePath).replace(/\\/gu, '/'),
-        report: relative(paths.root, reportPath).replace(/\\/gu, '/'),
         inputTokens: cache.inputTokens ?? null,
-        estimatedCost: estimatedCost ?? null,
         cachedHighlights: Object.keys(cache.vectors).length,
+        fullGeneration: relative(paths.root, summaryPath).replace(/\\/gu, '/'),
     };
     await writeJsonAtomic(paths.manifest, manifest);
 
     console.log(`provider: ${provider.name}`);
     console.log(`model: ${provider.model}`);
-    console.log(`dimensions: ${String(provider.dimensions)} (default ${String(defaults.dimensions)})`);
-    console.log(`evaluation cases: ${String(metrics.cases)}`);
-    console.log(`MRR: ${metrics.meanReciprocalRank.toFixed(4)}; recall@10: ${metrics.recallAt10.toFixed(4)}`);
-    console.log(`pair accuracy: ${metrics.pairAccuracy.toFixed(4)}; book diversity@10: ${metrics.neighborhoodBookDiversityAt10.toFixed(4)}`);
-    console.log(`private report: ${reportPath}`);
+    console.log(`dimensions: ${String(provider.dimensions)}`);
+    console.log(`snapshot highlights: ${String(highlights.length)}`);
+    console.log(`newly requested: ${String(pending.length)}`);
+    console.log(`cached highlights: ${String(Object.keys(cache.vectors).length)}`);
+    console.log(`private summary: ${summaryPath}`);
 }
 
 await main();

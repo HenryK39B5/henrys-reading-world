@@ -8,7 +8,7 @@
 >
 > 施工细节与 Batch：`docs/22-V3-IMPLEMENTATION-PLAN.md`。
 >
-> Release-A 及两轮公开审核均已完成；私有清单为 108 本公开、22 本排除、6 条单独排除。Release-B 因 V3 产品迭代暂停。Batch 0–1 已完成；SiliconFlow 三模型已完成真实对比，默认 `BAAI/bge-large-zh-v1.5`，回退 `BAAI/bge-m3`。实际状态见 `docs/23`。
+> Release-A 及两轮公开审核均已完成；私有清单为 108 本公开、22 本排除、6 条单独排除。Release-B 因 V3 产品迭代暂停。Batch 0–2 已完成到用户词表 Gate：默认模型已覆盖全部 4,663 条，第一版私有候选词表与人工种子已建立。实际状态见 `docs/23–24`。
 
 ## 当前状态（2026-09-18）
 
@@ -38,8 +38,8 @@
 
 1. **V3 Batch 0**：已完成，建立权威文档、标签 / 地图规格、视觉方向与实施计划。
 2. **Batch 1**：已完成 provider-neutral 基础、300 条真实评测集、SiliconFlow 三模型对比、人工 neighbour review 与默认 / 回退选择。
-3. **Batch 2**：下一批；使用默认 embedding 生成 250–300 条多样性样本，建立第一版标签词表并进入用户 Gate。
-4. **Batch 3**：Local Tag Studio 与试标。
+3. **Batch 2**：已完成全量 4,663 条 embedding、300 条按书公平发现样本、53 个私有候选标签、35 组边界与 159 条人工种子；当前停在用户词表 Gate。
+4. **Batch 3**：用户批准词表后才开始 Local Tag Studio 与 250–300 条试标。
 5. **Batch 4**：schema 3、主题小径、岔路、分享全部标签与关键视觉原型。
 6. **Batch 5**：世界地图与点亮一本书。
 7. **Batch 6–7**：全量 4,663 条标注、全产品视觉统一与公开标签审核。

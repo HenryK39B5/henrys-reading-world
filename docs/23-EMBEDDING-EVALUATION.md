@@ -4,7 +4,7 @@
 >
 > 状态：**Batch 1 已完成。** 已建立 provider-neutral 私有管线，并使用同一组 300 条真实划线完成 SiliconFlow 三模型对比。默认模型为 `BAAI/bge-large-zh-v1.5`，回退为 `BAAI/bge-m3`。
 >
-> 本文不授权开始 Batch 2、正式公开导出、运行时模型、push 或部署。用途与边界见 `docs/19–20`，施工 Gate 见 `docs/22 §4`。
+> 本文是 Batch 1 的历史实况。Batch 2 已在用户授权后完成到词表 Gate，见 `docs/24-BATCH-2-TAG-DISCOVERY.md`；仍不授权 Batch 3、正式公开导出、运行时模型、push 或部署。用途与边界见 `docs/19–20`。
 
 ## 1. 本阶段回答的问题
 
@@ -196,7 +196,7 @@ Qwen 评测估算费用             ¥0.0012572
 - [x] public build 无外部模型请求；
 - [x] 人工 neighbour review 已完成。
 
-Batch 1 完成后停止，不自动进入 Batch 2。下一批将使用默认 embedding 建立 250–300 条多样性样本和第一版标签词表，并在词表 Gate 邀请用户审核。
+Batch 1 当时完成后按 Gate 停止；用户随后明确要求进入 Batch 2。Batch 2 的全量 embedding、300 条多样性样本、第一版候选词表与用户 Gate 见 `docs/24`。
 
 ## 11. 官方接口依据
 

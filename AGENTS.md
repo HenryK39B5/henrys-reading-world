@@ -4,7 +4,7 @@
 
 本轮实现 Henry's Reading World V3：在既有真实划线房间体验上加入逐条主题标签、主题小径、embedding 辅助内容生产、阅读世界地图与全局视觉重构；同时保留只在本机运行的 Studio / 发布审核工具。不建设公众登录、远程后台或运行时 AI 服务。
 
-阅读顺序：`PRODUCT_BRIEF.md` → **`docs/19-PRODUCT-DIRECTION-V3.md` → `docs/20-TAGS-PATHS-MAP-SPEC.md` → `docs/21-V3-VISUAL-DIRECTION.md` → `docs/22-V3-IMPLEMENTATION-PLAN.md` → `docs/23-EMBEDDING-EVALUATION.md`** → `docs/17-PUBLICATION-DIRECTION-AND-RELEASE-A.md` → `docs/10-PRODUCT-DIRECTION-V2.md` → `docs/12-ROOMS-COLOR-MOTION-DIRECTION.md` → `docs/11-V2-IMPLEMENTATION-PLAN.md` → `docs/18-RELEASE-A-PUBLICATION-REVIEW-IMPLEMENTER-PROMPT.md` → `docs/01-SCOPE-AND-DECISIONS.md` → `docs/02-TECHNICAL-DESIGN.md` → `docs/03-DATA-CONTRACT.md` → `docs/04-SERENDIPITY-SPEC.md` → `docs/05-UX-SPEC.md` → `docs/06-IMPLEMENTATION-PLAN.md` → `docs/07-IMPLEMENTATION-HANDOFF.md`。`19–22` 是当前 V3 产品与施工权威，`23` 记录 Batch 1 实际评测；`17/18` 保留已完成的公开审核与 Release-A 契约；`10–12` 保留 V2 公平、房间和 Book Aura 历史基线，冲突处由 V3 取代。
+阅读顺序：`PRODUCT_BRIEF.md` → **`docs/19-PRODUCT-DIRECTION-V3.md` → `docs/20-TAGS-PATHS-MAP-SPEC.md` → `docs/21-V3-VISUAL-DIRECTION.md` → `docs/22-V3-IMPLEMENTATION-PLAN.md` → `docs/23-EMBEDDING-EVALUATION.md` → `docs/24-BATCH-2-TAG-DISCOVERY.md`** → `docs/17-PUBLICATION-DIRECTION-AND-RELEASE-A.md` → `docs/10-PRODUCT-DIRECTION-V2.md` → `docs/12-ROOMS-COLOR-MOTION-DIRECTION.md` → `docs/11-V2-IMPLEMENTATION-PLAN.md` → `docs/18-RELEASE-A-PUBLICATION-REVIEW-IMPLEMENTER-PROMPT.md` → `docs/01-SCOPE-AND-DECISIONS.md` → `docs/02-TECHNICAL-DESIGN.md` → `docs/03-DATA-CONTRACT.md` → `docs/04-SERENDIPITY-SPEC.md` → `docs/05-UX-SPEC.md` → `docs/06-IMPLEMENTATION-PLAN.md` → `docs/07-IMPLEMENTATION-HANDOFF.md`。`19–22` 是当前 V3 产品与施工权威，`23` 记录 Batch 1 实际评测，`24` 记录 Batch 2 标签发现与当前用户 Gate；`17/18` 保留已完成的公开审核与 Release-A 契约；`10–12` 保留 V2 公平、房间和 Book Aura 历史基线，冲突处由 V3 取代。
 
 用户明确要求所有产品开发使用真实微信读书数据，不使用 fake data。Critique #1 后产品从“前三句策展并塑造印象”调整为全量真实划线的轻松漫游；V3 进一步确认：Book Theme 继续作为书架分类，Highlight 新增 1–3 个地位平等的 Topic Tag，形成主题小径与岔路；embedding 只用于本机标签发现、标注辅助、地图布局和小径软节奏，不做独立类似划线入口、AI 搜索、问答或人格分析。产品采用一个 Reading World、Public/Local 两个数据范围和一个 Local Studio。公开范围的既有决定继续有效，但 Release-B 暂停到 V3 Gate 之后。真正出现新冲突时再请用户决定。
 
@@ -13,7 +13,7 @@
 ## 执行规则
 
 - 先检查目录、现有实现及 Git 状态；保护既有工作，不因为本交接写着“无代码”就覆盖后续代码。
-- 当前 Slice 0–4、V2-A～V2-E4D 与 **Release-A（A1～A4）** 均已完成；用户已完成两轮书级/逐条审核，当前私有清单为 108 本公开、22 本排除、6 条单独排除，`reviewComplete=true`。V3 Batch 0 与 Batch 1 均已完成：私有 embedding 管线、300 条真实评测集、lexical 下限及 SiliconFlow 三模型真实对比已完成；默认 `BAAI/bge-large-zh-v1.5`，回退 `BAAI/bge-m3`，详见 `docs/23`。不得自动进入 Batch 2、正式导出 public snapshot、复制 public covers、创建 repo、push 或部署。
+- 当前 Slice 0–4、V2-A～V2-E4D 与 **Release-A（A1～A4）** 均已完成；用户已完成两轮书级/逐条审核，当前私有清单为 108 本公开、22 本排除、6 条单独排除，`reviewComplete=true`。V3 Batch 0–2 已完成到用户词表 Gate：默认 `BAAI/bge-large-zh-v1.5` 已覆盖全部 4,663 条，已生成按书公平的 300 条发现样本、53 个私有候选标签、35 组边界和 159 条人工种子，详见 `docs/23–24`。用户批准词表前不得自动进入 Batch 3、正式导出 public snapshot、复制 public covers、创建 repo、push 或部署。
 - 使用 Windows 原生 Node/npm/Git 与 PowerShell。不要混用 WSL 路径。
 - 不在非空项目根目录直接运行可能覆盖文档的脚手架；优先逐文件建立 Vite 配置。
 - 版本首次安装时选择彼此兼容的稳定版本并提交 npm 锁文件，不凭空声称某版本是最新。
