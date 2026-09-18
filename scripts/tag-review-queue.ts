@@ -254,13 +254,15 @@ async function main(): Promise<void> {
         '',
     );
 
-    await writeAtomic(resolve(root, 'review-queue.md'), `${lines.join('\n')}\n`);
+    // Never overwrite review-queue.md: it may contain Henry's handwritten decisions.
+    const outputPath = resolve(root, 'review-queue.generated.md');
+    await writeAtomic(outputPath, `${lines.join('\n')}\n`);
     console.log(`review queue: ${String(queueTotal)} entries`);
     console.log(
         `A unresolved ${String(unresolved.length)} / B override ${String(override.length)} / C lexical ${String(lexical.length)} / ` +
             `D thin ${String(thinTagEntries.length)} / E spot ${String(spotCheck.length)}`,
     );
-    console.log(`private queue: ${resolve(root, 'review-queue.md')}`);
+    console.log(`private queue: ${outputPath}`);
 }
 
 await main();

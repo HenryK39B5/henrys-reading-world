@@ -5,11 +5,10 @@ import type { Snapshot } from '../src/domain/types.ts';
 import { validateSnapshot } from '../src/domain/validate.ts';
 import { normalizeEmbeddingText, sha256, type EmbeddingCache } from './embeddings/core.ts';
 import { embeddingPrivatePaths, LOCAL_SNAPSHOT_PATH } from './embeddings/privatePaths.ts';
-import { apiKeyForProviderOrEnvFile, createEmbeddingProvider } from './embeddings/providers.ts';
+import { createEmbeddingProvider, providerDefaults } from './embeddings/providers.ts';
 
-const PROVIDER = 'siliconflow';
-const MODEL = 'BAAI/bge-large-zh-v1.5';
-const DIMENSIONS = 1024;
+const PROVIDER = 'local' as const;
+const { model: MODEL, dimensions: DIMENSIONS } = providerDefaults(PROVIDER);
 const SEEDS_PER_TAG = 8;
 const BOUNDARY_CASES_PER_PAIR = 3;
 
@@ -191,7 +190,7 @@ async function main(): Promise<void> {
     }
     const pendingTags = vocabulary.tags.filter((tag) => queryCache.vectors[tag.id]?.length !== DIMENSIONS);
     if (pendingTags.length > 0) {
-        const provider = createEmbeddingProvider(PROVIDER, { apiKey: await apiKeyForProviderOrEnvFile(PROVIDER), model: MODEL, dimensions: DIMENSIONS });
+        const provider = createEmbeddingProvider(PROVIDER, { model: MODEL, dimensions: DIMENSIONS });
         const batchSize = Math.min(32, provider.batchLimit);
         for (let offset = 0; offset < pendingTags.length; offset += batchSize) {
             const batch = pendingTags.slice(offset, offset + batchSize);

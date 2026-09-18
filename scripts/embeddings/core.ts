@@ -5,7 +5,8 @@ export const EMBEDDING_INPUT_VERSION = 'highlight-text-nfc-lf-v1';
 export const EMBEDDING_CACHE_SCHEMA_VERSION = 1;
 export const EMBEDDING_EVALUATION_SCHEMA_VERSION = 1;
 
-export type EmbeddingProviderName = 'voyage' | 'cohere' | 'openai' | 'siliconflow';
+export type RemoteEmbeddingProviderName = 'voyage' | 'cohere' | 'openai' | 'siliconflow';
+export type EmbeddingProviderName = RemoteEmbeddingProviderName | 'local';
 
 export type EmbeddingUsage = {
     inputTokens?: number;

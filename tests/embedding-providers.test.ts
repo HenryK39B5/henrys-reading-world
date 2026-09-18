@@ -150,6 +150,15 @@ describe('embedding providers', () => {
         expect(sleep).toHaveBeenCalledOnce();
     });
 
+    it('creates the pinned local provider without any credential or network request', () => {
+        const provider = createEmbeddingProvider('local');
+
+        expect(provider.name).toBe('local');
+        expect(provider.model).toBe('Xenova/bge-large-zh-v1.5@a48549b-q8-cls');
+        expect(provider.dimensions).toBe(1024);
+        expect(() => createEmbeddingProvider('local', { model: 'unpinned/model' })).toThrow(/pinned/u);
+    });
+
     it('rejects VITE-prefixed credentials and absent secure credentials', () => {
         expect(() => apiKeyForProvider('voyage', { VITE_VOYAGE_API_KEY: 'leak' })).toThrow(/forbidden/u);
         expect(() => apiKeyForProvider('cohere', {})).toThrow('COHERE_API_KEY is not set');

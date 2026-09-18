@@ -1,14 +1,19 @@
 import { existsSync, createReadStream } from 'node:fs';
 import { resolve } from 'node:path';
 import { createInterface } from 'node:readline';
-import type { EmbeddingBatch, EmbeddingProvider, EmbeddingProviderName } from './core.ts';
+import type {
+    EmbeddingBatch,
+    EmbeddingProvider,
+    EmbeddingProviderName,
+    RemoteEmbeddingProviderName,
+} from './core.ts';
 import { validateVectors } from './core.ts';
 
 type FetchLike = typeof fetch;
 type Sleep = (milliseconds: number) => Promise<void>;
 
 type ProviderOptions = {
-    apiKey: string;
+    apiKey?: string;
     model?: string;
     dimensions?: number;
     fetchImpl?: FetchLike;
@@ -18,21 +23,26 @@ type ProviderOptions = {
 
 type JsonRecord = Record<string, unknown>;
 
-const ENDPOINTS: Record<EmbeddingProviderName, string> = {
+const ENDPOINTS: Record<RemoteEmbeddingProviderName, string> = {
     voyage: 'https://api.voyageai.com/v1/embeddings',
     cohere: 'https://api.cohere.com/v2/embed',
     openai: 'https://api.openai.com/v1/embeddings',
     siliconflow: 'https://api.siliconflow.cn/v1/embeddings',
 };
 
+const LOCAL_MODEL_REPOSITORY = 'Xenova/bge-large-zh-v1.5';
+const LOCAL_MODEL_REVISION = 'a48549b3259a6165364f226599cd91f39923d5d5';
+const LOCAL_MODEL = `${LOCAL_MODEL_REPOSITORY}@${LOCAL_MODEL_REVISION.slice(0, 7)}-q8-cls`;
+
 const DEFAULTS: Record<EmbeddingProviderName, { model: string; dimensions: number; batchLimit: number }> = {
     voyage: { model: 'voyage-4-lite', dimensions: 512, batchLimit: 128 },
     cohere: { model: 'embed-v4.0', dimensions: 512, batchLimit: 96 },
     openai: { model: 'text-embedding-3-small', dimensions: 512, batchLimit: 128 },
     siliconflow: { model: 'BAAI/bge-m3', dimensions: 1024, batchLimit: 32 },
+    local: { model: LOCAL_MODEL, dimensions: 1024, batchLimit: 32 },
 };
 
-const ENV_KEYS: Record<EmbeddingProviderName, readonly string[]> = {
+const ENV_KEYS: Record<RemoteEmbeddingProviderName, readonly string[]> = {
     voyage: ['VOYAGE_API_KEY'],
     cohere: ['COHERE_API_KEY'],
     openai: ['OPENAI_API_KEY'],
@@ -112,7 +122,7 @@ function retryableStatus(status: number): boolean {
 }
 
 async function requestJson(
-    provider: EmbeddingProviderName,
+    provider: RemoteEmbeddingProviderName,
     apiKey: string,
     body: JsonRecord,
     fetchImpl: FetchLike,
@@ -152,7 +162,7 @@ async function requestJson(
     throw new Error(`${provider} embedding request failed: exhausted retries`);
 }
 
-function providerBody(name: EmbeddingProviderName, model: string, dimensions: number, texts: string[]): JsonRecord {
+function providerBody(name: RemoteEmbeddingProviderName, model: string, dimensions: number, texts: string[]): JsonRecord {
     switch (name) {
         case 'voyage':
             return {
@@ -181,15 +191,61 @@ function providerBody(name: EmbeddingProviderName, model: string, dimensions: nu
     }
 }
 
-export function createEmbeddingProvider(name: EmbeddingProviderName, options: ProviderOptions): EmbeddingProvider {
-    if (options.apiKey.trim().length === 0) {
-        throw new Error(`${name}: API key is empty`);
-    }
+type TensorLike = { tolist(): unknown };
+type LocalExtractor = (texts: string[], options: { pooling: 'cls'; normalize: true }) => Promise<TensorLike>;
+let localExtractorPromise: Promise<LocalExtractor> | undefined;
+
+async function localExtractor(): Promise<LocalExtractor> {
+    localExtractorPromise ??= (async () => {
+        const transformers = await import('@huggingface/transformers');
+        transformers.env.cacheDir = resolve(process.cwd(), '.private', 'embeddings', 'model-cache');
+        transformers.env.allowRemoteModels = true;
+        transformers.env.allowLocalModels = true;
+        const extractor = await transformers.pipeline('feature-extraction', LOCAL_MODEL_REPOSITORY, {
+            dtype: 'q8',
+            revision: LOCAL_MODEL_REVISION,
+        });
+        return extractor as unknown as LocalExtractor;
+    })();
+    return localExtractorPromise;
+}
+
+export function createEmbeddingProvider(name: EmbeddingProviderName, options: ProviderOptions = {}): EmbeddingProvider {
     const defaults = DEFAULTS[name];
     const model = options.model?.trim() || defaults.model;
     const dimensions = options.dimensions ?? defaults.dimensions;
     if (!Number.isInteger(dimensions) || dimensions <= 0) {
         throw new Error(`${name}: dimensions must be a positive integer`);
+    }
+    if (name === 'local') {
+        if (model !== LOCAL_MODEL || dimensions !== 1024) {
+            throw new Error(`local provider is pinned to ${LOCAL_MODEL} at 1024 dimensions`);
+        }
+        return {
+            name,
+            model,
+            dimensions,
+            batchLimit: defaults.batchLimit,
+            async embed(texts): Promise<EmbeddingBatch> {
+                if (texts.length === 0 || texts.length > defaults.batchLimit) {
+                    throw new Error(`local: batch size must be between 1 and ${String(defaults.batchLimit)}`);
+                }
+                const extractor = await localExtractor();
+                const output = await extractor(texts, { pooling: 'cls', normalize: true });
+                const raw = output.tolist();
+                if (!Array.isArray(raw)) {
+                    throw new Error('local embedding model returned an unsupported tensor');
+                }
+                const vectors = raw as number[][];
+                validateVectors(vectors, texts.length, dimensions);
+                return { vectors, usage: {} };
+            },
+        };
+    }
+
+    const apiKey = options.apiKey?.trim();
+    if (apiKey === undefined || apiKey.length === 0) {
+        throw new Error(`${name}: API key is empty`);
     }
     const fetchImpl = options.fetchImpl ?? fetch;
     const sleep = options.sleep ?? ((milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)));
@@ -204,7 +260,7 @@ export function createEmbeddingProvider(name: EmbeddingProviderName, options: Pr
             if (texts.length === 0 || texts.length > defaults.batchLimit) {
                 throw new Error(`${name}: batch size must be between 1 and ${String(defaults.batchLimit)}`);
             }
-            const response = await requestJson(name, options.apiKey, providerBody(name, model, dimensions, texts), fetchImpl, sleep, maxAttempts);
+            const response = await requestJson(name, apiKey, providerBody(name, model, dimensions, texts), fetchImpl, sleep, maxAttempts);
             const parsed = name === 'cohere' ? parseCohereShape(response) : parseOpenAiShape(response);
             validateVectors(parsed.vectors, texts.length, dimensions);
             return {
@@ -215,11 +271,11 @@ export function createEmbeddingProvider(name: EmbeddingProviderName, options: Pr
     };
 }
 
-function insecureNames(name: EmbeddingProviderName): string[] {
+function insecureNames(name: RemoteEmbeddingProviderName): string[] {
     return ENV_KEYS[name].map((key) => `VITE_${key}`);
 }
 
-function readKeyFromEnvironment(name: EmbeddingProviderName, env: NodeJS.ProcessEnv): string | undefined {
+function readKeyFromEnvironment(name: RemoteEmbeddingProviderName, env: NodeJS.ProcessEnv): string | undefined {
     for (const insecureName of insecureNames(name)) {
         if ((env[insecureName] ?? '').trim().length > 0) {
             throw new Error(`${insecureName} is forbidden; embedding credentials must never use a VITE_ prefix`);
@@ -246,7 +302,7 @@ function parseEnvValue(raw: string): string {
     return value;
 }
 
-export function apiKeyForProvider(name: EmbeddingProviderName, env: NodeJS.ProcessEnv = process.env): string {
+export function apiKeyForProvider(name: RemoteEmbeddingProviderName, env: NodeJS.ProcessEnv = process.env): string {
     const value = readKeyFromEnvironment(name, env);
     if (value === undefined) {
         throw new Error(`${ENV_KEYS[name].join(' or ')} is not set`);
@@ -255,7 +311,7 @@ export function apiKeyForProvider(name: EmbeddingProviderName, env: NodeJS.Proce
 }
 
 export async function apiKeyForProviderOrEnvFile(
-    name: EmbeddingProviderName,
+    name: RemoteEmbeddingProviderName,
     env: NodeJS.ProcessEnv = process.env,
     envFile = resolve(process.cwd(), '.env'),
 ): Promise<string> {

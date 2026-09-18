@@ -2,7 +2,7 @@
 
 > 日期：2026-09-18
 >
-> 状态：V3 施工权威；Batch 0–3 已完成到用户内容 Gate（稳定词表、300 条试标与 Local Tag Studio）。V3 由当前实现 Agent连续承担产品细化、代码、测试、内容生产、文档与本地提交；不再建立交给其他模型的唯一 Implementer Prompt。
+> 状态：V3 施工权威；Batch 0–3 的稳定词表、300 条试标与 Local Tag Studio 已完成，正在由实现 Agent 收口 11 个词表缺口候选。用户明确拒绝逐条审核负担，因此内容复核不再作为用户 Gate；收口后可连续进入 Batch 4。V3 由当前实现 Agent 连续承担产品细化、代码、测试、内容生产、文档与本地提交；不再建立交给其他模型的唯一 Implementer Prompt。
 >
 > Release-B 暂停。V3 不自动授权正式 public snapshot、public covers、repo、push、workflow 或部署。
 
@@ -141,7 +141,7 @@
 - 250–300 条真实划线完成标注；
 - 人工抽查与 embedding 一致性报告；
 - 每标签书籍数、划线数、离群和多标签比例；
-- 用户只审核词表修订与重要边界；
+- 实现 Agent 负责逐条与低信心复核；用户只审核真正的词表命名、合并与产品边界，不承担内容生产劳动；
 - 不修改 public snapshot。
 
 ## 7. Batch 4 — schema 3、主题小径与视觉基础
@@ -300,7 +300,7 @@
 后续常规施工不反复询问。只在以下 Gate 邀请用户判断：
 
 1. Batch 0：V3 产品与视觉方向；
-2. Batch 1：embedding 候选没有明显够用结果或数据政策需取舍；
+2. Batch 1：embedding 候选没有明显够用结果或数据政策需取舍；当前默认已迁移到本机推理，未经新许可不再启用远程 provider；
 3. Batch 2：第一版标签词表；
 4. Batch 4：小径与视觉真实原型；
 5. Batch 5：世界地图；

@@ -42,8 +42,8 @@ function readArgs(argv: string[]): Args {
         index += 1;
     }
     const provider = values.get('provider');
-    if (provider !== 'voyage' && provider !== 'cohere' && provider !== 'openai' && provider !== 'siliconflow') {
-        throw new Error('--provider must be voyage, cohere, openai, or siliconflow');
+    if (provider !== 'voyage' && provider !== 'cohere' && provider !== 'openai' && provider !== 'siliconflow' && provider !== 'local') {
+        throw new Error('--provider must be voyage, cohere, openai, siliconflow, or local');
     }
     const numberArg = (name: string): number | undefined => {
         const value = values.get(name);
@@ -150,7 +150,7 @@ async function main(): Promise<void> {
 
     const defaults = providerDefaults(args.provider);
     const provider = createEmbeddingProvider(args.provider, {
-        apiKey: await apiKeyForProviderOrEnvFile(args.provider),
+        ...(args.provider === 'local' ? {} : { apiKey: await apiKeyForProviderOrEnvFile(args.provider) }),
         ...(args.model === undefined ? {} : { model: args.model }),
         ...(args.dimensions === undefined ? {} : { dimensions: args.dimensions }),
     });

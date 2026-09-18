@@ -52,6 +52,8 @@
     "tags:trial:review": "node scripts/tag-trial-review.ts",
     "tags:trial:audit": "node scripts/tag-trial-audit.ts",
     "tags:review-queue": "node scripts/tag-review-queue.ts",
+    "tags:review-import": "node scripts/tag-review-import.ts",
+    "tags:review-apply": "node scripts/tag-review-apply.ts",
     "tags:migrate": "node scripts/tag-merge.ts"
   },
   "dependencies": {
@@ -60,6 +62,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@huggingface/transformers": "4.3.0",
     "@playwright/test": "^1.63.0",
     "@types/node": "^22.20.2",
     "@types/react": "^19.3.0",

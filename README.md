@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-- 阶段：v1 Slice 0–4、V2-A～V2-E4D、Release-A、V3 Batch 0–3 均已完成；**53 个稳定 Topic Tag、300 条私有试标（268 reviewed / 32 draft）与只在本机运行的 Local Tag Studio 已建立**。用户批准试标前不进入 Batch 4。
+- 阶段：v1 Slice 0–4、V2-A～V2-E4D、Release-A、V3 Batch 0–3 均已完成；**53 个稳定 Topic Tag、300 条私有试标（当前 271 reviewed / 29 draft）与只在本机运行的 Local Tag Studio 已建立**。用户不再承担逐条审核；实现 Agent 收口 11 个词表缺口候选后进入 Batch 4。
 - 发布审核：用户已完成两轮审核，私有清单当前为 **108 本公开 / 22 本排除 / 6 条单独排除**，`reviewComplete=true`。这些决定继续有效，但 Release-B 暂停到 V3 Gate 之后；未生成 public snapshot、未创建 GitHub repo、未 push。
 - 产品方向：`docs/19-PRODUCT-DIRECTION-V3.md`；标签 / 小径 / 地图规格：`docs/20-TAGS-PATHS-MAP-SPEC.md`；视觉：`docs/21-V3-VISUAL-DIRECTION.md`；施工：`docs/22-V3-IMPLEMENTATION-PLAN.md`；embedding 实际评测：`docs/23-EMBEDDING-EVALUATION.md`；Batch 2 标签发现：`docs/24-BATCH-2-TAG-DISCOVERY.md`；Batch 3 试标与 Studio：`docs/25-BATCH-3-TAG-STUDIO.md`。
 - 硬约束：所有开发只使用 Henry 本人的真实微信读书划线，不使用 fake / demo 数据；Book Theme 属于书籍，V3 Topic Tag 属于划线，但不做人格标签、质量评分或 AI 观点总结。
@@ -56,11 +56,11 @@ V3 私有 embedding 评测（全部产物只写 `.private/embeddings/`）：
 ```powershell
 npm run embeddings:prepare   # 300 条真实评测集：130 本 / 14 书架 / 短中长覆盖
 npm run embeddings:baseline  # 非语义字符 hash 下限；不能冒充候选模型
-npm run embeddings:evaluate -- --provider siliconflow --model BAAI/bge-large-zh-v1.5 --dimensions 1024
+npm run embeddings:evaluate -- --provider local
 npm run embeddings:evaluate -- --provider siliconflow --model BAAI/bge-m3 --dimensions 1024
 npm run embeddings:compare
-npm run embeddings:neighbours -- --provider siliconflow --model BAAI/bge-large-zh-v1.5 --dimensions 1024
-npm run embeddings:generate -- --provider siliconflow --model BAAI/bge-large-zh-v1.5 --dimensions 1024
+npm run embeddings:neighbours -- --provider local
+npm run embeddings:generate -- --provider local
 npm run tags:sample          # 300 条按书公平、多样性发现样本
 npm run tags:clusters        # 私有语义簇辅助报告，不等于正式标签
 npm run tags:seeds           # 候选标签的跨书种子与边界候选
@@ -74,7 +74,9 @@ npm run tags:promote         # 53 个候选标签 → 稳定 tag-001…tag-053
 npm run tags:trial:generate  # 300 条试标候选（embedding 集成打分）
 npm run tags:trial:review    # 逐条全文复核：接受 / 依词面证据修正 / 保留 draft
 npm run tags:trial:audit     # 覆盖、多标签比例、一致性、偏薄标签与待复核清单
-npm run tags:review-queue    # 生成 121 条人工审核队列（.private/tags/review-queue.md）
+npm run tags:review-queue    # 生成 review-queue.generated.md，绝不覆盖用户填写版
+npm run tags:review-import   # 只读导入用户已填写的少量意见，不覆盖 Markdown
+npm run tags:review-apply    # 仅应用完全落在现有词表内的明确决定
 npm run tags:studio          # 本机 Studio：127.0.0.1:5175，完整原文与原子保存
 npm run test:tags            # Studio 浏览器验收（写到 .private/review/batch-3/ 副本）
 npm run tags:migrate -- --merge tag-031 --into tag-030 --yes   # 合并标签
@@ -83,7 +85,7 @@ npm run tags:migrate -- --rename tag-004 --title 运气与偶然 --yes  # 改名
 
 私有字段 `rationale`、`candidates`、`confidence`、`flags` 只用于本机内容生产，不进入任何快照。
 
-SiliconFlow 调用使用非 `VITE_*` 的 `SILICONFLOW_API_KEY`，也兼容当前本机 `.env` 中的 `SiliconFlow_API_KEY`。`.env` 必须保持 Git ignored；不要把 key 写进聊天、代码、报告或 Git。结果与边界见 `docs/23`。
+当前默认 embedding 为本机 `Xenova/bge-large-zh-v1.5@a48549b-q8-cls`，无需 API key，4,663 条已全部在本机生成。SiliconFlow / Voyage / Cohere / OpenAI adapter 只保留为历史评测能力；未经用户新的明确许可，不得重新把远程 provider 设为默认或发送新的划线文本。结果与边界见 `docs/23`。
 
 公开路径（当前只用于验证构建，不展示真实内容）：
 
@@ -181,7 +183,7 @@ npm run test:publication       # 审核器的浏览器验收（用临时目录�
 | [20 — 标签、小径与地图规格](docs/20-TAGS-PATHS-MAP-SPEC.md) | Topic Tag、embedding、路径算法、岔路、地图与 schema 3 草案 |
 | [21 — V3 视觉方向](docs/21-V3-VISUAL-DIRECTION.md) | 纸、墨、光、地形、Book Aura、分享与视觉 Gate |
 | [22 — V3 实施计划](docs/22-V3-IMPLEMENTATION-PLAN.md) | Batch 0–8、用户 Gate、测试与发布恢复顺序 |
-| [23 — Embedding 评测](docs/23-EMBEDDING-EVALUATION.md) | 私有 provider 管线、300 条真实评测集、SiliconFlow 三模型结果、默认与回退 |
+| [23 — Embedding 评测](docs/23-EMBEDDING-EVALUATION.md) | 私有 provider 管线、300 条真实评测集、SiliconFlow 历史对照与本机 q8 + CLS 默认 |
 | [24 — Batch 2 标签发现](docs/24-BATCH-2-TAG-DISCOVERY.md) | 全量 embedding、按书公平样本、私有候选词表、人工种子与用户 Gate |
 | [25 — Batch 3 试标与 Studio](docs/25-BATCH-3-TAG-STUDIO.md) | 53 个稳定标签、私有 assignment 契约、300 条试标、审计与 Local Tag Studio |
 

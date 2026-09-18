@@ -2,7 +2,7 @@
 
 > 日期：2026-09-18
 >
-> 状态：**Batch 1 已完成。** 已建立 provider-neutral 私有管线，并使用同一组 300 条真实划线完成 SiliconFlow 三模型对比。默认模型为 `BAAI/bge-large-zh-v1.5`，回退为 `BAAI/bge-m3`。
+> 状态：**Batch 1 已完成，并于 2026-09-18 完成本机迁移。** 已建立 provider-neutral 私有管线；SiliconFlow 三模型结果保留为历史对照，当前默认改为本机 `Xenova/bge-large-zh-v1.5@a48549b-q8-cls`。4,663 条已全部在本机重建，不再向 SiliconFlow 发送新的划线文本。
 >
 > 本文是 Batch 1 的历史实况。Batch 2 已在用户授权后完成到词表 Gate，见 `docs/24-BATCH-2-TAG-DISCOVERY.md`；仍不授权 Batch 3、正式公开导出、运行时模型、push 或部署。用途与边界见 `docs/19–20`。
 
@@ -198,7 +198,46 @@ Qwen 评测估算费用             ¥0.0012572
 
 Batch 1 当时完成后按 Gate 停止；用户随后明确要求进入 Batch 2。Batch 2 的全量 embedding、300 条多样性样本、第一版候选词表与用户 Gate 见 `docs/24`。
 
-## 11. 官方接口依据
+## 11. Batch 1C — 从 SiliconFlow 迁移到本机推理
+
+用户补充说明：SiliconFlow 需要实名，而语料包含稍敏感的私人阅读内容，因此不再适合作为默认处理方。迁移策略不是换一个未经验证的云厂商，而是先保持模型不变、把推理位置移回本机。
+
+实现：
+
+- 新增 `local` provider，使用 `@huggingface/transformers@4.3.0`；
+- 模型仓库固定为 `Xenova/bge-large-zh-v1.5`，revision 固定为 `a48549b3259a6165364f226599cd91f39923d5d5`；
+- ONNX 使用 q8 权重；按 BGE 官方方式使用 CLS pooling 并归一化；
+- 模型标识完整写为 `Xenova/bge-large-zh-v1.5@a48549b-q8-cls`，避免与错误 pooling 或未来 revision 共用缓存；
+- 权重与向量只在 `.private/embeddings/`；首次下载模型文件时不发送划线，推理阶段完全本机；
+- downstream 标签样本、query vector、cluster 与 trial suggestion 默认全部读取 local cache。
+
+同一 300 条 / 22 case 的实测：
+
+| 方案 | MRR | R@10 | pair | 跨书多样性 | 综合分 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| SiliconFlow `BAAI/bge-large-zh-v1.5` | **0.4734** | 0.7727 | 0.9524 | 0.8818 | **0.7821** |
+| **本机 q8 + CLS** | 0.4655 | 0.7727 | 0.9524 | **0.8864** | 0.7810 |
+| 本机 q8 + mean（错误配置，仅作诊断） | 0.3294 | 0.6364 | 0.8095 | 0.9045 | 0.6533 |
+
+结论：正确的 CLS 版本与云端综合分只差 0.0011，R@10 与 pair 完全一致，多样性略高；这个差异不足以抵消本机方案的隐私与可复现优势，因此本机版本成为新默认。mean 结果保留在私有报告中作为防回归证据，不得再次选用。
+
+全量生成：
+
+```text
+provider             local
+model                Xenova/bge-large-zh-v1.5@a48549b-q8-cls
+highlights           4,663 / 4,663
+newly generated      4,363（复用评测集 300）
+requests             175 个本机 batch
+elapsed              1,754,866 ms（约 29 分 15 秒）
+external text calls  0
+```
+
+迁移后重跑标签 query vectors 与 300 条试标：标签覆盖仍为 53 / 53，0 孤儿、0 过宽、3 偏薄；多标签比例从 51.7% 变为 51.0%，属于量化与 pooling 实现差异，没有改变产品判断。
+
+云端 adapter 与密钥隔离测试继续保留，便于历史报告复现；但没有用户新的明确许可，任何脚本不得把远程 provider 重新设为默认。
+
+## 12. 官方接口依据
 
 - <https://api-docs.siliconflow.cn/docs/api/embeddings-post>
 - <https://cloud.siliconflow.cn/models>

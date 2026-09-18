@@ -11,10 +11,10 @@ import {
 } from './embeddings/core.ts';
 import { embeddingPrivatePaths, LOCAL_SNAPSHOT_PATH } from './embeddings/privatePaths.ts';
 import { selectTagDiscoverySample } from './embeddings/tagDiscovery.ts';
+import { providerDefaults } from './embeddings/providers.ts';
 
-const PROVIDER = 'siliconflow';
-const MODEL = 'BAAI/bge-large-zh-v1.5';
-const DIMENSIONS = 1024;
+const PROVIDER = 'local' as const;
+const { model: MODEL, dimensions: DIMENSIONS } = providerDefaults(PROVIDER);
 const TARGET_COUNT = 300;
 
 function safeName(value: string): string {

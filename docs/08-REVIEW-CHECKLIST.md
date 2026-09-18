@@ -45,9 +45,9 @@
 | V2-E4 交接准备 | 已执行完毕 | 交接 Prompt 为 `docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md`；E4A/E4B/E4C/E4D 均已实现、测试并提交 |
 | Release-A 公开审核准备 | 已执行完毕 | V2-E4E、有限随机书籍轮、书级 publication policy/单条排除/封面开关、本机审核器与私有 preview 均已实现并验收；详见下方 Release-A1～A4 四节；权威 `docs/17`，Prompt `docs/18` |
 | V3 Batch 0 顶层设计 | 已完成 | 新增 `docs/19–22`，重置权威顺序并完成产品、标签 / 地图、视觉与施工顶层设计；Release-B 暂停，未改代码 / schema / 快照 |
-| V3 Batch 1 embedding 评测 | 已完成 | provider-neutral 管线、300 条真实评测集、SiliconFlow 三模型实测与人工 neighbour review；默认 `bge-large-zh-v1.5`，回退 `bge-m3` |
+| V3 Batch 1 embedding 评测 | 已完成并迁移到本机 | SiliconFlow 三模型结果保留为历史对照；当前默认 `Xenova/bge-large-zh-v1.5@a48549b-q8-cls`，同集综合分 0.7810，4,663 条本机向量已完成，后续不再发送新的划线文本 |
 | V3 Batch 2 标签发现 | 已完成并获用户批准 | 全量 4,663 条 embedding、300 条按书公平样本、53 个私有候选标签、35 组边界、159 条人工种子；用户已批准完整词表进入 Batch 3 |
-| V3 Batch 3 稳定词表与试标 | 等待用户 Gate | 53 个稳定标签、严格 assignment 契约（含 provenance）、300 条试标（268 reviewed / 32 draft）、Local Tag Studio、审核队列与 10 个 Studio 浏览器用例均已完成；未进入 schema 3 |
+| V3 Batch 3 稳定词表与试标 | Agent 收口中 | 用户拒绝逐条审核负担；14 条填写已导入，3 条直接应用、11 条由 Agent 判定词表缺口；当前 271 reviewed / 29 draft，用户不再被审核队列阻塞 |
 | 真实访客 Gate | 未进行 | 用户本人体验反馈非常积极（V2-E4D 就是其反馈驱动的收尾），但尚无首次访客结果，不冒充产品 Gate 通过 |
 
 原始返回、更新包、候选池、快照与截图全部留在 `.private/`，已被 `.gitignore` 排除，未进入前端包。
@@ -489,9 +489,47 @@ reviewed / draft        268 / 32
 
 用户在 Batch 3 开始时指定由当前会话接手继续；该会话的运行环境报告 `PI_MODEL=deepseek-flash`、`PI_PROVIDER=cc-switch-deep-seek`。此前项目记录的“暂不交给 DeepSeek v4.1 Flash”已被本次用户决定取代。接手时未回退或覆盖前任会话的产物；Batch 3 的契约、脚本、Studio、测试与文档均为本次新增。
 
-### 下一步
+### 下一步（已被下方 2026-09-18 更新取代）
 
-停在 Batch 3 Gate。用户审核试标抽查、draft 清单、偏薄标签与词表抽象度后，才进入 Batch 4（schema 3、主题小径、岔路、分享全部标签与视觉基础）。
+原计划要求用户审核试标抽查、draft 与偏薄标签后再进入 Batch 4。用户随后明确表示该工作量不适合逐条人工处理；新的 Agent-owned 收口规则见下一节。
+
+## V3 Batch 3C — 本机 embedding 迁移与审核责任收回（2026-09-18）
+
+```text
+当前实现环境：PI_MODEL=gpt-5.6-sol / PI_PROVIDER=openai-codex
+起点提交：680a397
+用户私有修改：.private/tags/review-queue.md（保留，未覆盖）
+```
+
+### 完成范围
+
+1. 检查 Clash Verge：`verge-mihomo.exe` 监听 `127.0.0.1:7897`；5MB Hugging Face 实测直连约 479KB/s，显式代理约 277KB/s，因此不强制全局代理。模型下载已断点完成。
+2. 新增 `local` embedding provider：`@huggingface/transformers@4.3.0`、固定 revision `a48549b…`、q8 ONNX、CLS pooling、L2 normalize；模型标识包含 revision / dtype / pooling，防止错误缓存复用。
+3. 首轮误用 mean pooling，评测仅 0.6533；修正 CLS 后同集综合分 0.7810，几乎追平 SiliconFlow 0.7821。错误报告保留作防回归证据。
+4. 本机生成全量 4,663 条：复用评测集 300、补齐 4,363，175 个本机 batch，约 29 分 15 秒，外部文本请求 0。
+5. `tags:sample`、`tags:clusters`、`tags:seeds` 与 `tags:trial:generate` 默认全部切换到 local cache；远程 adapter 只保留历史复现能力。
+6. 新增 `tags:review-import`：只读导入用户已经写入审核 Markdown 的 14 条，不修改原文件；输出 source hash 与结构化意见到 `.private/tags/user-review-notes.json`。
+7. 新增 `tags:review-apply`：只应用完全落在已批准词表内的决定；3 条变为 `human`，11 条词表外建议完整保留给 Agent 判定，避免静默丢词或只采用一半。
+8. 用户审核责任正式收回：29 条 draft、50 override、16 lexical 与三个偏薄标签由 Agent 处理；用户只在真正的新标签 / 合并 / 产品语义冲突时参与。
+
+### 实际结果
+
+```text
+local evaluation       MRR 0.4655 / R@10 0.7727 / pair 0.9524 / diversity 0.8864
+comparison score       local 0.7810 / SiliconFlow historical 0.7821
+full local vectors     4,663 / 4,663
+trial after migration  271 reviewed / 29 draft
+provenance             ensemble 202 / override 50 / lexical 16 / unresolved 29 / human 3
+coverage               53 / 53；orphan 0 / broad 0 / thin 3
+user notes             14 imported / 3 applied / 11 vocabulary candidates
+```
+
+### 当前边界与下一步
+
+- 不删除历史 SiliconFlow 缓存或 `.env`，也不读取 / 显示密钥；只停止新的远程文本调用。
+- 不要求用户继续填写 `.private/tags/review-queue.md`。
+- 下一步由 Agent 对 11 个词表外建议做全语料证据审计，处理 29 条 draft 与三个偏薄标签；完成并回归后连续进入 Batch 4。
+- public snapshot 仍为空；未授权正式导出、repo、push 或部署。
 
 ## 授权更新记录
 

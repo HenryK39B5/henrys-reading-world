@@ -5,6 +5,7 @@ import { validateSnapshot } from '../src/domain/validate.ts';
 import { validateTopicTagVocabulary, validateTopicTagAssignments, type AssignmentConfidence, type TopicTagAssignments } from '../src/domain/topicTags.ts';
 import { EMBEDDING_INPUT_VERSION, snapshotEmbeddingHash, type EmbeddingCache } from './embeddings/core.ts';
 import { embeddingPrivatePaths, LOCAL_SNAPSHOT_PATH } from './embeddings/privatePaths.ts';
+import { providerDefaults } from './embeddings/providers.ts';
 import { writeFile, mkdir, rename } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
@@ -26,6 +27,8 @@ async function writeAtomic(path: string, value: unknown): Promise<void> {
 }
 
 async function main(): Promise<void> {
+    const provider = 'local' as const;
+    const { model, dimensions } = providerDefaults(provider);
     const root = resolve(process.cwd(), '.private', 'tags');
     const snapshotCheck = validateSnapshot(JSON.parse(await readFile(LOCAL_SNAPSHOT_PATH, 'utf8')) as unknown, { expectedVisibility: 'local-only' });
     if (!snapshotCheck.ok) throw new Error(snapshotCheck.errors.join('; '));
@@ -39,7 +42,11 @@ async function main(): Promise<void> {
     const queryCache = JSON.parse(await readFile(resolve(root, 'candidate-query-vectors.json'), 'utf8')) as { vectors: Record<string, number[]> };
     const sample = JSON.parse(await readFile(resolve(root, 'discovery-sample.json'), 'utf8')) as { selectionVersion: string; entries: Array<{ id: string }> };
     const embeddingPaths = embeddingPrivatePaths();
-    const cache = JSON.parse(await readFile(resolve(embeddingPaths.cache, 'siliconflow--baai-bge-large-zh-v1.5--1024.json'), 'utf8')) as EmbeddingCache;
+    const cacheName = `${provider}--${model.toLowerCase().replace(/[^a-z0-9._-]+/gu, '-')}--${String(dimensions)}.json`;
+    const cache = JSON.parse(await readFile(resolve(embeddingPaths.cache, cacheName), 'utf8')) as EmbeddingCache;
+    if (cache.provider !== provider || cache.model !== model || cache.dimensions !== dimensions) {
+        throw new Error('selected local embedding cache does not match the pinned model');
+    }
     const stableToCandidate = new Map(Object.entries(migration.tags).map(([candidateId, stableId]) => [stableId, candidateId]));
     const curatedByCandidate = new Map(curated.tags.map((entry) => [entry.tagId, entry.seedIds]));
     const allHighlights = [...snapshot.highlights].sort((left, right) => left.id.localeCompare(right.id));

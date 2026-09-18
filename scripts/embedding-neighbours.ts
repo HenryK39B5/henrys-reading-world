@@ -3,12 +3,13 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import type { Snapshot } from '../src/domain/types.ts';
 import { validateSnapshot } from '../src/domain/validate.ts';
-import { cosineSimilarity, type EmbeddingCache, type EvaluationCorpus } from './embeddings/core.ts';
+import { cosineSimilarity, type EmbeddingCache, type EmbeddingProviderName, type EvaluationCorpus } from './embeddings/core.ts';
 import { parseEvaluationLabels } from './embeddings/evaluation.ts';
 import { embeddingPrivatePaths, LOCAL_SNAPSHOT_PATH } from './embeddings/privatePaths.ts';
+import { providerDefaults } from './embeddings/providers.ts';
 
 type Args = {
-    provider: string;
+    provider: EmbeddingProviderName;
     model: string;
     dimensions: number;
     limit: number;
@@ -25,13 +26,15 @@ function readArgs(argv: string[]): Args {
         values.set(key.slice(2), value);
         index += 1;
     }
-    const provider = values.get('provider');
-    const model = values.get('model');
-    const dimensions = Number(values.get('dimensions'));
-    const limit = Number(values.get('limit') ?? '10');
-    if (provider === undefined || model === undefined) {
-        throw new Error('--provider and --model are required');
+    const providerRaw = values.get('provider') ?? 'local';
+    if (!['voyage', 'cohere', 'openai', 'siliconflow', 'local'].includes(providerRaw)) {
+        throw new Error('--provider must be voyage, cohere, openai, siliconflow, or local');
     }
+    const provider = providerRaw as EmbeddingProviderName;
+    const defaults = providerDefaults(provider);
+    const model = values.get('model') ?? defaults.model;
+    const dimensions = Number(values.get('dimensions') ?? defaults.dimensions);
+    const limit = Number(values.get('limit') ?? '10');
     if (!Number.isInteger(dimensions) || dimensions <= 0 || !Number.isInteger(limit) || limit <= 0) {
         throw new Error('--dimensions and --limit must be positive integers');
     }

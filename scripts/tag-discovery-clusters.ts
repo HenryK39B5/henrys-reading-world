@@ -5,9 +5,10 @@ import { validateSnapshot } from '../src/domain/validate.ts';
 import type { EmbeddingCache } from './embeddings/core.ts';
 import { sphericalKMeans } from './embeddings/clustering.ts';
 import { embeddingPrivatePaths, LOCAL_SNAPSHOT_PATH } from './embeddings/privatePaths.ts';
+import { providerDefaults } from './embeddings/providers.ts';
 
-const MODEL = 'BAAI/bge-large-zh-v1.5';
-const DIMENSIONS = 1024;
+const PROVIDER = 'local' as const;
+const { model: MODEL, dimensions: DIMENSIONS } = providerDefaults(PROVIDER);
 const CLUSTER_COUNT = 36;
 
 function safeName(value: string): string {
@@ -39,7 +40,7 @@ async function main(): Promise<void> {
         throw new Error('tag-discovery sample is missing or invalid; run npm run tags:sample first');
     }
     const paths = embeddingPrivatePaths();
-    const cachePath = resolve(paths.cache, `siliconflow--${safeName(MODEL)}--${String(DIMENSIONS)}.json`);
+    const cachePath = resolve(paths.cache, `${PROVIDER}--${safeName(MODEL)}--${String(DIMENSIONS)}.json`);
     const cache = JSON.parse(await readFile(cachePath, 'utf8')) as EmbeddingCache;
     if (cache.snapshotHash !== sample.snapshotHash || cache.model !== MODEL || cache.dimensions !== DIMENSIONS) {
         throw new Error('tag-discovery sample and default embedding cache do not match');

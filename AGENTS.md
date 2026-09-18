@@ -13,7 +13,7 @@
 ## 执行规则
 
 - 先检查目录、现有实现及 Git 状态；保护既有工作，不因为本交接写着“无代码”就覆盖后续代码。
-- 当前 Slice 0–4、V2-A～V2-E4D 与 **Release-A（A1～A4）** 均已完成；用户已完成两轮书级/逐条审核，当前私有清单为 108 本公开、22 本排除、6 条单独排除，`reviewComplete=true`。V3 Batch 0–3 已完成为稳定词表、300 条私有试标（268 reviewed / 32 draft）与只在本机运行的 Local Tag Studio，详见 `docs/23–25`。用户批准试标前不得自动进入 Batch 4（schema 3、主题小径、地图）、正式导出 public snapshot、复制 public covers、创建 repo、push 或部署。
+- 当前 Slice 0–4、V2-A～V2-E4D 与 **Release-A（A1～A4）** 均已完成；用户已完成两轮书级/逐条审核，当前私有清单为 108 本公开、22 本排除、6 条单独排除，`reviewComplete=true`。V3 Batch 0–3 已完成为稳定词表、300 条私有试标与只在本机运行的 Local Tag Studio，详见 `docs/23–25`。用户明确表示逐条审核工作量过大；后续由实现 Agent 负责试标与低信心复核，用户只处理真正的标签命名、合并和产品边界。用户在审核队列填写的 14 条已导入，其中 3 条直接应用、11 条作为词表缺口候选。完成这些候选的 Agent 判定后可连续进入 Batch 4；正式导出 public snapshot、复制 public covers、创建 repo、push 或部署仍需单独 Gate。
 - 使用 Windows 原生 Node/npm/Git 与 PowerShell。不要混用 WSL 路径。
 - 不在非空项目根目录直接运行可能覆盖文档的脚手架；优先逐文件建立 Vite 配置。
 - 版本首次安装时选择彼此兼容的稳定版本并提交 npm 锁文件，不凭空声称某版本是最新。
@@ -31,7 +31,7 @@
 
 - TypeScript strict；数据和算法独立于 React；选择算法接收可注入 RNG 与时间。
 - Book Theme 与 Highlight Topic Tag 必须是不同类型与语义；Topic Tag 每条 1–3 个、地位平等，不恢复质量分、人格标签或 Opening/Contrast/Surprise。
-- embedding provider、缓存、评测与向量只在 `.private` / scripts / Studio；API key 只来自非 `VITE_*` 环境变量；public snapshot 不含原始高维向量、置信度、理由或私有 note。
+- embedding provider、缓存、评测与向量只在 `.private` / scripts / Studio；public snapshot 不含原始高维向量、置信度、理由或私有 note。默认 provider 已改为本机 `Xenova/bge-large-zh-v1.5@a48549b-q8-cls`；SiliconFlow 结果只作历史对照，不再发送新的划线文本。若未来重新启用任何远程 provider，必须先获用户明确许可，API key 只来自非 `VITE_*` 环境变量。
 - 小径算法先满足按书公平、首轮不重复与全量可达，再在选中书内部使用 embedding 调节近/中/远节奏；无 embedding 时必须稳定降级。
 - 地图总览不得创建 4,663 个 DOM 按钮或同时渲染全文；使用 Canvas/预计算图层或等效低 DOM，并提供小径列表与区域列表作为无障碍替代。
 - 不使用 `dangerouslySetInnerHTML` 展示内容；不引入不必要的状态、动画、UI 或推荐框架。视觉以 `docs/21` 为准；纯 CSS 能完成时不用动画库，reduced-motion 必须取消位移、缩放与长过渡。
