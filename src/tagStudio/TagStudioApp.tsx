@@ -3,6 +3,7 @@ import {
     updateHighlightAssignment,
     type AssignmentConfidence,
     type AssignmentFlag,
+    type AssignmentProvenance,
     type AssignmentStatus,
     type HighlightTagAssignment,
     type TopicTagAssignments,
@@ -36,13 +37,21 @@ const FLAG_LABELS: Record<AssignmentFlag, string> = {
     'near-boundary': '近义边界',
     'possible-missing-tag': '可能漏标',
 };
+const PROVENANCES: AssignmentProvenance[] = ['unresolved', 'override', 'lexical', 'ensemble', 'human'];
+const PROVENANCE_LABELS: Record<AssignmentProvenance, string> = {
+    unresolved: '无法归类',
+    override: '全文改写',
+    lexical: '词面证据',
+    ensemble: '与模型一致',
+    human: '人工已改',
+};
 
 function sortByEditorialOrder(tagIds: string[], order: Map<string, number>): string[] {
     return [...new Set(tagIds)].sort((left, right) => (order.get(left) ?? 0) - (order.get(right) ?? 0));
 }
 
 function contradictsProposal(assignment: HighlightTagAssignment): boolean {
-    return assignment.rationale.includes('override') || assignment.rationale.includes('lexical');
+    return assignment.provenance === 'override' || assignment.provenance === 'lexical';
 }
 
 export function TagStudioApp() {
@@ -56,6 +65,7 @@ export function TagStudioApp() {
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
     const [confidenceFilter, setConfidenceFilter] = useState<ConfidenceFilter>('all');
     const [flagFilter, setFlagFilter] = useState<FlagFilter>('all');
+    const [provenanceFilter, setProvenanceFilter] = useState<'all' | AssignmentProvenance>('all');
     const [familyId, setFamilyId] = useState('all');
     const [dirty, setDirty] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -113,6 +123,9 @@ export function TagStudioApp() {
             if (flagFilter !== 'all' && !assignment.flags.includes(flagFilter)) {
                 return false;
             }
+            if (provenanceFilter !== 'all' && assignment.provenance !== provenanceFilter) {
+                return false;
+            }
             if (familyId !== 'all' && !assignment.tagIds.some((tagId) => tagById.get(tagId)?.familyId === familyId)) {
                 return false;
             }
@@ -129,7 +142,7 @@ export function TagStudioApp() {
                 label.toLowerCase().includes(needle)
             );
         });
-    }, [assignments, query, statusFilter, confidenceFilter, flagFilter, familyId, highlightById, bookById, tagById]);
+    }, [assignments, query, statusFilter, confidenceFilter, flagFilter, provenanceFilter, familyId, highlightById, bookById, tagById]);
 
     const summary = useMemo(() => {
         if (assignments === null) {
@@ -316,6 +329,24 @@ export function TagStudioApp() {
                         ))}
                     </select>
                 </label>
+                <label>
+                    来源
+                    <select
+                        value={provenanceFilter}
+                        data-testid="studio-provenance"
+                        onChange={(event) => {
+                            setProvenanceFilter(event.target.value as 'all' | AssignmentProvenance);
+                        }}
+                    >
+                        <option value="all">全部</option>
+                        {/* The Gate's review order: not decided by the model first. */}
+                        {PROVENANCES.map((kind) => (
+                            <option key={kind} value={kind}>
+                                {PROVENANCE_LABELS[kind]}
+                            </option>
+                        ))}
+                    </select>
+                </label>
                 <span className="studio-muted" data-testid="studio-count">
                     {String(rows.length)} / {String(summary.total)}
                 </span>
@@ -339,6 +370,7 @@ export function TagStudioApp() {
                                 <span>{row.tagIds.map((tagId) => tagById.get(tagId)?.title ?? tagId).join(' · ')}</span>
                                 <small>
                                     {book?.title ?? '未知书'} · {row.status} / {row.confidence}
+                                    {row.provenance === 'ensemble' ? '' : ` · ${PROVENANCE_LABELS[row.provenance]}`}
                                     {row.flags.length > 0 ? ` · ${row.flags.map((flag) => FLAG_LABELS[flag]).join('、')}` : ''}
                                 </small>
                             </button>
@@ -355,7 +387,8 @@ export function TagStudioApp() {
                         <p className="studio-muted">
                             {selected.highlightId} · 《{selectedBook.title}》{selectedBook.author} ·{' '}
                             {selectedBook.themeIds.map((themeId) => snapshot.themes.find((theme) => theme.id === themeId)?.title ?? themeId).join(' / ')}
-                            {contradictsProposal(selected) ? ' · 与 embedding 提议不同' : ''}
+                            {' · '}{PROVENANCE_LABELS[selected.provenance]}
+                            {contradictsProposal(selected) ? '（与 embedding 提议不同）' : ''}
                         </p>
                         <blockquote>{selectedHighlight.text}</blockquote>
 

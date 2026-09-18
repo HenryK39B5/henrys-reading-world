@@ -74,6 +74,7 @@ npm run tags:promote         # 53 个候选标签 → 稳定 tag-001…tag-053
 npm run tags:trial:generate  # 300 条试标候选（embedding 集成打分）
 npm run tags:trial:review    # 逐条全文复核：接受 / 依词面证据修正 / 保留 draft
 npm run tags:trial:audit     # 覆盖、多标签比例、一致性、偏薄标签与待复核清单
+npm run tags:review-queue    # 生成 121 条人工审核队列（.private/tags/review-queue.md）
 npm run tags:studio          # 本机 Studio：127.0.0.1:5175，完整原文与原子保存
 npm run test:tags            # Studio 浏览器验收（写到 .private/review/batch-3/ 副本）
 npm run tags:migrate -- --merge tag-031 --into tag-030 --yes   # 合并标签

@@ -86,6 +86,7 @@ async function main(): Promise<void> {
             highlightId: highlight.id,
             tagIds,
             status: 'draft' as const,
+            provenance: 'ensemble' as const,
             confidence,
             rationale: `seed-centroid/query ensemble; top=${first.score.toFixed(3)}; margin=${margin.toFixed(3)}; agent review required before publication`,
             candidates: ranked.slice(0, 5).map((candidate) => ({ tagId: candidate.tagId, score: Number(candidate.score.toFixed(6)) })),

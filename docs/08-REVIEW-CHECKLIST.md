@@ -47,7 +47,7 @@
 | V3 Batch 0 顶层设计 | 已完成 | 新增 `docs/19–22`，重置权威顺序并完成产品、标签 / 地图、视觉与施工顶层设计；Release-B 暂停，未改代码 / schema / 快照 |
 | V3 Batch 1 embedding 评测 | 已完成 | provider-neutral 管线、300 条真实评测集、SiliconFlow 三模型实测与人工 neighbour review；默认 `bge-large-zh-v1.5`，回退 `bge-m3` |
 | V3 Batch 2 标签发现 | 已完成并获用户批准 | 全量 4,663 条 embedding、300 条按书公平样本、53 个私有候选标签、35 组边界、159 条人工种子；用户已批准完整词表进入 Batch 3 |
-| V3 Batch 3 稳定词表与试标 | 等待用户 Gate | 53 个稳定标签、严格 assignment 契约、300 条试标（268 reviewed / 32 draft）、Local Tag Studio 与 10 个 Studio 浏览器用例均已完成；未进入 schema 3 |
+| V3 Batch 3 稳定词表与试标 | 等待用户 Gate | 53 个稳定标签、严格 assignment 契约（含 provenance）、300 条试标（268 reviewed / 32 draft）、Local Tag Studio、审核队列与 10 个 Studio 浏览器用例均已完成；未进入 schema 3 |
 | 真实访客 Gate | 未进行 | 用户本人体验反馈非常积极（V2-E4D 就是其反馈驱动的收尾），但尚无首次访客结果，不冒充产品 Gate 通过 |
 
 原始返回、更新包、候选池、快照与截图全部留在 `.private/`，已被 `.gitignore` 排除，未进入前端包。
@@ -407,12 +407,22 @@ Batch 2 停在用户词表 Gate。用户需要审核名称 / 定义、相邻边�
 3. 新增 `tags:trial:generate`：seed-centroid + query 集成打分，按标签自身分布标准化，并对标签名 / alias / includes 命中给予词面证据；输出候选、信心与标记。
 4. 新增 `tags:trial:review`：对 300 条逐条全文复核——接受、依词面证据修正、或显式保留 `draft`；不猜无法支撑的标签。
 5. 新增 `tags:trial:audit`：输出 reviewed / draft、1–3 标签分布、多标签比例、信心分布、每标签书籍数与划线数、零覆盖 / 过宽 / 偏薄标签、机器一致性与待复核清单。
-6. 新增 `tags:studio`（Vite `tag-studio-private`，127.0.0.1:5175）与 `src/tagStudio/`：完整原文、按状态 / 信心 / 标记 / 家族筛选、ID / 原文 / 书名 / 标签搜索、候选一键采纳、定义与边界对照、标记为待定、私有理由、整份校验后原子保存。
+6. 新增 `tags:studio`（Vite `tag-studio-private`，127.0.0.1:5175）与 `src/tagStudio/`：完整原文、按状态 / 信心 / 标记 / 来源 / 家族筛选、ID / 原文 / 书名 / 标签搜索、候选一键采纳、定义与边界对照、标记为待定、私有理由、整份校验后原子保存；任何在界面上改过的条目 `provenance` 自动变为 `human`。
 7. 新增 `src/app/privateTagPaths.ts`：`READING_WORLD_TAG_DIR` 可在进程级重定向词表与试标路径，使自动化测试绝不覆盖真人正在看的文件；仍不接受任何请求参数。
 8. 新增 `tags:migrate`：标签合并与改名，合并后重新校验整份试标；改名保留稳定 ID，因此不改动任何 assignment。
 9. 新增 `e2e/tag-studio/studio.spec.ts`（10 个用例）与 `playwright.tag-studio.config.ts`；新增 `e2e/tag-studio-absent.spec.ts`（2 个用例）证明产品模式下读不到、也写不了试标。
 10. 扩展 `scripts/check-public-isolation.ts`：新增 Studio 入口、两个路由、词表 / 试标 / 审计 / 候选文件名、私有理由与标记探针。
 11. 新增 `docs/25-BATCH-3-TAG-STUDIO.md`；完整原文、候选分数、理由与审计报告只在 `.private/tags/`。
+
+### 审核材料（Gate 前补充）
+
+首次完成后发现审核材料有两个真实缺口，因此补做：
+
+1. 私有契约增加结构化 `provenance`（`ensemble | lexical | override | unresolved | human`），使「谁做的决定」不再靠匹配散文；`unresolved` 与 `human` 让“机器提议”与“人的决定”永不混淆。
+2. 每条理由改为中文并记录可核对的事实：override 写明模型原提议与分数，lexical 写明命中的具体词；无法归类的条目写明为何撑不起任何标签。
+3. 新增 `tags:review-queue` 生成 `.private/tags/review-queue.md`：把待审从 300 条压缩到 121 条，并按 A（必须决定）→ E（控制组抽查）排序。
+
+补充后数字未变：200 / 50 / 18 / 32，需要人工过目 100 条。
 
 ### 试标真实结果
 

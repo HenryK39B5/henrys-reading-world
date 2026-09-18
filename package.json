@@ -51,6 +51,7 @@
     "tags:trial:generate": "node scripts/tag-trial-generate.ts",
     "tags:trial:review": "node scripts/tag-trial-review.ts",
     "tags:trial:audit": "node scripts/tag-trial-audit.ts",
+    "tags:review-queue": "node scripts/tag-review-queue.ts",
     "tags:migrate": "node scripts/tag-merge.ts"
   },
   "dependencies": {

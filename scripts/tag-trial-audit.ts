@@ -5,6 +5,7 @@ import {
     validateTopicTagAssignments,
     validateTopicTagVocabulary,
     type AssignmentFlag,
+    type AssignmentProvenance,
     type TopicTagAssignments,
     type TopicTagVocabulary,
 } from '../src/domain/topicTags.ts';
@@ -102,7 +103,16 @@ async function main(): Promise<void> {
         assignmentsWithNoTagInTop5: assignments.assignments.filter((assignment) =>
             assignment.tagIds.every((tagId) => !assignment.candidates.slice(0, 5).some((candidate) => candidate.tagId === tagId)),
         ).length,
-        offEnsembleAssignments: assignments.assignments.filter((assignment) => assignment.rationale.includes('override') || assignment.rationale.includes('lexical')).length,
+        provenance: Object.fromEntries(
+            (['ensemble', 'lexical', 'override', 'unresolved', 'human'] as AssignmentProvenance[]).map((kind) => [
+                kind,
+                assignments.assignments.filter((assignment) => assignment.provenance === kind).length,
+            ]),
+        ),
+        /** Everything a person should look at: not decided by the model, or still unresolved. */
+        needsHumanEyes: assignments.assignments.filter(
+            (assignment) => assignment.provenance !== 'ensemble' && assignment.provenance !== 'human',
+        ).length,
     };
 
     const report = {
@@ -145,7 +155,15 @@ async function main(): Promise<void> {
         `- 信心 high / medium / low：${String(report.confidence.high)} / ${String(report.confidence.medium)} / ${String(report.confidence.low)}`,
         `- 全部标签都出现在 embedding top-5：${String(consistency.assignmentsWithAllTagsInTop5)}`,
         `- 没有任何标签出现在 top-5：${String(consistency.assignmentsWithNoTagInTop5)}`,
-        `- 人工 override / 词面证据覆盖：${String(consistency.offEnsembleAssignments)}`,
+        `- 来源：${Object.entries(consistency.provenance).map(([kind, count]) => `${kind} ${String(count)}`).join('，')}`,
+        `- 需要人工过一眼（非 ensemble、非 human）：${String(consistency.needsHumanEyes)}`,
+        '',
+        '## 需要在审核中优先看的子集',
+        '',
+        `- \`unresolved\`（无法归类）：${String(consistency.provenance.unresolved ?? 0)} 条`,
+        `- \`override\`（全文推翻模型提议）：${String(consistency.provenance.override ?? 0)} 条`,
+        `- \`lexical\`（低信心改为词面证据）：${String(consistency.provenance.lexical ?? 0)} 条`,
+        `- \`human\`（已被人工改过）：${String(consistency.provenance.human ?? 0)} 条`,
         '',
         '## 标签覆盖',
         '',

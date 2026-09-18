@@ -9,6 +9,17 @@ export type AssignmentStatus = 'draft' | 'reviewed';
 export type AssignmentConfidence = 'low' | 'medium' | 'high';
 export type AssignmentFlag = 'low-confidence' | 'semantic-outlier' | 'near-boundary' | 'possible-missing-tag';
 
+/**
+ * How an assignment was produced, so a reviewer can triage instead of trusting prose.
+ *
+ * `ensemble`   the embedding proposal and the recorded tags agree;
+ * `lexical`    a person changed it after seeing explicit wording in the passage;
+ * `override`   a person replaced a proposal that the full text contradicted;
+ * `unresolved` no approved tag is supported by the passage on its own — left for a person;
+ * `human`      edited on the Studio screen, so the label is a person's decision, not a suggestion.
+ */
+export type AssignmentProvenance = 'ensemble' | 'lexical' | 'override' | 'unresolved' | 'human';
+
 export type TopicTagFamily = {
     id: string;
     title: string;
@@ -44,6 +55,7 @@ export type HighlightTagAssignment = {
     highlightId: string;
     tagIds: string[];
     status: AssignmentStatus;
+    provenance: AssignmentProvenance;
     confidence: AssignmentConfidence;
     rationale: string;
     candidates: TagCandidateScore[];
@@ -256,7 +268,7 @@ export function validateTopicTagAssignments(
             errors.push(`${path}: expected object`);
             continue;
         }
-        const itemExtra = extraFields(raw, ['highlightId', 'tagIds', 'status', 'confidence', 'rationale', 'candidates', 'flags', 'updatedAt']);
+        const itemExtra = extraFields(raw, ['highlightId', 'tagIds', 'status', 'provenance', 'confidence', 'rationale', 'candidates', 'flags', 'updatedAt']);
         if (itemExtra.length > 0) {
             errors.push(`${path}: unsupported field(s) ${itemExtra.join(', ')}`);
         }
@@ -284,6 +296,9 @@ export function validateTopicTagAssignments(
         if (raw.confidence !== 'low' && raw.confidence !== 'medium' && raw.confidence !== 'high') {
             errors.push(`${path}.confidence: invalid confidence`);
         }
+        if (!['ensemble', 'lexical', 'override', 'unresolved', 'human'].includes(String(raw.provenance))) {
+            errors.push(`${path}.provenance: invalid provenance`);
+        }
         if (!nonEmptyString(raw.rationale)) {
             errors.push(`${path}.rationale: expected non-empty string`);
         }
@@ -308,6 +323,7 @@ export function validateTopicTagAssignments(
         if (
             nonEmptyString(raw.highlightId) && highlightIds.has(raw.highlightId) && tagIds.length >= 1 && tagIds.length <= 3 &&
             (raw.status === 'draft' || raw.status === 'reviewed') &&
+            ['ensemble', 'lexical', 'override', 'unresolved', 'human'].includes(String(raw.provenance)) &&
             (raw.confidence === 'low' || raw.confidence === 'medium' || raw.confidence === 'high') &&
             nonEmptyString(raw.rationale) && nonEmptyString(raw.updatedAt)
         ) {
@@ -315,6 +331,7 @@ export function validateTopicTagAssignments(
                 highlightId: raw.highlightId,
                 tagIds,
                 status: raw.status,
+                provenance: raw.provenance as AssignmentProvenance,
                 confidence: raw.confidence,
                 rationale: raw.rationale,
                 candidates,
@@ -362,10 +379,12 @@ export function updateHighlightAssignment(
     change: Pick<HighlightTagAssignment, 'tagIds' | 'status' | 'confidence' | 'rationale' | 'flags'>,
     updatedAt: string,
 ): TopicTagAssignments {
+    // Anything decided on the Studio screen is a person's decision from that moment on, so it can never be
+    // mistaken for an embedding proposal again.
     return {
         ...collection,
         assignments: collection.assignments.map((assignment) =>
-            assignment.highlightId === highlightId ? { ...assignment, ...change, updatedAt } : assignment,
+            assignment.highlightId === highlightId ? { ...assignment, ...change, provenance: 'human', updatedAt } : assignment,
         ),
     };
 }
