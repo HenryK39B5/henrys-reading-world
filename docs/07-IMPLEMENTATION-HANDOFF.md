@@ -8,7 +8,7 @@
 >
 > 施工细节与 Batch：`docs/22-V3-IMPLEMENTATION-PLAN.md`。
 >
-> Release-A 及两轮公开审核均已完成；私有清单为 108 本公开、22 本排除、6 条单独排除。Release-B 因 V3 产品迭代暂停。Batch 0 完成后先汇报文档 Gate，不自动开始 Batch 1。
+> Release-A 及两轮公开审核均已完成；私有清单为 108 本公开、22 本排除、6 条单独排除。Release-B 因 V3 产品迭代暂停。Batch 0 已完成；Batch 1A 的 provider-neutral 管线、300 条真实评测集和 lexical 下限已完成，Batch 1B 等待本机 Voyage / Cohere 凭证。实际状态见 `docs/23`。
 
 ## 当前状态（2026-09-18）
 
@@ -36,8 +36,8 @@
 
 ## 后续施工顺序
 
-1. **V3 Batch 0**：权威文档、标签 / 地图规格、视觉方向与实施计划；完成后停下汇报。
-2. **Batch 1**：私有 embedding 基础与免费 / 低成本厂商评测。
+1. **V3 Batch 0**：已完成，建立权威文档、标签 / 地图规格、视觉方向与实施计划。
+2. **Batch 1**：1A 基础设施与真实评测集已完成；1B 在本机设置 `VOYAGE_API_KEY` / `COHERE_API_KEY` 后完成同集比较并选择默认 / 回退。
 3. **Batch 2**：250–300 条多样性样本、第一版标签词表与用户 Gate。
 4. **Batch 3**：Local Tag Studio 与试标。
 5. **Batch 4**：schema 3、主题小径、岔路、分享全部标签与关键视觉原型。

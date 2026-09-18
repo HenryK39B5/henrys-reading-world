@@ -54,7 +54,19 @@ if (titles + passages + covers > 0) {
     bad += 1;
 }
 
-for (const needle of ['WEREAD_API_KEY', 'userVid', 'bookmarkId', 'share-cards', 'flomo', 'weread_image']) {
+for (const needle of [
+    'WEREAD_API_KEY',
+    'VOYAGE_API_KEY',
+    'COHERE_API_KEY',
+    'OPENAI_API_KEY',
+    'userVid',
+    'bookmarkId',
+    '.private/embeddings',
+    'embedding evaluation labels',
+    'share-cards',
+    'flomo',
+    'weread_image',
+]) {
     const present = hay.includes(needle);
     if (present) {
         bad += 1;

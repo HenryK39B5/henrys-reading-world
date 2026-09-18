@@ -4,7 +4,7 @@
 
 | 项目 | 状态 | 说明 |
 | --- | --- | --- |
-| 产品基线 | V3 权威已建立 | PRODUCT_BRIEF 保留历史基线；当前以 `docs/19–22` 为准 |
+| 产品基线 | V3 权威已建立 | PRODUCT_BRIEF 保留历史基线；产品 / 施工以 `docs/19–22` 为准，Batch 1 实况见 `docs/23` |
 | 开发文档 | 已准备 | 用户追加“只用真实数据”已纳入 |
 | Codex skill 移植 | 完成 | 项目 `.agents/skills/weread-skills/`，原安装未改 |
 | skill 版本 | 1.0.4 | 官方更新包已审查，项目约束已重新应用 |
@@ -45,6 +45,7 @@
 | V2-E4 交接准备 | 已执行完毕 | 交接 Prompt 为 `docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md`；E4A/E4B/E4C/E4D 均已实现、测试并提交 |
 | Release-A 公开审核准备 | 已执行完毕 | V2-E4E、有限随机书籍轮、书级 publication policy/单条排除/封面开关、本机审核器与私有 preview 均已实现并验收；详见下方 Release-A1～A4 四节；权威 `docs/17`，Prompt `docs/18` |
 | V3 Batch 0 顶层设计 | 已完成 | 新增 `docs/19–22`，重置权威顺序并完成产品、标签 / 地图、视觉与施工顶层设计；Release-B 暂停，未改代码 / schema / 快照 |
+| V3 Batch 1 embedding 评测 | 执行中（凭证 Gate） | 1A 已完成 provider-neutral 管线、300 条真实评测集、22 个语义 case 与 lexical 下限；1B 等待本机 Voyage / Cohere key 后运行真实对比 |
 | 真实访客 Gate | 未进行 | 用户本人体验反馈非常积极（V2-E4D 就是其反馈驱动的收尾），但尚无首次访客结果，不冒充产品 Gate 通过 |
 
 原始返回、更新包、候选池、快照与截图全部留在 `.private/`，已被 `.gitignore` 排除，未进入前端包。
@@ -114,6 +115,95 @@ Batch 0 没有修改产品代码或样式，因此未生成新的浏览器截图
 ### 下一步
 
 按 `docs/22` 停止在 Batch 0 汇报；不自动启动 Batch 1。下一批是私有 embedding 基础与免费 / 低成本厂商真实语料评测。
+
+## V3 Batch 1A — 私有 embedding 基础与真实评测集（2026-09-18）
+
+```text
+日期 / 执行者：2026-09-18 / 当前实现 Agent
+范围：Batch 1A — provider-neutral 管线、缓存 / 续跑、真实 corpus、人工 case、非语义基线
+状态：verified（基础设施）；Batch 1B blocked by local provider credentials
+代码基线：2871ee4
+```
+
+### 完成范围
+
+1. 新增 `scripts/embeddings/` 纯 TypeScript 基础：版本化文本规范、SHA-256 text / snapshot hash、cosine、严格 vector 检查、私有路径、评测选择与指标。
+2. 新增 Voyage / Cohere / OpenAI adapter：固定官方 endpoint、批量、429 / 5xx 重试、token usage、可选成本估算；拒绝空 key 与 `VITE_*` key；错误不读取或打印厂商响应正文。
+3. 新增 `embedding-prepare.ts`：从 schema 2 local snapshot 确定性抽取 300 条，全部 130 本 / 14 个 Book Theme，短中长覆盖；人工 case 中的 ID 强制入集。
+4. 新增 `.private/embeddings/evaluation/labels.json`：22 个由完整真实划线人工核对的跨书相关、近义边界、关键词伪相关 case；原文与理由均不进 Git。
+5. 新增增量 `embedding-evaluate.ts`：只补缺失 / text hash 变化项，每批原子保存，失败可续跑；向量、manifest、报告只写 `.private/embeddings/`。
+6. 新增 `embedding-compare.ts`：至少两份真实 provider 报告才比较；统一指标权重只作为工程辅助，不自动选厂商或批准标签。
+7. 新增字符 unigram / bigram lexical hash 下限，验证 corpus → cache → metrics → report 全流程；明确它不是 embedding 候选。
+8. 更新 public isolation 探针，新增 Voyage / Cohere / OpenAI key、private embedding 路径与 labels 文案检查。
+9. 新增 `docs/23-EMBEDDING-EVALUATION.md`，记录厂商短名单、当前价格 / 免费额度核对、命令、数据边界与凭证 Gate；更新 AGENTS、README、`docs/07`。
+
+### 真实评测集
+
+```text
+300 条真实划线
+130 本书
+14 个 Book Theme
+短 105 / 中 88 / 长 107
+28,067 个非空白字符
+22 个人工语义 case
+```
+
+人工 case 覆盖随机性、风险、等待、权力、孤独、死亡、亲密关系、选择、恐惧、自由、幸福、意义、记忆、概率、财富、市场自我控制与睡眠等；每个 case 只记录 stable ID、类别和私有简短理由。
+
+### Lexical 下限
+
+```text
+MRR                 0.1863
+Recall@10           0.4091
+Pair accuracy       0.5238
+Book diversity@10   0.9318
+```
+
+这组数据仅证明评测管线能抓住字面重合并暴露关键词伪相关。正式模型必须明显改善 retrieval 与 hard-negative 分离，不能把此结果写成 provider 通过。
+
+### 实际命令与结果
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run check:local` | typecheck、lint、**256 单测 / 21 文件**、schema 2 local 校验通过；唯一警告仍为无原始换行 |
+| `npm run verify:ids` | 20 本 / 46 条种子 ID 稳定；总量 4,663 / 130 |
+| `npm run smoke:local` | **6 / 6** 真实数据 smoke 通过 |
+| `npm run embeddings:prepare` | 300 条 / 130 本 / 14 书架；105 / 88 / 107；22 case |
+| `npm run embeddings:baseline` | 私有 lexical report 成功；指标如上 |
+| `npm run embeddings:evaluate -- --provider voyage` | 按预期在请求前退出 1：`VOYAGE_API_KEY is not set` |
+| `npm run embeddings:evaluate -- --provider cohere` | 按预期在请求前退出 1：`COHERE_API_KEY is not set` |
+| `npm run embeddings:compare` | 按预期退出 1：尚无两份真实 provider report |
+| `npm run test:public` | **1 / 1** public 空态 E2E 通过 |
+| `npm run build` | public build 成功；0 本 / 0 条 |
+| `npm run isolation:public` | clean；新增 3 个 embedding key 与 private embedding 探针均 absent |
+
+### 浏览器与视觉证据
+
+Batch 1A 只增加私有 scripts、测试和文档，没有修改消费者 UI、审核器 UI 或样式。因此不生成新截图，也不重复运行 104 个 local 浏览器用例来冒充 embedding 质量证据。public 空态 E2E 用于确认脚本未污染浏览器入口。
+
+### 公开隔离与数据状态
+
+- 没有 provider key，因此 **0 条真实划线发送给 embedding 厂商**；
+- 私有 corpus、labels、vectors、reports 全部位于 `.private/embeddings/`；
+- public snapshot 仍为 schema 2、0 本 / 0 条；
+- local snapshot、publication policy、stable ID、划线原文均未修改；
+- 未生成正式 embedding、Topic Tag、schema 3 或地图坐标；
+- 未新增运行时网络请求、public dependency、repo、remote、push 或部署。
+
+### 当前凭证 Gate
+
+完成 Batch 1B 需要用户在本机安全设置并让新 Agent / 终端进程继承：
+
+```text
+VOYAGE_API_KEY
+COHERE_API_KEY
+```
+
+不得把 key 粘贴到聊天、写入 `.env` / 代码 / Git 或使用 `VITE_` 前缀。第一轮固定比较 `voyage-4-lite` 与 `embed-v4.0` 的 512 维；若两者都未明显越过 lexical 下限，再扩第三候选，不凭品牌选型。
+
+### 下一步
+
+等待本机凭证后继续同一个 Batch 1：运行两家真实评测、人工检查 top neighbours、选择默认与回退、完成最终 Gate 和独立 commit。Gate 未完成前不进入 Batch 2 标签词表。
 
 ## 授权更新记录
 

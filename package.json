@@ -34,7 +34,11 @@
     "publication:review": "vite --mode review-private",
     "publication:preview": "node scripts/publication-preview.ts",
     "isolation:public": "node scripts/check-public-isolation.ts",
-    "covers:fetch": "node scripts/fetch-covers.ts"
+    "covers:fetch": "node scripts/fetch-covers.ts",
+    "embeddings:prepare": "node scripts/embedding-prepare.ts",
+    "embeddings:baseline": "node scripts/embedding-baseline.ts",
+    "embeddings:evaluate": "node scripts/embedding-evaluate.ts",
+    "embeddings:compare": "node scripts/embedding-compare.ts"
   },
   "dependencies": {
     "react": "^19.3.0",
