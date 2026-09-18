@@ -1,10 +1,10 @@
 # 02 — 技术与工程设计（v1 基线）
 
-> 栈、安全隔离、URL 和工程底线继续有效。V2-E4D 已完成；当前 Release-A 的公开审核、有限随机书籍房间与本机 publication preview 以 `docs/17-PUBLICATION-DIRECTION-AND-RELEASE-A.md` / `docs/18-RELEASE-A-PUBLICATION-REVIEW-IMPLEMENTER-PROMPT.md` 为准。正式 public snapshot、GitHub Pages base/route、push 与部署仍不在 Release-A。
+> 栈、安全隔离、URL 和工程底线继续有效。Release-A 已完成。**当前 V3 技术方向以 `docs/19–22` 为准：增加私有 embedding 管线、Topic Tag、主题小径、世界地图与 Local Tag Studio；Release-B 正式 public snapshot、Pages、push 与部署暂停。** 当前实现仍是 schema 2，迁移必须分片完成。
 
 ## 1. 栈与命令
 
-React + TypeScript strict + Vite + 原生 CSS。客户端静态 SPA，使用项目内小型 History API router；无后端、无全局状态库。测试用 Vitest、Testing Library、Playwright；可用 axe 检查可访问性。不要引入 UI 套件、动画库或运行时推荐服务。
+React + TypeScript strict + Vite + 原生 CSS。客户端静态 SPA，使用项目内小型 History API router；无公众后端、无全局状态库。Local Studio 可以沿用严格受控的 loopback-only Vite middleware / 本机工具脚本；embedding API 只在显式私有命令中调用，消费者运行时不得请求模型。测试用 Vitest、Testing Library、Playwright；可用 axe 检查可访问性。不要引入 UI 套件、通用推荐框架或不必要的动画库。
 
 首次安装选择兼容的稳定版本，保存 `package-lock.json`，README 记录实际版本。
 

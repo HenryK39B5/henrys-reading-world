@@ -1,8 +1,8 @@
 # 11 — v2 迁移与施工计划
 
-> 状态：V2-A～V2-E4D 的历史施工路线。当前发布阶段以 `docs/17-PUBLICATION-DIRECTION-AND-RELEASE-A.md` 为产品/数据权威，以 `docs/18-RELEASE-A-PUBLICATION-REVIEW-IMPLEMENTER-PROMPT.md` 为唯一实现入口。
+> 状态：V2-A～V2-E4D 的历史施工路线；Release-A 也已完成。**当前施工入口改为 `docs/19–22` 的 V3 产品、标签 / 地图、视觉与实施计划；Release-B 暂停。**
 >
-> 原有产品依据：`docs/10-PRODUCT-DIRECTION-V2.md`；空间、色彩与动效以 `docs/12-ROOMS-COLOR-MOTION-DIRECTION.md` 为权威。公开阶段对单书列表的调整以 `docs/17` 为准。
+> 原有产品依据：`docs/10-PRODUCT-DIRECTION-V2.md`；空间、色彩与动效历史基线见 `docs/12`；公开审核与有限书轮见 `docs/17/18`。V3 冲突处以 `docs/19–22` 为准。
 >
 > 原则：按片迁移、每片测试并记录；不要把全量数据、schema、算法、路由与视觉一次性全部改完后才排错。
 
@@ -313,6 +313,6 @@ V2-E4 未增加图片导出、封面展示、头像、日期、统计、二维�
 
 整个连续批次结束后统一汇报全部内部 commit、证据、偏差与下一步。
 
-## 8. 明确非目标
+## 8. 明确非目标（V2 历史）
 
-本轮迁移不做 embedding、逐句标签、运行时模型、AI 人格、推荐学习、analytics、搜索系统、传统社交、自动同步、部署、PNG 下载、二维码或发布审核。发布前政治敏感内容与版权仍登记为 Gate 4 项，不阻塞 local-only 全量开发。
+本轮迁移当时不做 embedding、逐句标签、运行时模型、AI 人格、推荐学习、analytics、搜索系统、传统社交、自动同步、部署、PNG 下载、二维码或发布审核。**V3 已重新批准私有 embedding、逐条 Topic Tag 与 Local Studio 普通搜索；运行时模型、AI 搜索、人格分析、社交和自动同步仍不做。**

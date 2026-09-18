@@ -1,6 +1,6 @@
 # 03 — 真实数据契约
 
-> **当前实现：schemaVersion 2。** 主题引用在 Book（`themeIds`），Highlight 只保留 `id / bookId / text / year`。全量 4,663 条已进入 local-only 快照。公开阶段新增的私有 `PublicationPolicy`、书级默认拒绝、单条排除、封面开关与 preview 投影见 `docs/17 §4–6`；policy 与审核备注不属于前端 Snapshot。
+> **当前实现：schemaVersion 2。** Book Theme 引用在 Book（`themeIds`），Highlight 当前只保留 `id / bookId / text / year`。全量 4,663 条已进入 local-only 快照。**V3 目标 schema 3 将新增 Topic Tag、Highlight.tagIds 与预计算地图布局，草案见 `docs/20 §11`；Batch 0 不修改现有 schema。** 私有 `PublicationPolicy`、embedding、候选标签、confidence、审核备注与高维向量都不属于公开 Snapshot。
 
 ## 1. 硬边界
 
@@ -10,30 +10,31 @@
 
 ## 2. 前端快照类型
 
-以下是待实现类型，不是已存在的代码。字段白名单必须运行时严格校验，拒绝额外字段。
+当前 schema 2 字段白名单如下；运行时严格校验，拒绝额外字段：
 
 ```ts
 type Snapshot = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   visibility: 'public' | 'local-only';
-  owner: { displayName: 'Henry'; siteTitle: "Henry's Reading World"; about?: string };
+  owner: { displayName: string; siteTitle: string; about?: string };
+  themes: Theme[];
   books: Book[];
-  topics: Topic[];
   highlights: Highlight[];
 };
 
-type Book = {
-  id: string;                 // 本项目稳定 ID，不使用账号 ID
-  title: string;              // API 原始书名
-  author: string;             // API 原始作者；缺失显示“作者信息暂缺”，不猜测
-  description?: string;       // 已核对来源的简介摘录，或经审核的编辑说明
-  coverPath?: string;         // covers/… = 公开素材；local-covers/… = 仅本机服务
+type Theme = {
+  id: string;
+  title: string;
+  description?: string;      // Book Theme / 书架说明，不描述人格
 };
 
-type Topic = {
-  id: string;
-  title: string;              // 根据真实划线策展，不是人格标签
+type Book = {
+  id: string;                // 本项目稳定 ID，不使用账号 ID
+  title: string;
+  author: string;            // 缺失显示“作者信息暂缺”，不猜测
   description?: string;
+  coverPath?: string;        // covers/… = 公开素材；local-covers/… = 仅本机服务
+  themeIds: string[];        // 1 个主书架 + 0–2 个次书架
 };
 
 type Highlight = {
@@ -41,16 +42,10 @@ type Highlight = {
   bookId: string;
   text: string;              // 保留原始段落和标点，不改写或补全
   year?: number;             // 来自 createTime；缺失就缺失
-  topicIds: string[];
-  qualityScore: 1 | 2 | 3 | 4 | 5;
-  standaloneReadable: boolean;
-  pinned: boolean;
-  openingCandidate: boolean;
-  surpriseCandidate: boolean;
 };
 ```
 
-这是对 Brief 扁平 `Highlight` 的规范化：书名、作者、封面移到 Book；topics 改为引用；精确日期转为已审核年份。组件通过索引取得出处，不复制多个可漂移版本。
+组件通过稳定 ID 索引取得出处，不复制多个可漂移版本。V3 schema 3 将在此基础上新增 `tags`、`Highlight.tagIds` 与可选 `map`，不会恢复 v1 的 `qualityScore / pinned / openingCandidate / surpriseCandidate`。
 
 `privacyRisk / hidden / reviewState / sourceBookmarkId / userVid / rawResponse` 不属于前端契约；它们只在私有审核记录里使用。公共快照不是“全部数据 + hidden 标志”。
 
@@ -112,7 +107,7 @@ v2 不再把库局限在 30–50 条。全量结构有效、去重后的真实�
 
 仍然成立的覆盖目标：至少有一条 1–40 字、一条 41–120 字、一条 121 字以上以及有原换行的真实文本。缺哪档就报告哪档。
 
-主题是书籍的书架标签（每本 1 主 + 0–2 次），不是逐句策展，也不是对句子的语义判断。无法判断的书允许宽泛分类；不能编造精确主题。
+Book Theme 是书籍的书架标签（每本 1 主 + 0–2 次），不是对句子的语义判断。V3 另增属于 Highlight 的 Topic Tag（每条 1–3 个平等标签），用于主题小径与地图；它必须依据完整原文和受控词表，不得编造人格、立场或质量判断。
 
 v1 的逐句 `qualityScore`、`openingCandidate`、`surpriseCandidate` 已从前端契约移除；它们只作为历史审核信息留在私有文件里，不再影响展示。
 

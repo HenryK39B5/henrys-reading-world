@@ -1,16 +1,18 @@
-# 07 — v2 实现交接入口
+# 07 — 实现交接入口（V3）
 
-> 当前产品方向：`docs/10-PRODUCT-DIRECTION-V2.md`。
+> 当前产品方向：`docs/19-PRODUCT-DIRECTION-V3.md`。
 >
-> 最新空间与视觉决定：`docs/12-ROOMS-COLOR-MOTION-DIRECTION.md`。
+> 标签、小径、embedding 与地图：`docs/20-TAGS-PATHS-MAP-SPEC.md`。
 >
-> 施工细节与切片：`docs/11-V2-IMPLEMENTATION-PLAN.md`。
+> 最新视觉方向：`docs/21-V3-VISUAL-DIRECTION.md`。
 >
-> 下一批唯一开工提示词：无。`docs/18` 的 Release-A（A1～A4）及用户两轮公开审核均已完成；私有清单为 108 本公开、22 本排除、6 条单独排除。下一步才讨论 Release-B（正式 public snapshot / 封面缩略图 / 扫描）与 Release-C（Pages base 与 workflow）。
+> 施工细节与 Batch：`docs/22-V3-IMPLEMENTATION-PLAN.md`。
+>
+> Release-A 及两轮公开审核均已完成；私有清单为 108 本公开、22 本排除、6 条单独排除。Release-B 因 V3 产品迭代暂停。Batch 0 完成后先汇报文档 Gate，不自动开始 Batch 1。
 
-## 当前状态（2026-09-17）
+## 当前状态（2026-09-18）
 
-- 当前代码基线：`73b80af Release-A2: local book-first publication review` + 本批次收尾提交，React / TypeScript / Vite。
+- 当前代码基线：`6b6e0a0 Publication review: add context note and clean imported metadata`，React / TypeScript / Vite。
 - v1 Slice 0–4、V2-A～V2-E4D 与 Release-A1～A4 均已完成。
 - schemaVersion 2；local-only 快照 **4,663 条真实划线 / 130 本书 / 14 个书籍主题书架**；127 本有本地封面。
 - v1 的 20 本 / 46 条项目稳定 ID 已保留；`npm run verify:ids` 提供永久回归防线。
@@ -22,24 +24,28 @@
 
 ## 已确认的产品方向
 
-1. 不做人设策展，不使用 Opening / Contrast / Surprise、质量分或逐句主题安排访客印象。
-2. 主题属于书籍；划线只通过书籍继承浏览范围，UI 不声称句子本身属于主题。
-3. 算法只优化公平、防重复、scope 与机械阅读节奏；必须先选书、再选句，不能按划线数量加权。
-4. 4,663 条全部可达但不同时渲染。
-5. 信息架构采用房间：门厅 `/`、主题书架 `/themes`、主题房间 `/themes/:id`、所有书 `/books`、书籍房间 `/books/:id`、About `/about`。
-6. 色彩采用 Book Aura：来自真实封面，有明确空间归属；不做主题人为语义色、高饱和大色块或封面墙。
-7. 呼吸感来自留白、轻微进入/返回与慢于文字的环境色过渡；第一版不做永久循环背景动画。
-8. 浏览器返回和页面返回一致，恢复进入前范围、原句、筛选、批次和必要滚动位置。
+1. 只使用 Henry 的真实微信读书划线，不接入其他来源，不做人格策展、AI 总结或 Dashboard。
+2. Book Theme 继续属于 Book；Highlight 新增 1–3 个地位平等的 Topic Tag。标签是线索，同标签形成小径，多标签划线形成岔路。
+3. embedding 只用于本机标签发现、标注候选、一致性检查、地图布局和小径软节奏；不做独立类似划线入口、AI 搜索、问答或消费者运行时模型。
+4. 小径算法继续先按书公平、再选句；embedding 只能在选中书内部调节语义跳跃，不能破坏首轮不重复与全量可达。
+5. 产品采用一个 Reading World、Public/Local 两个数据范围和一个 Local Studio；不建设登录或远程后台。
+6. 主导航扩为门厅、主题书架、主题小径、所有书、About；世界地图从小径模块进入并有稳定 `/map` 房间。
+7. 地图展示全部划线点作为地形，但总览使用 Canvas / 预计算图层，不创建数千 DOM 控件；小径列表是无障碍替代。
+8. 视觉允许系统重构：纸、墨、光与地形；Book Aura 继续属于书，地图可点亮一本书，分享显示全部标签。
+9. 已完成的书级 / 单条公开决定继续有效；新增标签与地图需要补充审核，Release-B 暂停。
 
 ## 后续施工顺序
 
-1. **连续房间批次：已完成并复核关闭**（V2-C1 → V2-D → V2-C2；修复提交 `9e2d0af`）。
-2. **V2-E 最终开发批次：已完成**（E1 稳定深链与错误状态 → E2 固定 ID 的复制与分享预览 → E3 200% 缩放、完整键盘与最终工程 Gate）。
-3. **V2-E4 分享卡片视觉修订：已完成**（E4A 滚动锁 → E4B Book Aura 出版卡片 → E4C 视觉与工程 Gate）。
-4. **Release-A：已完成**（V2-E4E 复制文本 → 有限随机书籍轮 → 书级 publication policy / 单条排除 / 封面开关 → 本机审核器与私有 preview/audit）。
-5. **Release-B～E**：正式 public snapshot、Pages 兼容、人工发布 Gate 与实际部署；均未开始，不得自动进入。
+1. **V3 Batch 0**：权威文档、标签 / 地图规格、视觉方向与实施计划；完成后停下汇报。
+2. **Batch 1**：私有 embedding 基础与免费 / 低成本厂商评测。
+3. **Batch 2**：250–300 条多样性样本、第一版标签词表与用户 Gate。
+4. **Batch 3**：Local Tag Studio 与试标。
+5. **Batch 4**：schema 3、主题小径、岔路、分享全部标签与关键视觉原型。
+6. **Batch 5**：世界地图与点亮一本书。
+7. **Batch 6–7**：全量 4,663 条标注、全产品视觉统一与公开标签审核。
+8. **Batch 8**：用户批准后才恢复 Release-B～E。
 
-连续批次不是“一次写完再测试”：V2-E4 必须按 A → B → C 逐阶段测试、记录与 commit；Gate 通过后可直接继续，无需停下等待。
+每个 Batch 内部仍按纯领域 → UI → 浏览器 Gate 小步测试、记录与 commit；完整顺序见 `docs/22`。
 
 ## 已完成：V2-E 的硬边界（历史记录）
 
@@ -66,22 +72,23 @@
 ## 实现边界
 
 - 只使用已有真实数据，不造句、书、作者、年份、标签覆盖或统计。
-- 不引入 embedding、向量库、运行时模型、逐句 Agent 分类、推荐学习或 analytics。
-- 不引入登录、评论、点赞、关注、多用户主页或自动同步。
+- 允许私有 embedding API 与逐句 Topic Tag 内容生产；向量、候选、confidence、理由与模型报告不进 public snapshot。
+- 不引入消费者运行时模型、AI 搜索 / 问答、人格分析、登录、评论、点赞、关注、多用户主页或自动同步。
 - 继续保护 `.private`、API key、账号与原始 bookmark 字段；不部署、不 push。
+- 视觉重构必须保护长文本、稳定 ID、按书公平、键盘、移动端、200% 与 reduced-motion。
 - 不为常规代码结构、测试数量和已确认产品方向反复询问。
 
-## 回到高推理模型 / 用户的条件
+## 回到用户的条件
 
 只在以下情况暂停并升级：
 
-1. 两阶段公平与用户确认的 all/theme/book 行为出现无法同时满足的冲突；
-2. 实现必须改变 schema 2、稳定 ID、主题属于 Book 的语义或全量真实数据边界；
-3. 房间恢复语义在 V2-C1 出现 `docs/12` 未覆盖的重要产品分歧；
-4. Book Aura 实际截图需要改变已确认的颜色归属、浓度上限或动效原则；
-5. 拟增加搜索、收藏、自动播放、embedding、社交、部署、发布或其他非目标能力；
-6. 深链规范入口、local-only 分享边界或长卡片不裁剪三项已确认决定无法同时满足；
-7. 需要不可逆操作。
+1. 第一版标签词表的抽象度、边界或数量出现真实产品分歧；
+2. embedding 候选都达不到“够用”，或厂商数据政策需要用户取舍；
+3. 按书公平、全部可达与 embedding 呼吸节奏无法同时满足；
+4. 地图审美、交互、性能或无障碍需要改变 `docs/20/21` 的顶层决定；
+5. 标签需要超过 3 个、引入核心 / 次级标签或改变 stable ID；
+6. 需要正式 public export、public cover、repo、push、workflow 或部署；
+7. 需要其他不可逆操作。
 
 ## 每片回报模板
 

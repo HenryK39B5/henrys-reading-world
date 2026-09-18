@@ -2,22 +2,22 @@
 
 ## 目标与权威顺序
 
-本轮实现 Henry's Reading World 的单人静态体验，以及只在本机运行的发布审核工具；不建设公众登录或远程后台。
+本轮实现 Henry's Reading World V3：在既有真实划线房间体验上加入逐条主题标签、主题小径、embedding 辅助内容生产、阅读世界地图与全局视觉重构；同时保留只在本机运行的 Studio / 发布审核工具。不建设公众登录、远程后台或运行时 AI 服务。
 
-阅读顺序：`PRODUCT_BRIEF.md` → **`docs/17-PUBLICATION-DIRECTION-AND-RELEASE-A.md` → `docs/10-PRODUCT-DIRECTION-V2.md` → `docs/12-ROOMS-COLOR-MOTION-DIRECTION.md` → `docs/11-V2-IMPLEMENTATION-PLAN.md` → `docs/18-RELEASE-A-PUBLICATION-REVIEW-IMPLEMENTER-PROMPT.md`** → `docs/01-SCOPE-AND-DECISIONS.md` → `docs/02-TECHNICAL-DESIGN.md` → `docs/03-DATA-CONTRACT.md` → `docs/04-SERENDIPITY-SPEC.md` → `docs/05-UX-SPEC.md` → `docs/06-IMPLEMENTATION-PLAN.md` → `docs/07-IMPLEMENTATION-HANDOFF.md`。`17` 是公开审核、随机书籍房间与 Pages 目标的最新权威；`18` 是当前唯一实现 Prompt；既有算法/房间/Book Aura 契约以 `10/11/12` 为准。
+阅读顺序：`PRODUCT_BRIEF.md` → **`docs/19-PRODUCT-DIRECTION-V3.md` → `docs/20-TAGS-PATHS-MAP-SPEC.md` → `docs/21-V3-VISUAL-DIRECTION.md` → `docs/22-V3-IMPLEMENTATION-PLAN.md`** → `docs/17-PUBLICATION-DIRECTION-AND-RELEASE-A.md` → `docs/10-PRODUCT-DIRECTION-V2.md` → `docs/12-ROOMS-COLOR-MOTION-DIRECTION.md` → `docs/11-V2-IMPLEMENTATION-PLAN.md` → `docs/18-RELEASE-A-PUBLICATION-REVIEW-IMPLEMENTER-PROMPT.md` → `docs/01-SCOPE-AND-DECISIONS.md` → `docs/02-TECHNICAL-DESIGN.md` → `docs/03-DATA-CONTRACT.md` → `docs/04-SERENDIPITY-SPEC.md` → `docs/05-UX-SPEC.md` → `docs/06-IMPLEMENTATION-PLAN.md` → `docs/07-IMPLEMENTATION-HANDOFF.md`。`19–22` 是当前 V3 权威；`17/18` 保留已完成的公开审核与 Release-A 契约；`10–12` 保留 V2 公平、房间和 Book Aura 历史基线，冲突处由 V3 取代。
 
-用户后续明确要求：移植微信读书 skill，所有产品开发使用真实数据，不使用 fake data。此要求补充并收紧 `PRODUCT_BRIEF.md` 的样本边界。Critique #1 后用户把方向从“前三句策展并塑造印象”调整为“全量真实划线的轻松漫游”：主题属于书籍、不是逐句人格标签；算法优化公平与防重复，不编排 Opening/Contrast/Surprise；约 4,663 条均应可到达但不同时渲染。Critique #2 后用户又确认房间式结构、Book Aura 色彩归属与轻盈呼吸动效。公开阶段用户进一步确认：项目站点为 `henryk39b5.github.io/henrys-reading-world/`、未来 repo 为 public；130 本逐书审核，公开书允许单条排除，封面默认公开但可逐书关闭；消费者书籍房间改为首轮不重复的有限随机漫游，完整列表只用于本机审核。具体以 `docs/17` 为准。真正出现新冲突时再请用户决定。
+用户明确要求所有产品开发使用真实微信读书数据，不使用 fake data。Critique #1 后产品从“前三句策展并塑造印象”调整为全量真实划线的轻松漫游；V3 进一步确认：Book Theme 继续作为书架分类，Highlight 新增 1–3 个地位平等的 Topic Tag，形成主题小径与岔路；embedding 只用于本机标签发现、标注辅助、地图布局和小径软节奏，不做独立类似划线入口、AI 搜索、问答或人格分析。产品采用一个 Reading World、Public/Local 两个数据范围和一个 Local Studio。公开范围的既有决定继续有效，但 Release-B 暂停到 V3 Gate 之后。真正出现新冲突时再请用户决定。
 
 开始数据工作前，额外完整阅读 `docs/09-WEREAD-DATA-WORKFLOW.md`、`.agents/skills/weread-skills/SKILL.md`、`PROJECT-ADAPTATION.md` 与所调用能力文件。不依赖客户端自动加载 skill。
 
 ## 执行规则
 
 - 先检查目录、现有实现及 Git 状态；保护既有工作，不因为本交接写着“无代码”就覆盖后续代码。
-- 当前 Slice 0–4、V2-A～V2-E4D 与 **Release-A（A1～A4）** 均已完成；用户已完成两轮书级/逐条审核，当前私有清单为 108 本公开、22 本排除、6 条单独排除，`reviewComplete=true`。下一步才讨论 **Release-B**（正式 public snapshot、封面缩略图、泄漏/历史扫描）与 **Release-C**（Pages base、静态房间入口、workflow）。不得自行公开导出、创建 repo、push 或部署。
+- 当前 Slice 0–4、V2-A～V2-E4D 与 **Release-A（A1～A4）** 均已完成；用户已完成两轮书级/逐条审核，当前私有清单为 108 本公开、22 本排除、6 条单独排除，`reviewComplete=true`。V3 Batch 0 建立新权威后，下一步按 `docs/22` 进入私有 embedding 评测，而不是 Release-B。不得自行正式导出 public snapshot、复制 public covers、创建 repo、push 或部署。
 - 使用 Windows 原生 Node/npm/Git 与 PowerShell。不要混用 WSL 路径。
 - 不在非空项目根目录直接运行可能覆盖文档的脚手架；优先逐文件建立 Vite 配置。
 - 版本首次安装时选择彼此兼容的稳定版本并提交 npm 锁文件，不凭空声称某版本是最新。
-- 不引入登录、数据库、后台、同步服务、AI 人格分析、社交、远程统计或 Window 嵌入。
+- 不引入登录、数据库、远程后台、同步服务、AI 人格分析、社交、远程统计或 Window 嵌入。允许显式 Batch 中的本机 Studio 与离线 embedding API 调用；public/local 消费者运行时不得调用模型。
 - 已授权移植并使用项目内微信读书 skill 获取相关真实数据；仅按 `09` 的取数边界操作。不访问 SiYuan、滴答清单、其他个人目录或凭证存储来补样本。
 - 用户已明确授权读取全部书籍（包括私密阅读）的项目相关真实数据用于产品开发。取消少量 / 6 本限制，不因 secret=1 或未知状态停工，不再逐书逐批询问。可直接完成分页、读取真实划线、建立 local-only 快照并开发；正式公开发布仍单独确认，详见 `09 §1`。
 - 仅已确认可公开的快照进入 `src/`、`public/` 和正常构建产物。开发中的真实数据走 `dev:local` 路径（见 `02` / `09`）。**注**：用户已确认开发阶段内容可自由传输使用，隔离的目的不是保密，而是“公开发布决定尚未做出”——不要把它当成保密要求，但也不要自行把内容改成已发布状态。
@@ -30,14 +30,18 @@
 ## 代码要求
 
 - TypeScript strict；数据和算法独立于 React；选择算法接收可注入 RNG 与时间。
-- 不使用 `dangerouslySetInnerHTML` 展示内容；不引入不必要的状态、动画、UI 或推荐框架。房间动效按 `docs/12` 约束，纯 CSS 能完成时不用动画库，reduced-motion 必须取消位移与长过渡。
-- 原生语义优先；键盘、移动端、长文本和 reduced-motion 是主路径要求。
-- 分享必须绑定稳定 highlight ID，不能依赖数组下标或当前随机位置。
-- 每片补充必要测试，不以“编译通过”替代交互验收。
+- Book Theme 与 Highlight Topic Tag 必须是不同类型与语义；Topic Tag 每条 1–3 个、地位平等，不恢复质量分、人格标签或 Opening/Contrast/Surprise。
+- embedding provider、缓存、评测与向量只在 `.private` / scripts / Studio；API key 只来自非 `VITE_*` 环境变量；public snapshot 不含原始高维向量、置信度、理由或私有 note。
+- 小径算法先满足按书公平、首轮不重复与全量可达，再在选中书内部使用 embedding 调节近/中/远节奏；无 embedding 时必须稳定降级。
+- 地图总览不得创建 4,663 个 DOM 按钮或同时渲染全文；使用 Canvas/预计算图层或等效低 DOM，并提供小径列表与区域列表作为无障碍替代。
+- 不使用 `dangerouslySetInnerHTML` 展示内容；不引入不必要的状态、动画、UI 或推荐框架。视觉以 `docs/21` 为准；纯 CSS 能完成时不用动画库，reduced-motion 必须取消位移、缩放与长过渡。
+- 原生语义优先；键盘、移动端、长文本、200% 缩放和 reduced-motion 是主路径要求。
+- 分享必须绑定稳定 highlight ID，不能依赖数组下标或当前随机位置；V3 卡片与复制文本显示该条全部 Topic Tag，不截断为 `+N`。
+- 每片补充必要测试与真实截图，不以“编译通过”替代交互和视觉验收。
 - 新增依赖须说明用途；纯 CSS 能完成的过渡不用动画库。
 
 ## 每个内部阶段与连续批次完成后
 
-每个内部阶段都更新 `docs/08-REVIEW-CHECKLIST.md` 的执行记录并做小步本地 commit，说明：完成范围、修改文件、实际命令和结果、浏览器证据、未验证项、偏差和下一步。只要阶段 Gate 通过且没有新的产品冲突，可连续进入同一批次的下一阶段；整个批次结束后再统一停止汇报。
+每个内部阶段都更新 `docs/08-REVIEW-CHECKLIST.md` 的执行记录并做小步本地 commit，说明：完成范围、修改文件、实际命令和结果、浏览器证据、未验证项、偏差和下一步。只要阶段 Gate 通过且没有新的产品冲突，可连续进入同一批次的下一阶段；整个批次结束后再统一停止汇报。Batch 0 完成后按 `docs/22` 明确停止汇报，不自动启动 Batch 1。
 
-缺浏览器时可以继续纯函数、静态检查和实现，但界面验收保持未验证；在移交 Gate 2 前必须补齐。不要反复为已明确的常规实现事项提问；只有产品边界、隐私、真实材料和不可逆操作需要升级。全部书籍的开发取数授权已经解决；当前尚无划线快照是待执行任务，不是需要再次询问的许可阻塞。公开清单审核留到发布前，不阻塞真实数据的本机开发。
+缺浏览器时可以继续纯函数、静态检查和实现，但界面验收保持未验证；在对应视觉 Gate 前必须补齐。不要反复为已明确的常规实现事项提问；只有产品边界、隐私、真实材料和不可逆操作需要升级。全部书籍的开发取数授权已经解决，local-only 快照现有 4,663 条 / 130 本；V3 可直接进行私有 embedding、标签与地图开发。既有公开清单审核已完成，但新增标签与地图仍需在正式 export 前复核。

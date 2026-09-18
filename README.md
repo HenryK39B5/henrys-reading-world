@@ -4,13 +4,13 @@
 
 ## 当前状态
 
-- 阶段：v1 Slice 0–4、V2-A～V2-E4D 均已完成；**Release-A（V2-E4E → 有限随机书籍轮 → 发布清单与本机审核器 → 私有 preview 与隔离 Gate）已实现并验收**。
-- 发布审核：用户已完成两轮审核，私有清单当前为 **108 本公开 / 22 本排除 / 6 条单独排除**，`reviewComplete=true`；下一阶段才讨论 Release-B（正式 public snapshot 与封面缩略图）、Release-C（Pages base/静态入口/workflow）与部署。未生成 public snapshot、未创建 GitHub repo、未 push。
-- 产品方向：轻松漫游与公平原则见 `docs/10`，房间/Book Aura 见 `docs/12`；公开审核、随机书籍房间和 GitHub Pages 目标以 `docs/17-PUBLICATION-DIRECTION-AND-RELEASE-A.md` 为最新权威；下一批唯一实现 Prompt 为 `docs/18-RELEASE-A-PUBLICATION-REVIEW-IMPLEMENTER-PROMPT.md`。
-- 硬约束：所有开发只使用 Henry 本人的真实划线，不使用 fake / demo 数据；主题属于书籍，不做逐句人格标签。
+- 阶段：v1 Slice 0–4、V2-A～V2-E4D 与 Release-A 均已完成；**当前进入 V3：逐条主题标签、主题小径、embedding 辅助内容生产、世界地图与视觉重构**。
+- 发布审核：用户已完成两轮审核，私有清单当前为 **108 本公开 / 22 本排除 / 6 条单独排除**，`reviewComplete=true`。这些决定继续有效，但 Release-B 暂停到 V3 Gate 之后；未生成 public snapshot、未创建 GitHub repo、未 push。
+- 产品方向：`docs/19-PRODUCT-DIRECTION-V3.md`；标签 / 小径 / 地图规格：`docs/20-TAGS-PATHS-MAP-SPEC.md`；视觉：`docs/21-V3-VISUAL-DIRECTION.md`；施工：`docs/22-V3-IMPLEMENTATION-PLAN.md`。
+- 硬约束：所有开发只使用 Henry 本人的真实微信读书划线，不使用 fake / demo 数据；Book Theme 属于书籍，V3 Topic Tag 属于划线，但不做人格标签、质量评分或 AI 观点总结。
 - 当前页面数据（local-only）：**4,663 条真实划线 · 130 本书 · 14 个主题书架 · 2024–2026**；房间一次只渲染一个视觉中心，全部内容通过舞台、主题书架与单书房间分批可达。
 - 原始数据与快照只存在于本机 `.private/`，已被 `.gitignore` 排除，不进入前端包。
-- 公开快照 `src/data/public-snapshot.json` 仍为空 → 当前页面在本机显示真实内容，公开发布仍待审核。
+- 公开快照 `src/data/public-snapshot.json` 仍为空 → 当前页面在本机显示真实内容；新增标签、地图与视觉 Gate 完成前不正式导出。
 
 ## 快速开始
 
@@ -72,7 +72,7 @@ npm run snapshot:local                    # 挑选结果 → 开发快照
 
 ### 当前体验路径
 
-房间与真实 URL（`docs/12 §2–3`）：
+当前代码仍是 V2 / Release-A 房间体验；V3 小径与地图尚未实现。房间与真实 URL（`docs/12 §2–3`）：
 
 1. `/` 门厅：读一句话 → `再来一句` → `分享`；底部可去主题书架、所有书或 About。
 2. 点书名（出处行）→ 原位展开面板 → `再看一处`（同书）→ `查看这本书` 进入书籍房间。
@@ -142,14 +142,18 @@ npm run test:publication       # 审核器的浏览器验收（用临时目录�
 | [15 — V2-E 最终收尾 Prompt](docs/15-V2-E-CONTINUOUS-IMPLEMENTER-PROMPT.md) | 已执行的 V2-E1 → V2-E2 → V2-E3 历史提示词 |
 | [16 — V2-E4 分享卡片视觉修订 Prompt](docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md) | 已执行的 V2-E4A → V2-E4B → V2-E4C 历史提示词 |
 | [17 — 公开发布方向与 Release-A](docs/17-PUBLICATION-DIRECTION-AND-RELEASE-A.md) | 书级审批、单条排除、封面开关、有限随机书籍房间、Pages 目标与系统审核流程 |
-| [18 — Release-A 实现 Prompt](docs/18-RELEASE-A-PUBLICATION-REVIEW-IMPLEMENTER-PROMPT.md) | 下一批唯一入口：V2-E4E → 随机书籍房间 → 本机发布审核器 → 私有 preview Gate |
+| [18 — Release-A 实现 Prompt](docs/18-RELEASE-A-PUBLICATION-REVIEW-IMPLEMENTER-PROMPT.md) | 已执行的 Release-A 历史 Prompt |
+| [19 — Product Direction V3](docs/19-PRODUCT-DIRECTION-V3.md) | 一个世界、两个数据范围、一个 Studio；房间、小径、地图的顶层产品方向 |
+| [20 — 标签、小径与地图规格](docs/20-TAGS-PATHS-MAP-SPEC.md) | Topic Tag、embedding、路径算法、岔路、地图与 schema 3 草案 |
+| [21 — V3 视觉方向](docs/21-V3-VISUAL-DIRECTION.md) | 纸、墨、光、地形、Book Aura、分享与视觉 Gate |
+| [22 — V3 实施计划](docs/22-V3-IMPLEMENTATION-PLAN.md) | Batch 0–8、用户 Gate、测试与发布恢复顺序 |
 
 ## 真实数据现状
 
 - 笔记本概览全部分页：132 本有笔记的书；已抓取 130 本划线，共约 4,700 行（`.private/weread/highlights/`）。
 - 候选池：4,663 条（去重、长度 8–400 字）；其中短 1,054 / 中 2,626 / 长 983。
 - v2 快照：**4,663 条划线 · 130 本书 · 14 个主题书架**，127 本有本地封面。
-- 每本书的 1–3 个书架标签由 Agent 依据书名、作者与等距样本一次性生成（`.private/curation/book-themes.json`），未使用 embedding 或逐句分类。
+- 每本书的 1–3 个 Book Theme 由 Agent 依据书名、作者与等距样本生成（`.private/curation/book-themes.json`）；V3 将在不替代 Book Theme 的前提下新增逐条 Topic Tag，并使用私有 embedding 辅助内容生产。
 - **已知数据缺口（真实情况，未用假数据补齐）**：Henry 的真实划线中没有带原始换行的样本；年份只跨 2024–2026，无法呈现"来自 4 年前"这类更长的时间纵深。校验器会持续报告前者。
 
 ## 两个不同的完成标准

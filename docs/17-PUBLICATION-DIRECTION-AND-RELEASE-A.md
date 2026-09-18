@@ -6,9 +6,11 @@
 >
 > 本文件是 Public Release 阶段的产品与数据权威。它不自动授权生成正式 public snapshot、创建 GitHub 仓库、push 或部署；这些外部动作仍须在 Release-D / Release-E 由用户明确批准。
 >
-> 用户已于 2026-09-17 完成两轮公开审核：私有清单为 108 本公开、22 本排除、6 条单独排除，`reviewComplete=true`；About 已补充原文语境说明，四本外部导入记录使用私有 metadata override 清洗展示信息。下一步才讨论 Release-B。
+> 用户已于 2026-09-17 完成两轮公开审核：私有清单为 108 本公开、22 本排除、6 条单独排除，`reviewComplete=true`；About 已补充原文语境说明，四本外部导入记录使用私有 metadata override 清洗展示信息。
 >
-> 既有轻松漫游、公平抽样、主题属于 Book、稳定 ID、Book Aura、隐私隔离继续成立。与 `docs/11` 的“单书顺序列表”冲突时，本文件的新书籍房间决定优先。
+> **V3 状态更新（2026-09-18）：** 上述书级 / 单条公开决定继续有效，但 Release-B 暂停。用户已确认逐条 Topic Tag、主题小径、embedding 辅助内容生产、世界地图与视觉重构；新增标签和地图需在正式 export 前补充审核。最新产品与施工权威为 `docs/19–22`。
+>
+> 既有轻松漫游、按书公平、稳定 ID、Book Aura、隐私隔离继续成立。这里的“主题属于 Book”只指现有 Book Theme / 主题书架；V3 Topic Tag 属于 Highlight，二者并存。与 `docs/11` 的“单书顺序列表”冲突时，本文件的新书籍房间决定优先。
 
 ## 1. 已确认的发布目标
 

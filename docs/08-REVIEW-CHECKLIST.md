@@ -4,7 +4,7 @@
 
 | 项目 | 状态 | 说明 |
 | --- | --- | --- |
-| 产品基线 | 已阅读，未改写 | PRODUCT_BRIEF.md v0.1 |
+| 产品基线 | V3 权威已建立 | PRODUCT_BRIEF 保留历史基线；当前以 `docs/19–22` 为准 |
 | 开发文档 | 已准备 | 用户追加“只用真实数据”已纳入 |
 | Codex skill 移植 | 完成 | 项目 `.agents/skills/weread-skills/`，原安装未改 |
 | skill 版本 | 1.0.4 | 官方更新包已审查，项目约束已重新应用 |
@@ -44,9 +44,76 @@
 | V2-E1/E2/E3 | 已完成并独立复核 | 深链、固定 ID 分享、复制失败、200%/键盘/privacy 均成立；基线 `a8083ef` |
 | V2-E4 交接准备 | 已执行完毕 | 交接 Prompt 为 `docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md`；E4A/E4B/E4C/E4D 均已实现、测试并提交 |
 | Release-A 公开审核准备 | 已执行完毕 | V2-E4E、有限随机书籍轮、书级 publication policy/单条排除/封面开关、本机审核器与私有 preview 均已实现并验收；详见下方 Release-A1～A4 四节；权威 `docs/17`，Prompt `docs/18` |
+| V3 Batch 0 顶层设计 | 已完成 | 新增 `docs/19–22`，重置权威顺序并完成产品、标签 / 地图、视觉与施工顶层设计；Release-B 暂停，未改代码 / schema / 快照 |
 | 真实访客 Gate | 未进行 | 用户本人体验反馈非常积极（V2-E4D 就是其反馈驱动的收尾），但尚无首次访客结果，不冒充产品 Gate 通过 |
 
 原始返回、更新包、候选池、快照与截图全部留在 `.private/`，已被 `.gitignore` 排除，未进入前端包。
+
+## V3 Batch 0 — 权威重置与顶层设计（2026-09-18）
+
+```text
+日期 / 执行者：2026-09-18 / 当前实现 Agent
+范围：V3 Batch 0 — 产品方向、标签 / 小径 / embedding / 地图规格、视觉方向、实施计划
+状态：verified（文档与工程基线）；视觉页面与 embedding 尚未开始
+代码基线：6b6e0a0
+```
+
+### 完成范围
+
+1. 新增 `docs/19-PRODUCT-DIRECTION-V3.md`：确认只专注微信读书真实划线；书是房间、书架是街区、标签是线索、小径连接房间、多标签划线形成岔路；产品采用一个 Reading World、Public/Local 两个数据范围和一个 Local Studio。
+2. 新增 `docs/20-TAGS-PATHS-MAP-SPEC.md`：区分 Book Theme 与 Highlight Topic Tag；标签每条 1–3 个且地位平等；定义受控词表、分批内容生产、私有 embedding 边界、按书公平优先的小径算法、岔路保留当前句、三层世界地图、点亮一本书、全部标签分享与 schema 3 草案。
+3. 新增 `docs/21-V3-VISUAL-DIRECTION.md`：将审美作为核心产品能力；方向为纸、墨、光与地形；保留文字中心与 Book Aura，允许全局视觉重构；明确小径、地图、分享、动效、响应式与视觉 Gate。
+4. 新增 `docs/22-V3-IMPLEMENTATION-PLAN.md`：Batch 0–8；下一步为私有 embedding 厂商评测，不是 Release-B；用户只参与标签词表、小径、地图、最终公开与部署等真实 Gate。
+5. 更新 `AGENTS.md`、README、PRODUCT_BRIEF、`docs/02/03/07/09/10/11/12/17/18`：旧文档作为历史保留，冲突处由 V3 取代；修正 `docs/03` 中仍残留的 schema 1 示例为当前 schema 2。
+6. 用户提供的五张划线产品宣传图和一张 flomo 认知地图只用于视觉 / 产品分析，未复制到项目、Git 或 public 产物。
+
+### 已锁定的顶层判断
+
+- 不为追求差异化而追求差异化；优先做最适合真实材料的产品。
+- 取消“核心标签 / 连接标签”区别；同一划线的 Topic Tag 平等。
+- embedding 用于标签发现、标注辅助、地图与小径软节奏；不做独立类似划线、AI 搜索、问答或运行时模型。
+- 小径先公平选书，再在书内使用 embedding 控制近 / 中 / 远跳跃；无 embedding 稳定降级。
+- 世界地图展示全部点作为地形，但总览低 DOM；标签赋予人工策展名称，多标签点形成山口；书籍可使用 Book Aura 在地图中亮起。
+- Public World 与 Local World 共用消费者体验；完整私有内容、搜索、标签 / embedding / 地图诊断和出版控制属于 Local Studio。
+- 分享卡片与纯文本显示全部 Topic Tag，自然换行，不截断为 `+N`。
+- 既有 108 / 22 / 6 公开决定不重开；新增标签和地图在正式 export 前补充审核；Release-B 暂停。
+
+### 实际命令与结果
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run check:local` | **248 单测 / 19 文件**；typecheck、lint、schema 2 local 校验通过；唯一警告仍为无原始换行样本 |
+| `npm run verify:ids` | 20 本 / 46 条种子 ID 仍指向同一真实材料；总量 4,663 / 130 |
+| `npm run smoke:local` | **6 / 6** 真实数据 smoke 通过 |
+| `npm run test:public` | **1 / 1** public 空态 E2E 通过 |
+| `npm run build` | public build 成功；public snapshot **0 本 / 0 条** |
+| `npm run isolation:public` | clean；真实书名 / 划线 / coverPath 均 0，policy / review / 凭证探针 absent |
+| `npx vite build --mode local-private` | 按预期退出 1：`Local mode cannot be used for a production build.` |
+| `git diff --check` | 通过 |
+| Markdown 本地链接 / 尾随空白 | **0 / 0** |
+
+### 数据与发布状态
+
+- local snapshot 未修改：schema 2，4,663 条 / 130 本 / 14 个 Book Theme；
+- publication policy 未修改：108 publish / 22 exclude / 6 单条 exclude，`reviewComplete=true`；
+- public snapshot 未修改：schema 2，0 本 / 0 条；
+- 未生成 embedding、标签分配、地图坐标或 schema 3；
+- 未创建 repo、remote、workflow；未 push、deploy 或复制 public covers。
+
+### 浏览器与视觉证据
+
+Batch 0 没有修改产品代码或样式，因此未生成新的浏览器截图，也未把旧截图冒充 V3 视觉通过。视觉方向依据当前真实页面、既有本机证据和用户提供的参考图完成；真实 V3 门厅 / 小径 / 地图截图属于 Batch 4–5。
+
+### 未验证项
+
+- V3 标签词表、embedding 厂商、路径节奏与地图布局均尚未实现或实测；
+- V3 视觉只完成方向，没有页面原型；
+- 真机移动端与 Safari 继续未验证；
+- schema 3 与 public tag / map isolation 尚未开始。
+
+### 下一步
+
+按 `docs/22` 停止在 Batch 0 汇报；不自动启动 Batch 1。下一批是私有 embedding 基础与免费 / 低成本厂商真实语料评测。
 
 ## 授权更新记录
 
