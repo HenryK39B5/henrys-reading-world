@@ -8,9 +8,14 @@ import {
     LOCAL_SNAPSHOT_ROUTE,
     POLICY_BODY_LIMIT,
     PUBLICATION_POLICY_ROUTE,
+    TAG_ASSIGNMENTS_BODY_LIMIT,
+    TAG_ASSIGNMENTS_ROUTE,
+    TAG_VOCABULARY_ROUTE,
     publicationPaths,
 } from './src/app/privatePaths.ts';
+import { tagPaths } from './src/app/privateTagPaths.ts';
 import { validatePublicationPolicy } from './src/domain/publication.ts';
+import { validateTopicTagAssignments, validateTopicTagVocabulary } from './src/domain/topicTags.ts';
 import type { Snapshot } from './src/domain/types.ts';
 import { validateSnapshot } from './src/domain/validate.ts';
 
@@ -138,6 +143,41 @@ async function handlePolicyRequest(req: IncomingMessage, res: ServerResponse, po
     }
 }
 
+async function handleTagStudioRequest(req: IncomingMessage, res: ServerResponse, port: number, path: string): Promise<void> {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('X-Robots-Tag', 'noindex');
+    const vocabularyFile = resolve(process.cwd(), tagPaths().vocabulary);
+    const assignmentsFile = resolve(process.cwd(), tagPaths().assignments);
+    if (path === TAG_VOCABULARY_ROUTE) {
+        if (req.method !== 'GET') { res.statusCode = 405; res.end('Method Not Allowed'); return; }
+        try {
+            const vocabulary = validateTopicTagVocabulary(JSON.parse(await readFile(vocabularyFile, 'utf8')) as unknown);
+            if (!vocabulary.ok) { res.statusCode = 500; res.end('Invalid vocabulary'); return; }
+            res.statusCode = 200; res.setHeader('Content-Type', 'application/json; charset=utf-8'); res.end(JSON.stringify(vocabulary.value));
+        } catch { res.statusCode = 404; res.end('Vocabulary not found'); }
+        return;
+    }
+    if (path !== TAG_ASSIGNMENTS_ROUTE || (req.method !== 'GET' && req.method !== 'PUT')) { res.statusCode = 405; res.end('Method Not Allowed'); return; }
+    if (req.method === 'GET') {
+        try { res.statusCode = 200; res.setHeader('Content-Type', 'application/json; charset=utf-8'); res.end(await readFile(assignmentsFile, 'utf8')); }
+        catch { res.statusCode = 404; res.end('Assignments not found'); }
+        return;
+    }
+    if (!isAllowedReviewOrigin(req.headers.origin, port)) { res.statusCode = 403; res.end('Forbidden'); return; }
+    if (!(req.headers['content-type'] ?? '').toLowerCase().startsWith('application/json')) { res.statusCode = 415; res.end('Unsupported Media Type'); return; }
+    try {
+        const candidate = JSON.parse(await readLimitedBody(req, TAG_ASSIGNMENTS_BODY_LIMIT)) as unknown;
+        const snapshot = JSON.parse(await readFile(resolve(process.cwd(), LOCAL_SNAPSHOT_FILE), 'utf8')) as Snapshot;
+        const vocabularyResult = validateTopicTagVocabulary(JSON.parse(await readFile(vocabularyFile, 'utf8')) as unknown);
+        if (!vocabularyResult.ok) throw new Error('invalid vocabulary');
+        const required = new Set((candidate as { assignments?: Array<{ highlightId?: string }> }).assignments?.map((entry) => String(entry.highlightId)) ?? []);
+        const checked = validateTopicTagAssignments(candidate, snapshot, vocabularyResult.value, required);
+        if (!checked.ok) { res.statusCode = 422; res.setHeader('Content-Type', 'application/json; charset=utf-8'); res.end(JSON.stringify({ ok: false, errors: checked.errors })); return; }
+        const temporary = `${assignmentsFile}.tmp`; await writeFile(temporary, `${JSON.stringify(checked.value, null, 2)}\n`, 'utf8'); await rename(temporary, assignmentsFile);
+        res.statusCode = 200; res.setHeader('Content-Type', 'application/json; charset=utf-8'); res.end(JSON.stringify({ ok: true }));
+    } catch { res.statusCode = 500; res.end('Could not save assignments'); }
+}
+
 /** Only this machine, only over http, only this port: a page anywhere else may not rewrite the policy. */
 function isAllowedReviewOrigin(origin: string | undefined, port: number): boolean {
     if (typeof origin !== 'string') {
@@ -182,18 +222,18 @@ function readLimitedBody(req: IncomingMessage, limit: number): Promise<string> {
  * private publication policy and accepts a new one. Both are reachable exclusively from a named local mode,
  * bind to loopback, use one fixed route each and are refused during a production build.
  */
-function localSnapshotPlugin(flags: { snapshot: boolean; publication: boolean }): Plugin {
+function localSnapshotPlugin(flags: { snapshot: boolean; publication: boolean; tags: boolean }): Plugin {
     return {
         name: 'reading-world-local-snapshot',
         config(_config, env) {
-            if ((flags.snapshot || flags.publication) && env.command === 'build') {
+            if ((flags.snapshot || flags.publication || flags.tags) && env.command === 'build') {
                 throw new Error(
                     'Local mode cannot be used for a production build. Public builds read src/data/public-snapshot.json only.',
                 );
             }
         },
         configureServer(server) {
-            if (!flags.snapshot && !flags.publication) {
+            if (!flags.snapshot && !flags.publication && !flags.tags) {
                 return;
             }
             const port = server.config.server.port ?? 5173;
@@ -207,6 +247,10 @@ function localSnapshotPlugin(flags: { snapshot: boolean; publication: boolean })
                 const path = (req.url ?? '').split('?')[0] ?? '';
                 if (flags.publication && path === PUBLICATION_POLICY_ROUTE) {
                     void handlePolicyRequest(req, res, port);
+                    return;
+                }
+                if (flags.tags && (path === TAG_VOCABULARY_ROUTE || path === TAG_ASSIGNMENTS_ROUTE)) {
+                    void handleTagStudioRequest(req, res, port, path);
                     return;
                 }
                 if (!flags.snapshot) {
@@ -260,15 +304,16 @@ export default defineConfig(({ command, mode }) => {
     // third mode: it reads the same private snapshot and adds the policy endpoints and the review screen.
     const localMode = mode === 'local-private';
     const reviewMode = mode === 'review-private';
-    const anyLocalMode = localMode || reviewMode;
+    const tagStudioMode = mode === 'tag-studio-private';
+    const anyLocalMode = localMode || reviewMode || tagStudioMode;
 
     return {
-        plugins: [react(), localSnapshotPlugin({ snapshot: anyLocalMode, publication: reviewMode })],
+        plugins: [react(), localSnapshotPlugin({ snapshot: anyLocalMode, publication: reviewMode, tags: tagStudioMode })],
         server: {
             host: '127.0.0.1',
             strictPort: true,
             // Its own port, so the reviewer and the reading preview can be open side by side.
-            port: reviewMode ? 5174 : 5173,
+            port: reviewMode ? 5174 : tagStudioMode ? 5175 : 5173,
             fs: {
                 strict: true,
                 deny: [

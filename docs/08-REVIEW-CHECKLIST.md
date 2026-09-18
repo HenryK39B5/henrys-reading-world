@@ -46,7 +46,8 @@
 | Release-A 公开审核准备 | 已执行完毕 | V2-E4E、有限随机书籍轮、书级 publication policy/单条排除/封面开关、本机审核器与私有 preview 均已实现并验收；详见下方 Release-A1～A4 四节；权威 `docs/17`，Prompt `docs/18` |
 | V3 Batch 0 顶层设计 | 已完成 | 新增 `docs/19–22`，重置权威顺序并完成产品、标签 / 地图、视觉与施工顶层设计；Release-B 暂停，未改代码 / schema / 快照 |
 | V3 Batch 1 embedding 评测 | 已完成 | provider-neutral 管线、300 条真实评测集、SiliconFlow 三模型实测与人工 neighbour review；默认 `bge-large-zh-v1.5`，回退 `bge-m3` |
-| V3 Batch 2 标签发现 | 等待用户 Gate | 全量 4,663 条 embedding、300 条按书公平样本、53 个私有候选标签、35 组边界、159 条人工种子已完成；未进入试标 |
+| V3 Batch 2 标签发现 | 已完成并获用户批准 | 全量 4,663 条 embedding、300 条按书公平样本、53 个私有候选标签、35 组边界、159 条人工种子；用户已批准完整词表进入 Batch 3 |
+| V3 Batch 3 稳定词表与试标 | 等待用户 Gate | 53 个稳定标签、严格 assignment 契约、300 条试标（268 reviewed / 32 draft）、Local Tag Studio 与 10 个 Studio 浏览器用例均已完成；未进入 schema 3 |
 | 真实访客 Gate | 未进行 | 用户本人体验反馈非常积极（V2-E4D 就是其反馈驱动的收尾），但尚无首次访客结果，不冒充产品 Gate 通过 |
 
 原始返回、更新包、候选池、快照与截图全部留在 `.private/`，已被 `.gitignore` 排除，未进入前端包。
@@ -385,6 +386,102 @@ embedding 候选种子            424
 ### Gate 与下一步
 
 Batch 2 停在用户词表 Gate。用户需要审核名称 / 定义、相邻边界、缺失主题、过宽 / 过细标签，并明确是否允许进入 Batch 3。批准前不开始 Local Tag Studio、250–300 条正式试标、schema 3、主题小径或地图。
+
+### Gate 结果（已关闭）
+
+2026-09-18，用户回复“批准全部候选进入 Batch 3 试标”：53 个候选标签全部保留，不要求改名、合并或删除，直接作为稳定词表进入试标。详见下方 Batch 3 记录。
+
+## V3 Batch 3 — 稳定词表、私有试标与 Local Tag Studio（2026-09-18）
+
+```text
+日期 / 执行者：2026-09-18 / 当前实现会话（用户指定接手）
+范围：词表升级、assignments 契约、300 条试标、结构审计、Local Tag Studio、合并 / 改名
+状态：实现与浏览器验收 verified；等待用户内容 Gate
+代码基线：fa2b56a
+```
+
+### 完成范围
+
+1. 新增 `src/domain/topicTags.ts`：稳定词表与 assignment 的严格契约；1–3 个平等标签；`draft | reviewed` 状态；confidence、rationale、candidates、flags 均限定在私有层；仅提供 `updateHighlightAssignment` 与 `migrateMergedTag` 两个变更入口。
+2. 新增 `tags:promote`：将用户批准的 53 个候选标签一次性升级为 `tag-001…tag-053` 稳定 ID，并写入词表哈希与 `ct-0NN → tag-NNN` 迁移表；候选发现 ID 不再进入后续阶段。
+3. 新增 `tags:trial:generate`：seed-centroid + query 集成打分，按标签自身分布标准化，并对标签名 / alias / includes 命中给予词面证据；输出候选、信心与标记。
+4. 新增 `tags:trial:review`：对 300 条逐条全文复核——接受、依词面证据修正、或显式保留 `draft`；不猜无法支撑的标签。
+5. 新增 `tags:trial:audit`：输出 reviewed / draft、1–3 标签分布、多标签比例、信心分布、每标签书籍数与划线数、零覆盖 / 过宽 / 偏薄标签、机器一致性与待复核清单。
+6. 新增 `tags:studio`（Vite `tag-studio-private`，127.0.0.1:5175）与 `src/tagStudio/`：完整原文、按状态 / 信心 / 标记 / 家族筛选、ID / 原文 / 书名 / 标签搜索、候选一键采纳、定义与边界对照、标记为待定、私有理由、整份校验后原子保存。
+7. 新增 `src/app/privateTagPaths.ts`：`READING_WORLD_TAG_DIR` 可在进程级重定向词表与试标路径，使自动化测试绝不覆盖真人正在看的文件；仍不接受任何请求参数。
+8. 新增 `tags:migrate`：标签合并与改名，合并后重新校验整份试标；改名保留稳定 ID，因此不改动任何 assignment。
+9. 新增 `e2e/tag-studio/studio.spec.ts`（10 个用例）与 `playwright.tag-studio.config.ts`；新增 `e2e/tag-studio-absent.spec.ts`（2 个用例）证明产品模式下读不到、也写不了试标。
+10. 扩展 `scripts/check-public-isolation.ts`：新增 Studio 入口、两个路由、词表 / 试标 / 审计 / 候选文件名、私有理由与标记探针。
+11. 新增 `docs/25-BATCH-3-TAG-STUDIO.md`；完整原文、候选分数、理由与审计报告只在 `.private/tags/`。
+
+### 试标真实结果
+
+```text
+试标总数                300
+reviewed / draft        268 / 32
+1 / 2 / 3 个标签        145 / 86 / 69
+多标签比例              51.7%
+信心 high / medium / low  79 / 189 / 32
+标签覆盖                53 / 53
+零覆盖 / 过宽 / 偏薄       0 / 0 / 3
+全部标签在 embedding top-5  269
+没有任何标签在 top-5        22
+人工 override / 词面证据    68
+```
+
+诚信记录：
+
+- 268 条 `reviewed` 是机器辅助 + 逐条全文复核，**不是 Henry 本人逐条审核**；
+- 32 条明确保留 `draft`，集中在原文单独无法支撑任何标签的条目，没有为了凑齐比例强行贴标；
+- 68 条与 embedding 提议不同，是正确性风险最高的子集；
+- 偏薄标签为 `运气`（1 本）、`幸福`（2 本）、`道德`（2 本），留给用户决定补种子、合并或接受低覆盖；
+- 50% 以上条目带两个以上标签，说明岔路是常态，Batch 4 的小径算法必须真的支持交叉。
+
+### 实际命令与结果
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run tags:promote` | 53 个稳定标签 / 6 个家族；词表哈希 `2ff42201…` |
+| `npm run tags:trial:generate` | 300 条候选；1 / 2 / 3 = 163 / 68 / 69 |
+| `npm run tags:trial:review` | 300 条全文复核；268 reviewed / 32 draft |
+| `npm run tags:trial:audit` | 53 / 53 覆盖；0 孤儿；0 过宽；3 偏薄 |
+| `npm run check:local` | typecheck、lint、**265 单测 / 24 文件**、schema 2 local 校验通过 |
+| `npm run verify:ids` | 20 本 / 46 条种子 ID 稳定；总量 4,663 / 130 |
+| `npm run smoke:local` | 6 / 6 真实数据 smoke 通过 |
+| `npm run test:e2e` | **106 / 106**（原 104 + 2 个 Studio 缺席用例） |
+| `npm run test:tags` | **10 / 10**（真实快照 + `.private/review/batch-3/test-tags/` 试标副本） |
+| `npm run test:publication` | 9 / 9 仍通过 |
+| `npm run test:public` | 1 / 1 public 空态通过 |
+| `npm run build` | public build 成功；0 本 / 0 条 |
+| `npm run isolation:public` | clean；Studio 入口、路由、词表 / 试标 / 审计文件名与私有字段全部 absent |
+| `npx vite build --mode local-private` | 按预期退出 1 |
+| `npx vite build --mode tag-studio-private` | 按预期退出 1 |
+| 凭证反向扫描 | source 0 命中；private / 测试副本 0 命中；`.private` tracked 0 |
+
+两处测试失败已定位为**测试写法**问题而非产品缺陷：Playwright 的 `check()` / `uncheck()` 会断言状态发生变化，而 Studio 故意拒绝 0 标签与第 4 个标签；改为 `click()` 并显式断言状态不变后通过。
+
+### 浏览器与视觉证据
+
+- Studio 的浏览器验收覆盖：真实 300 条列表与计数、五种筛选、修改后保存并刷新仍然生效、1–3 标签上下限、标记为待定、契约校验 422、跨源写入 403、产品文档不引用 Studio。
+- 产品模式缺席用例覆盖：在 5173 上读不到词表 / 试标、写不进任何内容，Studio 文档在此模式下会进入错误态而不是显示数据。
+- 本阶段**没有**为 Studio 生成截图：它是本机内容工具，不是产品界面，截图不能冒充小径或视觉验收；`docs/22 §7.4` 的视觉原型仍属于 Batch 4。
+
+### 未验证项
+
+- Henry 本人尚未审核 300 条试标；
+- 32 条 draft 的处理方式未定；
+- 三个偏薄标签未处理；
+- 标签定义在边界处是否足够区分，只有 300 条证据；
+- 真机移动端与 Safari 继续未验证（Studio 不做移动端验收）；
+- 尚未产生 schema 3、小径、地图或分享改动。
+
+### 执行者交接
+
+用户在 Batch 3 开始时指定由当前会话接手继续；该会话的运行环境报告 `PI_MODEL=deepseek-flash`、`PI_PROVIDER=cc-switch-deep-seek`。此前项目记录的“暂不交给 DeepSeek v4.1 Flash”已被本次用户决定取代。接手时未回退或覆盖前任会话的产物；Batch 3 的契约、脚本、Studio、测试与文档均为本次新增。
+
+### 下一步
+
+停在 Batch 3 Gate。用户审核试标抽查、draft 清单、偏薄标签与词表抽象度后，才进入 Batch 4（schema 3、主题小径、岔路、分享全部标签与视觉基础）。
 
 ## 授权更新记录
 

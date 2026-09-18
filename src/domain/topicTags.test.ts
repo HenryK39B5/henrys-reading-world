@@ -1,0 +1,11 @@
+import { describe, expect, it } from 'vitest';
+import type { Snapshot } from './types.ts';
+import { migrateMergedTag, validateTopicTagAssignments, validateTopicTagVocabulary } from './topicTags.ts';
+
+const snapshot: Snapshot={schemaVersion:2,visibility:'local-only',owner:{displayName:'H',siteTitle:'W'},themes:[],books:[{id:'b-001',title:'B',author:'A',themeIds:[]}],highlights:[{id:'h-001',bookId:'b-001',text:'text'}]};
+const vocabulary={schemaVersion:1,approvedAt:'2026-09-18',families:[{id:'family-01',title:'F',editorialOrder:1}],tags:[{id:'tag-001',title:'风险',definition:'风险定义',includes:['损失'],excludes:['未知'],aliases:[],familyId:'family-01',editorialOrder:1,status:'reviewed'},{id:'tag-002',title:'概率',definition:'概率定义',includes:['赔率'],excludes:['运气'],aliases:[],familyId:'family-01',editorialOrder:2,status:'reviewed'}]};
+const assignments={schemaVersion:1,snapshotHash:'s',vocabularyHash:'v',generatedAt:'2026-09-18',model:'m',inputVersion:'i',sampleVersion:'x',assignments:[{highlightId:'h-001',tagIds:['tag-001','tag-002'],status:'reviewed',confidence:'medium',rationale:'reviewed',candidates:[{tagId:'tag-001',score:1}],flags:[],updatedAt:'2026-09-18'}]};
+describe('topic tag private contracts',()=>{
+ it('strictly validates vocabulary and assignments',()=>{const v=validateTopicTagVocabulary(vocabulary);expect(v.ok).toBe(true);if(!v.ok)return;expect(validateTopicTagAssignments(assignments,snapshot,v.value,new Set(['h-001'])).ok).toBe(true);expect(validateTopicTagAssignments({...assignments,assignments:[{...assignments.assignments[0],tagIds:[]}]},snapshot,v.value).ok).toBe(false);expect(validateTopicTagAssignments({...assignments,assignments:[{...assignments.assignments[0],tagIds:['tag-002','tag-001']}]},snapshot,v.value).ok).toBe(false);});
+ it('migrates a merged tag without duplicate assignments',()=>{const v=validateTopicTagVocabulary(vocabulary);const a=v.ok?validateTopicTagAssignments(assignments,snapshot,v.value):null;if(!v.ok||a===null||!a.ok)throw new Error('fixture');const merged=migrateMergedTag(v.value,a.value,'tag-002','tag-001');expect(merged.vocabulary.tags.map(t=>t.id)).toEqual(['tag-001']);expect(merged.assignments.assignments[0]?.tagIds).toEqual(['tag-001']);});
+});

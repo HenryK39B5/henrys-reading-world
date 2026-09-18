@@ -25,6 +25,7 @@
     "preview": "vite preview",
     "test:e2e": "playwright test",
     "test:publication": "playwright test --config playwright.publication.config.ts",
+    "test:tags": "playwright test --config playwright.tag-studio.config.ts",
     "test:public": "playwright test --config playwright.empty.config.ts",
     "capture:review": "playwright test --config playwright.capture.config.ts",
     "capture:v2e": "playwright test --config playwright.capture-v2e.config.ts",
@@ -32,6 +33,7 @@
     "capture:release-a": "playwright test --config playwright.capture-release-a.config.ts && playwright test --config playwright.capture-publication.config.ts",
     "publication:init": "node scripts/publication-init.ts",
     "publication:review": "vite --mode review-private",
+    "tags:studio": "vite --mode tag-studio-private",
     "publication:preview": "node scripts/publication-preview.ts",
     "isolation:public": "node scripts/check-public-isolation.ts",
     "covers:fetch": "node scripts/fetch-covers.ts",
@@ -44,7 +46,12 @@
     "tags:sample": "node scripts/tag-discovery-sample.ts",
     "tags:clusters": "node scripts/tag-discovery-clusters.ts",
     "tags:seeds": "node scripts/tag-candidate-seeds.ts",
-    "tags:audit": "node scripts/tag-candidate-audit.ts"
+    "tags:audit": "node scripts/tag-candidate-audit.ts",
+    "tags:promote": "node scripts/tag-vocabulary-promote.ts",
+    "tags:trial:generate": "node scripts/tag-trial-generate.ts",
+    "tags:trial:review": "node scripts/tag-trial-review.ts",
+    "tags:trial:audit": "node scripts/tag-trial-audit.ts",
+    "tags:migrate": "node scripts/tag-merge.ts"
   },
   "dependencies": {
     "react": "^19.3.0",

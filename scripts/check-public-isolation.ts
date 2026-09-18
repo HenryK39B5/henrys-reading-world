@@ -36,6 +36,16 @@ const mustBeAbsent: [string, string][] = [
     ['policy file path', 'publication-policy'],
     ['preview/audit file names', 'publication-preview-snapshot'],
     ['review note placeholder', '不会进入网站'],
+    ['tag studio entry', 'tag-studio'],
+    ['tag studio document name', 'StudioApp'],
+    ['tag vocabulary route', '__tag_vocabulary'],
+    ['tag assignments route', '__tag_assignments'],
+    ['tag vocabulary file', 'vocabulary.json'],
+    ['tag assignment file', 'assignments.json'],
+    ['tag trial audit file', 'trial-audit'],
+    ['tag suggestion file', 'trial-suggestions'],
+    ['tag private rationale', 'studio-rationale'],
+    ['tag assignment status field', 'possible-missing-tag'],
 ];
 let bad = 0;
 for (const [label, needle] of mustBeAbsent) {
@@ -70,6 +80,7 @@ for (const needle of [
     'candidate-seeds.json',
     'curated-seeds.json',
     'candidate-query-vectors.json',
+    'vocabulary-manifest.json',
     'share-cards',
     'flomo',
     'weread_image',

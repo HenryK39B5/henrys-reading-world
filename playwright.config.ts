@@ -16,6 +16,7 @@ export default defineConfig({
         '**/capture-release-a.spec.ts',
         '**/empty-state.spec.ts',
         '**/publication/**',
+        '**/tag-studio/**',
     ],
     fullyParallel: false,
     forbidOnly: true,

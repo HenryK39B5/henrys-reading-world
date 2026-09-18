@@ -38,7 +38,10 @@ export function publicationPaths(): PublicationPaths {
 /** The routes the local review server exposes. Fixed paths: no request may name a file. */
 export const LOCAL_SNAPSHOT_ROUTE = '/__local_snapshot';
 export const PUBLICATION_POLICY_ROUTE = '/__publication_policy';
+export const TAG_VOCABULARY_ROUTE = '/__tag_vocabulary';
+export const TAG_ASSIGNMENTS_ROUTE = '/__tag_assignments';
 export const LOCAL_COVER_PREFIX = '/__local_cover/';
 
 /** A policy for 130 books is a few tens of kilobytes; eight megabytes is comfortably beyond any real one. */
 export const POLICY_BODY_LIMIT = 8 * 1024 * 1024;
+export const TAG_ASSIGNMENTS_BODY_LIMIT = 16 * 1024 * 1024;
