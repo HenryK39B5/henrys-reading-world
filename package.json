@@ -38,7 +38,8 @@
     "embeddings:prepare": "node scripts/embedding-prepare.ts",
     "embeddings:baseline": "node scripts/embedding-baseline.ts",
     "embeddings:evaluate": "node scripts/embedding-evaluate.ts",
-    "embeddings:compare": "node scripts/embedding-compare.ts"
+    "embeddings:compare": "node scripts/embedding-compare.ts",
+    "embeddings:neighbours": "node scripts/embedding-neighbours.ts"
   },
   "dependencies": {
     "react": "^19.3.0",

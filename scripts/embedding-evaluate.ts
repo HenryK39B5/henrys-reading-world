@@ -15,7 +15,7 @@ import {
 } from './embeddings/core.ts';
 import { evaluateEmbeddings, parseEvaluationLabels } from './embeddings/evaluation.ts';
 import { embeddingPrivatePaths, LOCAL_SNAPSHOT_PATH } from './embeddings/privatePaths.ts';
-import { apiKeyForProvider, createEmbeddingProvider, providerDefaults } from './embeddings/providers.ts';
+import { apiKeyForProviderOrEnvFile, createEmbeddingProvider, providerDefaults } from './embeddings/providers.ts';
 
 type Args = {
     provider: EmbeddingProviderName;
@@ -24,6 +24,7 @@ type Args = {
     batchSize?: number;
     delayMs: number;
     pricePerMillionTokens?: number;
+    priceCurrency?: 'USD' | 'CNY';
 };
 
 function readArgs(argv: string[]): Args {
@@ -41,8 +42,8 @@ function readArgs(argv: string[]): Args {
         index += 1;
     }
     const provider = values.get('provider');
-    if (provider !== 'voyage' && provider !== 'cohere' && provider !== 'openai') {
-        throw new Error('--provider must be voyage, cohere, or openai');
+    if (provider !== 'voyage' && provider !== 'cohere' && provider !== 'openai' && provider !== 'siliconflow') {
+        throw new Error('--provider must be voyage, cohere, openai, or siliconflow');
     }
     const numberArg = (name: string): number | undefined => {
         const value = values.get(name);
@@ -65,6 +66,13 @@ function readArgs(argv: string[]): Args {
         throw new Error('--batch-size must be an integer');
     }
     const model = values.get('model');
+    const priceCurrencyRaw = values.get('price-currency');
+    if (priceCurrencyRaw !== undefined && priceCurrencyRaw !== 'USD' && priceCurrencyRaw !== 'CNY') {
+        throw new Error('--price-currency must be USD or CNY');
+    }
+    if (priceCurrencyRaw !== undefined && pricePerMillionTokens === undefined) {
+        throw new Error('--price-currency requires --price-per-million-tokens');
+    }
     return {
         provider,
         ...(model === undefined ? {} : { model }),
@@ -72,6 +80,7 @@ function readArgs(argv: string[]): Args {
         ...(batchSize === undefined ? {} : { batchSize }),
         delayMs: numberArg('delay-ms') ?? 0,
         ...(pricePerMillionTokens === undefined ? {} : { pricePerMillionTokens }),
+        ...(pricePerMillionTokens === undefined ? {} : { priceCurrency: priceCurrencyRaw ?? 'USD' }),
     };
 }
 
@@ -141,7 +150,7 @@ async function main(): Promise<void> {
 
     const defaults = providerDefaults(args.provider);
     const provider = createEmbeddingProvider(args.provider, {
-        apiKey: apiKeyForProvider(args.provider),
+        apiKey: await apiKeyForProviderOrEnvFile(args.provider),
         ...(args.model === undefined ? {} : { model: args.model }),
         ...(args.dimensions === undefined ? {} : { dimensions: args.dimensions }),
     });
@@ -199,10 +208,13 @@ async function main(): Promise<void> {
     }
     const metrics = evaluateEmbeddings(corpus, labels, cache.vectors);
     const elapsedMilliseconds = Date.now() - startedAt;
-    const estimatedCostUsd =
-        args.pricePerMillionTokens === undefined || cache.inputTokens === undefined
+    const estimatedCost =
+        args.pricePerMillionTokens === undefined || cache.inputTokens === undefined || args.priceCurrency === undefined
             ? undefined
-            : (cache.inputTokens / 1_000_000) * args.pricePerMillionTokens;
+            : {
+                  currency: args.priceCurrency,
+                  amount: (cache.inputTokens / 1_000_000) * args.pricePerMillionTokens,
+              };
     const report = {
         schemaVersion: 1,
         generatedAt: new Date().toISOString(),
@@ -214,7 +226,7 @@ async function main(): Promise<void> {
         requests: cache.requests,
         inputTokens: cache.inputTokens ?? null,
         elapsedMilliseconds,
-        estimatedCostUsd: estimatedCostUsd ?? null,
+        estimatedCost: estimatedCost ?? null,
         metrics,
     };
     const reportPath = resolve(paths.reports, `${provider.name}--${safeName(provider.model)}--${String(provider.dimensions)}.json`);
@@ -235,7 +247,7 @@ async function main(): Promise<void> {
                 cache: string;
                 report: string;
                 inputTokens: number | null;
-                estimatedCostUsd: number | null;
+                estimatedCost: { currency: 'USD' | 'CNY'; amount: number } | null;
             }
         >;
         baselines: Record<string, unknown>;
@@ -272,7 +284,7 @@ async function main(): Promise<void> {
         cache: relative(paths.root, cachePath).replace(/\\/gu, '/'),
         report: relative(paths.root, reportPath).replace(/\\/gu, '/'),
         inputTokens: cache.inputTokens ?? null,
-        estimatedCostUsd: estimatedCostUsd ?? null,
+        estimatedCost: estimatedCost ?? null,
     };
     await writeJsonAtomic(paths.manifest, manifest);
 

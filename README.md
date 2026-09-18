@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-- 阶段：v1 Slice 0–4、V2-A～V2-E4D、Release-A 与 V3 Batch 0 均已完成；**Batch 1A 已建立私有 embedding 管线、300 条真实评测集与 lexical 下限，真实厂商评测等待本机凭证**。
+- 阶段：v1 Slice 0–4、V2-A～V2-E4D、Release-A、V3 Batch 0–1 均已完成；**SiliconFlow 三模型已在同一组 300 条真实划线上完成评测，默认 `BAAI/bge-large-zh-v1.5`，回退 `BAAI/bge-m3`**。
 - 发布审核：用户已完成两轮审核，私有清单当前为 **108 本公开 / 22 本排除 / 6 条单独排除**，`reviewComplete=true`。这些决定继续有效，但 Release-B 暂停到 V3 Gate 之后；未生成 public snapshot、未创建 GitHub repo、未 push。
 - 产品方向：`docs/19-PRODUCT-DIRECTION-V3.md`；标签 / 小径 / 地图规格：`docs/20-TAGS-PATHS-MAP-SPEC.md`；视觉：`docs/21-V3-VISUAL-DIRECTION.md`；施工：`docs/22-V3-IMPLEMENTATION-PLAN.md`；embedding 实际评测：`docs/23-EMBEDDING-EVALUATION.md`。
 - 硬约束：所有开发只使用 Henry 本人的真实微信读书划线，不使用 fake / demo 数据；Book Theme 属于书籍，V3 Topic Tag 属于划线，但不做人格标签、质量评分或 AI 观点总结。
@@ -56,12 +56,13 @@ V3 私有 embedding 评测（全部产物只写 `.private/embeddings/`）：
 ```powershell
 npm run embeddings:prepare   # 300 条真实评测集：130 本 / 14 书架 / 短中长覆盖
 npm run embeddings:baseline  # 非语义字符 hash 下限；不能冒充候选模型
-npm run embeddings:evaluate -- --provider voyage --model voyage-4-lite --dimensions 512
-npm run embeddings:evaluate -- --provider cohere --model embed-v4.0 --dimensions 512
-npm run embeddings:compare   # 至少已有两份真实 provider 报告时才运行
+npm run embeddings:evaluate -- --provider siliconflow --model BAAI/bge-large-zh-v1.5 --dimensions 1024
+npm run embeddings:evaluate -- --provider siliconflow --model BAAI/bge-m3 --dimensions 1024
+npm run embeddings:compare
+npm run embeddings:neighbours -- --provider siliconflow --model BAAI/bge-large-zh-v1.5 --dimensions 1024
 ```
 
-真实厂商调用分别需要非 `VITE_*` 的 `VOYAGE_API_KEY` / `COHERE_API_KEY`；不要把 key 写进聊天、`.env`、代码或 Git。完整边界与当前阻塞见 `docs/23`。
+SiliconFlow 调用使用非 `VITE_*` 的 `SILICONFLOW_API_KEY`，也兼容当前本机 `.env` 中的 `SiliconFlow_API_KEY`。`.env` 必须保持 Git ignored；不要把 key 写进聊天、代码、报告或 Git。结果与边界见 `docs/23`。
 
 公开路径（当前只用于验证构建，不展示真实内容）：
 
@@ -159,7 +160,7 @@ npm run test:publication       # 审核器的浏览器验收（用临时目录�
 | [20 — 标签、小径与地图规格](docs/20-TAGS-PATHS-MAP-SPEC.md) | Topic Tag、embedding、路径算法、岔路、地图与 schema 3 草案 |
 | [21 — V3 视觉方向](docs/21-V3-VISUAL-DIRECTION.md) | 纸、墨、光、地形、Book Aura、分享与视觉 Gate |
 | [22 — V3 实施计划](docs/22-V3-IMPLEMENTATION-PLAN.md) | Batch 0–8、用户 Gate、测试与发布恢复顺序 |
-| [23 — Embedding 评测](docs/23-EMBEDDING-EVALUATION.md) | 私有 provider 管线、300 条真实评测集、候选模型、基线与凭证 Gate |
+| [23 — Embedding 评测](docs/23-EMBEDDING-EVALUATION.md) | 私有 provider 管线、300 条真实评测集、SiliconFlow 三模型结果、默认与回退 |
 
 ## 真实数据现状
 

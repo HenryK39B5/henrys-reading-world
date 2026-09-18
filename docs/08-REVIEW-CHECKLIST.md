@@ -45,7 +45,7 @@
 | V2-E4 交接准备 | 已执行完毕 | 交接 Prompt 为 `docs/16-V2-E4-SHARE-CARD-VISUAL-IMPLEMENTER-PROMPT.md`；E4A/E4B/E4C/E4D 均已实现、测试并提交 |
 | Release-A 公开审核准备 | 已执行完毕 | V2-E4E、有限随机书籍轮、书级 publication policy/单条排除/封面开关、本机审核器与私有 preview 均已实现并验收；详见下方 Release-A1～A4 四节；权威 `docs/17`，Prompt `docs/18` |
 | V3 Batch 0 顶层设计 | 已完成 | 新增 `docs/19–22`，重置权威顺序并完成产品、标签 / 地图、视觉与施工顶层设计；Release-B 暂停，未改代码 / schema / 快照 |
-| V3 Batch 1 embedding 评测 | 执行中（凭证 Gate） | 1A 已完成 provider-neutral 管线、300 条真实评测集、22 个语义 case 与 lexical 下限；1B 等待本机 Voyage / Cohere key 后运行真实对比 |
+| V3 Batch 1 embedding 评测 | 已完成 | provider-neutral 管线、300 条真实评测集、SiliconFlow 三模型实测与人工 neighbour review；默认 `bge-large-zh-v1.5`，回退 `bge-m3` |
 | 真实访客 Gate | 未进行 | 用户本人体验反馈非常积极（V2-E4D 就是其反馈驱动的收尾），但尚无首次访客结果，不冒充产品 Gate 通过 |
 
 原始返回、更新包、候选池、快照与截图全部留在 `.private/`，已被 `.gitignore` 排除，未进入前端包。
@@ -204,6 +204,111 @@ COHERE_API_KEY
 ### 下一步
 
 等待本机凭证后继续同一个 Batch 1：运行两家真实评测、人工检查 top neighbours、选择默认与回退、完成最终 Gate 和独立 commit。Gate 未完成前不进入 Batch 2 标签词表。
+
+## V3 Batch 1B — SiliconFlow 三模型真实评测（2026-09-18）
+
+```text
+日期 / 执行者：2026-09-18 / 当前实现 Agent
+范围：Batch 1B — SiliconFlow adapter、真实 API 评测、neighbour review、默认 / 回退选择
+状态：verified
+代码基线：8caea7c
+```
+
+### 用户输入与私有材料整理
+
+1. 用户指定改用已有 SiliconFlow API key，并明确允许通过该平台调用 embedding 模型。
+2. 只检查工作目录 `.env` 中 `SiliconFlow_API_KEY` 存在且非空；没有输出或复制 key。
+3. 桌面原文件保持不动，复制到 Git ignored 私有参考目录：
+   - `.private/reference/providers/siliconflow/embedding-models-overview.md`；
+   - `.private/reference/weread-products/微读助手-1.jpg`～`微读助手-4.jpg`；
+   - `.private/reference/weread-products/随手摘.png`；
+   - `.private/reference/README.md` 记录来源和边界。
+4. `flomo-starmap.png` 不是微信读书 skill 产品截图，因此没有混入该目录。
+
+### 实现范围
+
+- 新增 `siliconflow` provider，固定官方 endpoint `https://api.siliconflow.cn/v1/embeddings`；
+- 支持官方 `SILICONFLOW_API_KEY` 与用户现有 `SiliconFlow_API_KEY`；
+- 若进程环境没有 key，只逐行检查 `.env` 中当前 provider 的允许变量，不加载或输出其他值；
+- `VITE_*` 变体继续明确拒绝；
+- BGE 固定维度请求不发送 `dimensions`；Qwen3 系列才发送；
+- 成本报告改为显式 USD / CNY，不再假定所有 provider 都按美元；
+- 新增 `embeddings:neighbours`，将每个 case 的完整 query、正负例排名与 top-10 写到 `.private`，终端不打印原文；
+- public isolation 增加 SiliconFlow 两种 key 名探针；
+- 更新 `docs/23` 为 Batch 1 最终实际报告。
+
+### 同集实测结果
+
+同一组 300 条 / 130 本 / 14 Book Theme / 22 case，全部 1024 维：
+
+| 模型 | MRR | Recall@10 | Pair accuracy | Book diversity@10 | 工程综合分 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `BAAI/bge-large-zh-v1.5` | **0.4734** | **0.7727** | **0.9524** | **0.8818** | **0.7821** |
+| `Qwen/Qwen3-Embedding-0.6B` | 0.4467 | 0.7273 | 0.8571 | 0.8409 | 0.7143 |
+| `BAAI/bge-m3` | 0.3804 | 0.6818 | 0.9048 | 0.8227 | 0.7000 |
+| lexical 下限 | 0.1863 | 0.4091 | 0.5238 | 0.9318 | 不参与 provider 选择 |
+
+调用摘要：
+
+```text
+bge-large-zh-v1.5   300 inputs / 10 requests / 28,367 tokens
+bge-m3              300 inputs / 10 requests / 19,620 tokens
+Qwen3-0.6B          300 inputs / 10 requests / 17,960 tokens
+Qwen 估算费用       ¥0.0012572
+```
+
+### 人工 neighbour review
+
+- 三模型均生成 22 × top-10 私有报告；
+- `bge-large-zh-v1.5` 在不确定性、随机性、孤独、死亡 / 新生、意义、记忆、交易自控和睡眠等 case 中形成最稳定的中文概念邻域；
+- 它能压低随机数字、自由市场修辞、宝贵财富、统计学死亡等关键词伪相关；
+- `Qwen3-0.6B` 在政治权力、亲密关系等少数 case 更强，但 hard-negative 稳定性较弱；
+- `bge-m3` 总体排名较低，但 8K context、多语言与同平台免费定位适合作回退；
+- 风险社会化、政治权力、机会、个人自由、信任等 case 继续显示人工标签边界的重要性；embedding 不自动决定 Topic Tag；
+- 邻域仍会受同书 / 同写法影响，Batch 2 多样性抽样和未来小径必须继续先满足按书公平。
+
+### 决定
+
+- 默认：`BAAI/bge-large-zh-v1.5` / 1024 维；
+- 回退：`BAAI/bge-m3` / 1024 维；
+- 保留低价对照：`Qwen/Qwen3-Embedding-0.6B` / 1024 维；
+- 不再为厂商榜单继续扩测。当前结果已达到“中文真实语料够用、成本可接受”的 Batch 1 目标。
+
+### 数据与凭证状态
+
+- 本次 API 请求只包含最小化划线文本、模型与必要参数；没有发送 stable ID、书 ID、账号标识、原始微信字段、publication policy 或私有 note；
+- API key 未进入终端输出、缓存、报告、Git 或 public build；
+- vectors、manifest、comparison 与 neighbour reports 全部位于 `.private/embeddings/`；
+- public / local 消费者代码未增加模型请求；
+- local snapshot、stable ID、publication policy 与 public snapshot 均未修改；
+- 未开始 Topic Tag、schema 3、地图或 Batch 2。
+
+### 实际命令与结果
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run embeddings:evaluate -- --provider siliconflow --model BAAI/bge-m3 --dimensions 1024 --batch-size 32` | 300 / 300，10 requests；MRR 0.3804 / R@10 0.6818 / pair 0.9048 |
+| `npm run embeddings:evaluate -- --provider siliconflow --model Qwen/Qwen3-Embedding-0.6B --dimensions 1024 --batch-size 32 --price-per-million-tokens 0.07 --price-currency CNY` | 300 / 300，10 requests；估算 ¥0.0012572；MRR 0.4467 / R@10 0.7273 / pair 0.8571 |
+| `npm run embeddings:evaluate -- --provider siliconflow --model BAAI/bge-large-zh-v1.5 --dimensions 1024 --batch-size 32` | 300 / 300，10 requests；MRR 0.4734 / R@10 0.7727 / pair 0.9524 |
+| 同一 bge-large 命令重跑 | exit 0，**0 个新 batch**，验证 text-hash cache / 失败续跑路径 |
+| `npm run embeddings:compare` | 三模型同集比较成功；bge-large-zh-v1.5 综合分 0.7821 第一 |
+| `npm run embeddings:neighbours ...` | 三份 22 case × top-10 私有完整原文报告生成成功 |
+| `npm run check:local` | typecheck、lint、**259 单测 / 21 文件**、schema 2 local 校验通过；唯一警告仍为无原始换行 |
+| `npm run verify:ids` | 20 本 / 46 条种子 ID 稳定；总量 4,663 / 130 |
+| `npm run smoke:local` | **6 / 6** 真实数据 smoke 通过 |
+| `npm run test:public` | **1 / 1** public 空态 E2E 通过 |
+| `npm run build` | public build 成功；0 本 / 0 条 |
+| `npm run isolation:public` | clean；SiliconFlow 两种 key 名、private embeddings 与真实内容均 absent |
+| `npx vite build --mode local-private` | 按预期退出 1，保持原保护错误原文 |
+| 凭证反向扫描 | tracked / untracked source **0 命中**；`.private/embeddings` **0 命中**；`.env` 与 private references 均被 Git ignore |
+
+### 浏览器与视觉证据
+
+本阶段只修改私有脚本、测试和文档，没有消费者 UI / CSS 变化，因此不生成视觉截图。public 空态与 build / isolation 用于证明 provider 代码没有进入浏览器产品路径。
+
+### 下一步
+
+Batch 1 完成后停止汇报，不自动进入 Batch 2。下一批将用默认模型为 4,663 条建立全量私有 embedding，并据此生成 250–300 条按书公平、多样性覆盖的标签发现样本，随后建立第一版标签词表与用户 Gate。
 
 ## 授权更新记录
 

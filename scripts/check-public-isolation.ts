@@ -59,6 +59,8 @@ for (const needle of [
     'VOYAGE_API_KEY',
     'COHERE_API_KEY',
     'OPENAI_API_KEY',
+    'SILICONFLOW_API_KEY',
+    'SiliconFlow_API_KEY',
     'userVid',
     'bookmarkId',
     '.private/embeddings',

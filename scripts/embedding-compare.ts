@@ -25,7 +25,7 @@ type ProviderReport = {
     requests: number;
     inputTokens: number | null;
     elapsedMilliseconds: number;
-    estimatedCostUsd: number | null;
+    estimatedCost: { currency: 'USD' | 'CNY'; amount: number } | null;
     metrics: Metrics;
 };
 

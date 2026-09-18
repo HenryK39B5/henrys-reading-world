@@ -13,7 +13,7 @@
 ## 执行规则
 
 - 先检查目录、现有实现及 Git 状态；保护既有工作，不因为本交接写着“无代码”就覆盖后续代码。
-- 当前 Slice 0–4、V2-A～V2-E4D 与 **Release-A（A1～A4）** 均已完成；用户已完成两轮书级/逐条审核，当前私有清单为 108 本公开、22 本排除、6 条单独排除，`reviewComplete=true`。V3 Batch 0 已完成；Batch 1A 已建立私有 embedding 管线、300 条真实评测集与 lexical 下限，Batch 1B 等待本机 `VOYAGE_API_KEY` / `COHERE_API_KEY` 后完成真实厂商对比。不得用 mock 或 lexical baseline 冒充厂商通过，也不得自动进入 Batch 2、正式导出 public snapshot、复制 public covers、创建 repo、push 或部署。
+- 当前 Slice 0–4、V2-A～V2-E4D 与 **Release-A（A1～A4）** 均已完成；用户已完成两轮书级/逐条审核，当前私有清单为 108 本公开、22 本排除、6 条单独排除，`reviewComplete=true`。V3 Batch 0 与 Batch 1 均已完成：私有 embedding 管线、300 条真实评测集、lexical 下限及 SiliconFlow 三模型真实对比已完成；默认 `BAAI/bge-large-zh-v1.5`，回退 `BAAI/bge-m3`，详见 `docs/23`。不得自动进入 Batch 2、正式导出 public snapshot、复制 public covers、创建 repo、push 或部署。
 - 使用 Windows 原生 Node/npm/Git 与 PowerShell。不要混用 WSL 路径。
 - 不在非空项目根目录直接运行可能覆盖文档的脚手架；优先逐文件建立 Vite 配置。
 - 版本首次安装时选择彼此兼容的稳定版本并提交 npm 锁文件，不凭空声称某版本是最新。
