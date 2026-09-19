@@ -37,6 +37,11 @@ function orderedTagIds(): string[] {
         .map((tag) => tag.id);
 }
 
+function tagCheckbox(page: Page, tagId: string) {
+    const title = readTestVocabulary().tags.find((tag) => tag.id === tagId)?.title ?? tagId;
+    return page.getByRole('checkbox', { name: title, exact: true });
+}
+
 function storedAssignment(highlightId: string): TopicTagAssignments['assignments'][number] | undefined {
     return readTestAssignments().assignments.find((assignment) => assignment.highlightId === highlightId);
 }
@@ -134,15 +139,14 @@ test.describe('a studio decision is durable and bounded', () => {
         const before = first?.tagIds ?? [];
         await openStudio(page);
 
-        const boxes = page.locator('.studio-tags input[type="checkbox"]');
         const wanted = tagIds.find((tagId) => !before.includes(tagId));
         expect(wanted, '试标里应存在未使用过的标签').toBeDefined();
         // A passage already holding three tags has to give one up first; the studio refuses a fourth.
         const dropped = before.length >= 3 ? (before[before.length - 1] ?? '') : '';
         if (dropped.length > 0) {
-            await boxes.nth(tagIds.indexOf(dropped)).click();
+            await tagCheckbox(page, dropped).click();
         }
-        await boxes.nth(tagIds.indexOf(wanted ?? '')).click();
+        await tagCheckbox(page, wanted ?? '').click();
         await save(page);
 
         const expected = byVocabularyOrder([...before.filter((tagId) => tagId !== dropped), wanted ?? '']);
@@ -167,8 +171,7 @@ test.describe('a studio decision is durable and bounded', () => {
         await page.locator('.studio-list button').filter({ hasText: targetId }).first().click();
         await expect(page.getByTestId('studio-detail')).toContainText(targetId);
 
-        const boxes = page.locator('.studio-tags input[type="checkbox"]');
-        const onlyBox = boxes.nth(tagIds.indexOf(only));
+        const onlyBox = tagCheckbox(page, only);
         // Unchecking the only tag is refused, so the click must leave the box checked.
         await onlyBox.click();
         await expect(onlyBox).toBeChecked();
@@ -177,9 +180,9 @@ test.describe('a studio decision is durable and bounded', () => {
 
         // Two more tags are allowed; a fourth click is refused.
         const spare = tagIds.filter((tagId) => tagId !== only);
-        await boxes.nth(tagIds.indexOf(spare[0] ?? '')).click();
-        await boxes.nth(tagIds.indexOf(spare[1] ?? '')).click();
-        const fourthBox = boxes.nth(tagIds.indexOf(spare[2] ?? ''));
+        await tagCheckbox(page, spare[0] ?? '').click();
+        await tagCheckbox(page, spare[1] ?? '').click();
+        const fourthBox = tagCheckbox(page, spare[2] ?? '');
         await fourthBox.click();
         await expect(fourthBox).not.toBeChecked();
         await save(page);

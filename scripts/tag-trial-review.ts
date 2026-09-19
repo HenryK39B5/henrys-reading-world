@@ -32,8 +32,8 @@ import { LOCAL_SNAPSHOT_PATH } from './embeddings/privatePaths.ts';
  *    than having to guess what happened.
  *
  * The overrides and the lexical rules below are editorial judgement, not model output. They are the part of
- * this batch a human should check first, which is why the review queue (npm run tags:review-queue) starts
- * with them.
+ * this batch the implementation agent checks first, which is why the review queue (npm run tags:review-queue)
+ * starts with them. Henry only needs to resolve genuine vocabulary or product-boundary questions.
  */
 
 type LexicalRule = { tagId: string; pattern: RegExp; label: string };
@@ -74,21 +74,64 @@ const LEXICAL_RULES: LexicalRule[] = [
     { tagId: 'tag-053', label: '历史记忆', pattern: /历史叙事|集体记忆|重写历史/u },
 ];
 
+/** Passages that remain honestly unclassifiable even after the closeout pass. */
+const FORCE_UNRESOLVED = new Set(['h-1025', 'h-3432', 'h-3480', 'h-3526', 'h-3768', 'h-4130']);
+
 /** Passages where the proposal was wrong and the full text supports something else. */
 const OVERRIDES: Record<string, string[]> = {
-    'h-1025': ['tag-020'], 'h-1269': ['tag-027'], 'h-1473': ['tag-012'], 'h-1714': ['tag-016', 'tag-043'],
-    'h-176': ['tag-029', 'tag-048'], 'h-1806': ['tag-027'], 'h-2037': ['tag-046', 'tag-051'], 'h-2038': ['tag-047'],
-    'h-2184': ['tag-012', 'tag-013'], 'h-2519': ['tag-014', 'tag-020'], 'h-2659': ['tag-010'], 'h-2753': ['tag-011'],
-    'h-2782': ['tag-036'], 'h-2815': ['tag-026'], 'h-2879': ['tag-003', 'tag-040'], 'h-2915': ['tag-046', 'tag-049'],
-    'h-2928': ['tag-051'], 'h-3061': ['tag-046'], 'h-3177': ['tag-007', 'tag-024'], 'h-3257': ['tag-023'],
-    'h-3289': ['tag-015'], 'h-3432': ['tag-020'], 'h-3476': ['tag-029'], 'h-3480': ['tag-016'],
-    'h-3812': ['tag-010'], 'h-3878': ['tag-036'], 'h-3911': ['tag-044'], 'h-3926': ['tag-036', 'tag-052'],
-    'h-3963': ['tag-020'], 'h-4039': ['tag-052'], 'h-4089': ['tag-026'], 'h-4114': ['tag-007', 'tag-046'],
-    'h-4130': ['tag-020'], 'h-4157': ['tag-040', 'tag-046'], 'h-4187': ['tag-042', 'tag-044'], 'h-4274': ['tag-027'],
-    'h-4366': ['tag-046'], 'h-4374': ['tag-042'], 'h-4390': ['tag-046'], 'h-4397': ['tag-026', 'tag-051'],
-    'h-4402': ['tag-014'], 'h-4550': ['tag-034'], 'h-4559': ['tag-024'], 'h-4581': ['tag-029', 'tag-046'],
-    'h-4586': ['tag-019'], 'h-4590': ['tag-020'], 'h-4628': ['tag-012', 'tag-040'], 'h-4662': ['tag-053'],
-    'h-592': ['tag-020'], 'h-668': ['tag-050'],
+    'h-025': ['tag-002', 'tag-054'], 'h-1109': ['tag-046', 'tag-051'],
+    'h-1269': ['tag-027'], 'h-1441': ['tag-007', 'tag-016'],
+    'h-1473': ['tag-012'], 'h-1578': ['tag-011', 'tag-020'], 'h-1654': ['tag-003', 'tag-006', 'tag-055'],
+    'h-1714': ['tag-016', 'tag-043'], 'h-176': ['tag-029'], 'h-1806': ['tag-027'],
+    'h-1958': ['tag-010', 'tag-015', 'tag-016'], 'h-1984': ['tag-054'],
+    'h-2037': ['tag-046', 'tag-047'], 'h-2038': ['tag-047'], 'h-2203': ['tag-016', 'tag-017', 'tag-029'],
+    'h-2184': ['tag-012', 'tag-016'], 'h-2212': ['tag-021', 'tag-030'], 'h-2328': ['tag-034'],
+    'h-2349': ['tag-012', 'tag-031'], 'h-2425': ['tag-002', 'tag-047'], 'h-2452': ['tag-038'],
+    'h-2512': ['tag-044'], 'h-2600': ['tag-038', 'tag-041'],
+    'h-2519': ['tag-014', 'tag-020'], 'h-2539': ['tag-001', 'tag-047'], 'h-2659': ['tag-010'],
+    'h-2753': ['tag-011'], 'h-2782': ['tag-036'], 'h-2815': ['tag-026'],
+    'h-2868': ['tag-042', 'tag-046'], 'h-2879': ['tag-002', 'tag-040'],
+    'h-2915': ['tag-046', 'tag-049'], 'h-2928': ['tag-051'], 'h-3061': ['tag-046'],
+    'h-3132': ['tag-032', 'tag-052'], 'h-3177': ['tag-007', 'tag-024'],
+    'h-3053': ['tag-012', 'tag-014', 'tag-046'], 'h-3218': ['tag-049', 'tag-052'],
+    'h-3257': ['tag-023'], 'h-3289': ['tag-015'], 'h-3320': ['tag-031'],
+    'h-3355': ['tag-055'], 'h-3366': ['tag-023', 'tag-038'], 'h-3386': ['tag-014', 'tag-038', 'tag-040'],
+    'h-3449': ['tag-055'], 'h-3476': ['tag-029'], 'h-3597': ['tag-018', 'tag-042'],
+    'h-3652': ['tag-036', 'tag-056'], 'h-3653': ['tag-009'], 'h-3751': ['tag-002', 'tag-046'],
+    'h-3764': ['tag-046', 'tag-051'],
+    'h-3812': ['tag-035'], 'h-3872': ['tag-022'], 'h-3878': ['tag-036'],
+    'h-3880': ['tag-021', 'tag-056'], 'h-3911': ['tag-044'], 'h-3926': ['tag-036', 'tag-053'],
+    'h-3930': ['tag-046', 'tag-052'], 'h-3963': ['tag-020'], 'h-4009': ['tag-007', 'tag-045'],
+    'h-4039': ['tag-052'], 'h-4048': ['tag-029'], 'h-4089': ['tag-002', 'tag-014'],
+    'h-4106': ['tag-024', 'tag-041'], 'h-4114': ['tag-007', 'tag-046'],
+    'h-4128': ['tag-021', 'tag-027'],
+    'h-4154': ['tag-002', 'tag-040', 'tag-054'], 'h-4157': ['tag-040', 'tag-042'],
+    'h-4169': ['tag-039', 'tag-054'], 'h-4176': ['tag-002', 'tag-054'],
+    'h-4187': ['tag-002', 'tag-042'], 'h-4205': ['tag-007', 'tag-046'],
+    'h-4227': ['tag-002', 'tag-054'], 'h-4274': ['tag-046'], 'h-4304': ['tag-010', 'tag-016'],
+    'h-4337': ['tag-029'], 'h-4350': ['tag-020', 'tag-031'],
+    'h-4364': ['tag-009', 'tag-012', 'tag-052'], 'h-4366': ['tag-046'], 'h-4374': ['tag-042'],
+    'h-4390': ['tag-046', 'tag-049'], 'h-4392': ['tag-026', 'tag-051'],
+    'h-4397': ['tag-026', 'tag-051'], 'h-4402': ['tag-014'], 'h-4416': ['tag-012', 'tag-016'],
+    'h-4429': ['tag-039'], 'h-4435': ['tag-012', 'tag-039'],
+    'h-4442': ['tag-022', 'tag-027'], 'h-4453': ['tag-014', 'tag-040'],
+    'h-4498': ['tag-010', 'tag-030', 'tag-036'], 'h-4509': ['tag-021', 'tag-029'],
+    'h-4512': ['tag-010', 'tag-032'], 'h-4520': ['tag-001'],
+    'h-4522': ['tag-012', 'tag-016', 'tag-044'], 'h-4530': ['tag-010', 'tag-012', 'tag-031'],
+    'h-4543': ['tag-033', 'tag-036'], 'h-4550': ['tag-034'], 'h-4559': ['tag-024'],
+    'h-4576': ['tag-022', 'tag-027'], 'h-4581': ['tag-042', 'tag-046'],
+    'h-4586': ['tag-019'], 'h-4589': ['tag-025', 'tag-028'], 'h-4590': ['tag-020'],
+    'h-4599': ['tag-005', 'tag-046'], 'h-4608': ['tag-046', 'tag-053'],
+    'h-4610': ['tag-002', 'tag-054'], 'h-4611': ['tag-039', 'tag-041', 'tag-054'],
+    'h-4615': ['tag-039', 'tag-055'], 'h-4624': ['tag-039', 'tag-041', 'tag-054'],
+    'h-4625': ['tag-041', 'tag-047'], 'h-4626': ['tag-054'],
+    'h-4628': ['tag-002', 'tag-012', 'tag-040'], 'h-4629': ['tag-038', 'tag-050'],
+    'h-4631': ['tag-007', 'tag-014'], 'h-4632': ['tag-021', 'tag-050'],
+    'h-4635': ['tag-032', 'tag-038', 'tag-050'], 'h-4641': ['tag-038', 'tag-042', 'tag-043'],
+    'h-4650': ['tag-022'], 'h-4652': ['tag-021', 'tag-031'], 'h-4655': ['tag-010', 'tag-016'],
+    'h-4658': ['tag-027', 'tag-038'], 'h-4660': ['tag-018', 'tag-056'],
+    'h-4662': ['tag-053'], 'h-592': ['tag-020'], 'h-655': ['tag-028', 'tag-032', 'tag-052'],
+    'h-668': ['tag-050'], 'h-869': ['tag-012', 'tag-056'], 'h-990': ['tag-023', 'tag-025'],
 };
 
 type Suggestion = {
@@ -159,7 +202,15 @@ async function main(): Promise<void> {
         const override = OVERRIDES[raw.highlightId];
         const lexical = LEXICAL_RULES.filter((rule) => rule.pattern.test(passage));
 
-        if (override !== undefined) {
+        if (FORCE_UNRESOLVED.has(raw.highlightId)) {
+            tagIds = proposed;
+            status = 'draft';
+            provenance = 'unresolved';
+            confidence = 'low';
+            rationale =
+                `Batch 3 收口复核后，原文仍无法独立支撑模型提议的「${names(vocabulary, proposed)}」；` +
+                '保留原提议只为诊断，不进入 reviewed 数据。';
+        } else if (override !== undefined) {
             tagIds = override;
             status = 'reviewed';
             provenance = 'override';
@@ -191,7 +242,7 @@ async function main(): Promise<void> {
             provenance = 'unresolved';
             rationale =
                 `原文单独撑不起模型提议的「${names(vocabulary, proposed)}」，词表里也没有其他标签能在不猜测的前提下成立；` +
-                '保留原提议并标为待定，交由人工决定。';
+                '保留原提议并标为待定；后续只有在词表或完整产品语境发生变化时才重新打开。';
         }
 
         const ordered = [...new Set(tagIds)].sort((left, right) => (order.get(left) ?? 0) - (order.get(right) ?? 0));

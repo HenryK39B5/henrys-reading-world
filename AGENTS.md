@@ -13,7 +13,7 @@
 ## 执行规则
 
 - 先检查目录、现有实现及 Git 状态；保护既有工作，不因为本交接写着“无代码”就覆盖后续代码。
-- 当前 Slice 0–4、V2-A～V2-E4D 与 **Release-A（A1～A4）** 均已完成；用户已完成两轮书级/逐条审核，当前私有清单为 108 本公开、22 本排除、6 条单独排除，`reviewComplete=true`。V3 Batch 0–3 已完成为稳定词表、300 条私有试标与只在本机运行的 Local Tag Studio，详见 `docs/23–25`。用户明确表示逐条审核工作量过大；后续由实现 Agent 负责试标与低信心复核，用户只处理真正的标签命名、合并和产品边界。用户在审核队列填写的 14 条已导入，其中 3 条直接应用、11 条作为词表缺口候选。完成这些候选的 Agent 判定后可连续进入 Batch 4；正式导出 public snapshot、复制 public covers、创建 repo、push 或部署仍需单独 Gate。
+- 当前 Slice 0–4、V2-A～V2-E4D 与 **Release-A（A1～A4）** 均已完成；用户已完成两轮书级/逐条审核，当前私有清单为 108 本公开、22 本排除、6 条单独排除，`reviewComplete=true`。V3 Batch 0–3 已收口为 56 个稳定标签、300 条私有试标（294 reviewed / 6 draft）与只在本机运行的 Local Tag Studio，详见 `docs/23–25`。用户明确表示逐条审核工作量过大；后续由实现 Agent 负责试标与低信心复核，用户只处理真正的标签命名、合并和产品边界。用户在审核队列填写的 14 条已全部处置：3 条直接应用、11 条由 Agent 完成词表判定，待决 0。可连续进入 Batch 4；正式导出 public snapshot、复制 public covers、创建 repo、push 或部署仍需单独 Gate。
 - 使用 Windows 原生 Node/npm/Git 与 PowerShell。不要混用 WSL 路径。
 - 不在非空项目根目录直接运行可能覆盖文档的脚手架；优先逐文件建立 Vite 配置。
 - 版本首次安装时选择彼此兼容的稳定版本并提交 npm 锁文件，不凭空声称某版本是最新。

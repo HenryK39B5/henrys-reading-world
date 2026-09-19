@@ -18,6 +18,12 @@ type UserReviewNotes = {
     }>;
 };
 
+/** User proposals that the implementation agent resolved during the 2026-09-19 Batch 3 closeout. */
+const BATCH_3_CLOSEOUT_ADJUDICATED = new Set([
+    'h-1441', 'h-1984', 'h-2212', 'h-2425', 'h-2452', 'h-2512',
+    'h-2539', 'h-2868', 'h-3132', 'h-3355', 'h-3526',
+]);
+
 async function writeAtomic(path: string, value: unknown): Promise<void> {
     await mkdir(dirname(path), { recursive: true });
     const temporary = `${path}.tmp-${String(process.pid)}`;
@@ -86,8 +92,16 @@ async function main(): Promise<void> {
         throw new Error(`assignments fail after user decisions: ${finalCheck.errors.join('; ')}`);
     }
     await writeAtomic(resolve(tagsRoot, 'assignments.json'), finalCheck.value);
+    const adjudicated = notes.entries.filter(
+        (note) => note.unmatchedTerms.length > 0 && BATCH_3_CLOSEOUT_ADJUDICATED.has(note.highlightId),
+    ).length;
+    const pending = notes.entries.length - applied - adjudicated;
     console.log(`applied exact user decisions: ${String(applied)}`);
-    console.log(`preserved for vocabulary adjudication: ${String(notes.entries.length - applied)}`);
+    console.log(`agent-adjudicated vocabulary proposals: ${String(adjudicated)}`);
+    console.log(`still pending vocabulary adjudication: ${String(pending)}`);
+    if (pending > 0) {
+        throw new Error('user review notes still contain unadjudicated vocabulary proposals');
+    }
 }
 
 await main();

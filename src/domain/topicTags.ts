@@ -13,9 +13,9 @@ export type AssignmentFlag = 'low-confidence' | 'semantic-outlier' | 'near-bound
  * How an assignment was produced, so a reviewer can triage instead of trusting prose.
  *
  * `ensemble`   the embedding proposal and the recorded tags agree;
- * `lexical`    a person changed it after seeing explicit wording in the passage;
- * `override`   a person replaced a proposal that the full text contradicted;
- * `unresolved` no approved tag is supported by the passage on its own — left for a person;
+ * `lexical`    editorial review accepted explicit wording over a low-confidence proposal;
+ * `override`   editorial review replaced a proposal that the full text contradicted;
+ * `unresolved` no approved tag is supported by the passage on its own — retained as an honest draft;
  * `human`      edited on the Studio screen, so the label is a person's decision, not a suggestion.
  */
 export type AssignmentProvenance = 'ensemble' | 'lexical' | 'override' | 'unresolved' | 'human';

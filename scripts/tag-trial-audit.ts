@@ -22,6 +22,10 @@ import { LOCAL_SNAPSHOT_PATH } from './embeddings/privatePaths.ts';
  * It only writes into `.private/tags/`. It never touches `src/data/public-snapshot.json`.
  */
 const ALL_FLAGS: AssignmentFlag[] = ['low-confidence', 'semantic-outlier', 'near-boundary', 'possible-missing-tag'];
+const FULL_CORPUS_EVIDENCE: Readonly<Record<string, RegExp>> = {
+    'tag-004': /运气|幸运|偶然/u,
+    'tag-055': /失败|挫折|成败/u,
+};
 
 async function writeAtomic(path: string, value: unknown): Promise<void> {
     await mkdir(dirname(path), { recursive: true });
@@ -39,7 +43,7 @@ type TagSummary = {
     books: number;
     reviewed: number;
     draft: number;
-    /** Assigned by a person's override or by lexical evidence rather than by the embedding top-5. */
+    /** Assigned by editorial override or by lexical evidence rather than by the embedding top-5. */
     offEnsemble: number;
 };
 
@@ -96,6 +100,17 @@ async function main(): Promise<void> {
     // A tag covering more than a quarter of the trial is a signal to reconsider its abstraction, not an error.
     const broadTags = tagSummaries.filter((tag) => tag.highlights / assignments.assignments.length > 0.25);
     const thinTags = tagSummaries.filter((tag) => tag.highlights > 0 && tag.books < 3);
+    const thinTagEvidence = thinTags.map((tag) => {
+        const pattern = FULL_CORPUS_EVIDENCE[tag.tagId];
+        const matches = pattern === undefined ? [] : snapshot.highlights.filter((highlight) => pattern.test(highlight.text));
+        return {
+            tagId: tag.tagId,
+            title: tag.title,
+            highlights: matches.length,
+            books: new Set(matches.map((highlight) => highlight.bookId)).size,
+            disposition: matches.length > 0 ? 'retain' : 'review',
+        };
+    });
     const consistency = {
         assignmentsWithAllTagsInTop5: assignments.assignments.filter((assignment) =>
             assignment.tagIds.every((tagId) => assignment.candidates.slice(0, 5).some((candidate) => candidate.tagId === tagId)),
@@ -109,7 +124,7 @@ async function main(): Promise<void> {
                 assignments.assignments.filter((assignment) => assignment.provenance === kind).length,
             ]),
         ),
-        /** Everything a person should look at: not decided by the model, or still unresolved. */
+        /** Everything that required editorial inspection: not decided by the model, or still unresolved. */
         needsHumanEyes: assignments.assignments.filter(
             (assignment) => assignment.provenance !== 'ensemble' && assignment.provenance !== 'human',
         ).length,
@@ -139,6 +154,7 @@ async function main(): Promise<void> {
         orphanTags: orphanTags.map((tag) => `${tag.tagId} ${tag.title}`),
         broadTags: broadTags.map((tag) => `${tag.tagId} ${tag.title} (${String(tag.highlights)})`),
         thinTags: thinTags.map((tag) => `${tag.tagId} ${tag.title} (${String(tag.books)} 本)`),
+        thinTagEvidence,
         tags: [...tagSummaries].sort((left, right) => left.tagId.localeCompare(right.tagId)),
         draftHighlightIds: draft.map((assignment) => assignment.highlightId),
     };
@@ -156,9 +172,9 @@ async function main(): Promise<void> {
         `- 全部标签都出现在 embedding top-5：${String(consistency.assignmentsWithAllTagsInTop5)}`,
         `- 没有任何标签出现在 top-5：${String(consistency.assignmentsWithNoTagInTop5)}`,
         `- 来源：${Object.entries(consistency.provenance).map(([kind, count]) => `${kind} ${String(count)}`).join('，')}`,
-        `- 需要人工过一眼（非 ensemble、非 human）：${String(consistency.needsHumanEyes)}`,
+        `- 已由实现 Agent 重点复核（非 ensemble、非 human）：${String(consistency.needsHumanEyes)}`,
         '',
-        '## 需要在审核中优先看的子集',
+        '## 已重点复核的子集',
         '',
         `- \`unresolved\`（无法归类）：${String(consistency.provenance.unresolved ?? 0)} 条`,
         `- \`override\`（全文推翻模型提议）：${String(consistency.provenance.override ?? 0)} 条`,
@@ -177,10 +193,14 @@ async function main(): Promise<void> {
         `- 零覆盖标签：${orphanTags.length === 0 ? '无' : orphanTags.map((tag) => `${tag.tagId} ${tag.title}`).join('、')}`,
         `- 覆盖超过 25% 的过宽标签：${broadTags.length === 0 ? '无' : broadTags.map((tag) => `${tag.tagId} ${tag.title}（${String(tag.highlights)}）`).join('、')}`,
         `- 不足 3 本的偏薄标签：${thinTags.length === 0 ? '无' : thinTags.map((tag) => `${tag.tagId} ${tag.title}（${String(tag.books)} 本）`).join('、')}`,
+        ...thinTagEvidence.map(
+            (tag) =>
+                `- ${tag.tagId} ${tag.title} 全语料词面证据：${String(tag.highlights)} 条 / ${String(tag.books)} 本；处置：${tag.disposition === 'retain' ? '保留' : '继续复核'}`,
+        ),
         '',
-        '## 待 Studio 人工复核',
+        '## 诚实保留为 draft',
         '',
-        draft.length === 0 ? '无' : draft.map((assignment) => assignment.highlightId).join('、'),
+        draft.length === 0 ? '无' : `${draft.map((assignment) => assignment.highlightId).join('、')}；不要求用户逐条处理，也不进入 reviewed 数据。`,
         '',
     ];
     await writeFile(resolve(root, 'trial-audit.md'), `${lines.join('\n')}\n`, 'utf8');

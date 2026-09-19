@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-- 阶段：v1 Slice 0–4、V2-A～V2-E4D、Release-A、V3 Batch 0–3 均已完成；**53 个稳定 Topic Tag、300 条私有试标（当前 271 reviewed / 29 draft）与只在本机运行的 Local Tag Studio 已建立**。用户不再承担逐条审核；实现 Agent 收口 11 个词表缺口候选后进入 Batch 4。
+- 阶段：v1 Slice 0–4、V2-A～V2-E4D、Release-A、V3 Batch 0–3 均已完成；**56 个稳定 Topic Tag、300 条私有试标（294 reviewed / 6 draft）与只在本机运行的 Local Tag Studio 已建立**。用户的 14 条意见已全部处置，词表待决为 0；下一阶段是 Batch 4。
 - 发布审核：用户已完成两轮审核，私有清单当前为 **108 本公开 / 22 本排除 / 6 条单独排除**，`reviewComplete=true`。这些决定继续有效，但 Release-B 暂停到 V3 Gate 之后；未生成 public snapshot、未创建 GitHub repo、未 push。
 - 产品方向：`docs/19-PRODUCT-DIRECTION-V3.md`；标签 / 小径 / 地图规格：`docs/20-TAGS-PATHS-MAP-SPEC.md`；视觉：`docs/21-V3-VISUAL-DIRECTION.md`；施工：`docs/22-V3-IMPLEMENTATION-PLAN.md`；embedding 实际评测：`docs/23-EMBEDDING-EVALUATION.md`；Batch 2 标签发现：`docs/24-BATCH-2-TAG-DISCOVERY.md`；Batch 3 试标与 Studio：`docs/25-BATCH-3-TAG-STUDIO.md`。
 - 硬约束：所有开发只使用 Henry 本人的真实微信读书划线，不使用 fake / demo 数据；Book Theme 属于书籍，V3 Topic Tag 属于划线，但不做人格标签、质量评分或 AI 观点总结。
@@ -70,7 +70,7 @@ npm run tags:audit           # 词表、人工种子与用户 Gate 审计
 V3 标签试标与本机 Studio（产品构建里不存在这些接口）：
 
 ```powershell
-npm run tags:promote         # 53 个候选标签 → 稳定 tag-001…tag-053
+npm run tags:promote         # 56 个候选标签 → 稳定 tag-001…tag-056
 npm run tags:trial:generate  # 300 条试标候选（embedding 集成打分）
 npm run tags:trial:review    # 逐条全文复核：接受 / 依词面证据修正 / 保留 draft
 npm run tags:trial:audit     # 覆盖、多标签比例、一致性、偏薄标签与待复核清单
@@ -185,7 +185,7 @@ npm run test:publication       # 审核器的浏览器验收（用临时目录�
 | [22 — V3 实施计划](docs/22-V3-IMPLEMENTATION-PLAN.md) | Batch 0–8、用户 Gate、测试与发布恢复顺序 |
 | [23 — Embedding 评测](docs/23-EMBEDDING-EVALUATION.md) | 私有 provider 管线、300 条真实评测集、SiliconFlow 历史对照与本机 q8 + CLS 默认 |
 | [24 — Batch 2 标签发现](docs/24-BATCH-2-TAG-DISCOVERY.md) | 全量 embedding、按书公平样本、私有候选词表、人工种子与用户 Gate |
-| [25 — Batch 3 试标与 Studio](docs/25-BATCH-3-TAG-STUDIO.md) | 53 个稳定标签、私有 assignment 契约、300 条试标、审计与 Local Tag Studio |
+| [25 — Batch 3 试标与 Studio](docs/25-BATCH-3-TAG-STUDIO.md) | 56 个稳定标签、私有 assignment 契约、300 条试标、收口审计与 Local Tag Studio |
 
 ## 真实数据现状
 

@@ -47,7 +47,7 @@
 | V3 Batch 0 顶层设计 | 已完成 | 新增 `docs/19–22`，重置权威顺序并完成产品、标签 / 地图、视觉与施工顶层设计；Release-B 暂停，未改代码 / schema / 快照 |
 | V3 Batch 1 embedding 评测 | 已完成并迁移到本机 | SiliconFlow 三模型结果保留为历史对照；当前默认 `Xenova/bge-large-zh-v1.5@a48549b-q8-cls`，同集综合分 0.7810，4,663 条本机向量已完成，后续不再发送新的划线文本 |
 | V3 Batch 2 标签发现 | 已完成并获用户批准 | 全量 4,663 条 embedding、300 条按书公平样本、53 个私有候选标签、35 组边界、159 条人工种子；用户已批准完整词表进入 Batch 3 |
-| V3 Batch 3 稳定词表与试标 | Agent 收口中 | 用户拒绝逐条审核负担；14 条填写已导入，3 条直接应用、11 条由 Agent 判定词表缺口；当前 271 reviewed / 29 draft，用户不再被审核队列阻塞 |
+| V3 Batch 3 稳定词表与试标 | 已收口 | 56 个稳定标签；14 条用户意见全部处置（3 条直接应用、11 条 Agent 判定、待决 0）；300 条试标 294 reviewed / 6 draft；0 孤儿、0 过宽，唯一偏薄「运气」有全语料 64 条 / 23 本证据 |
 | 真实访客 Gate | 未进行 | 用户本人体验反馈非常积极（V2-E4D 就是其反馈驱动的收尾），但尚无首次访客结果，不冒充产品 Gate 通过 |
 
 原始返回、更新包、候选池、快照与截图全部留在 `.private/`，已被 `.gitignore` 排除，未进入前端包。
@@ -2458,6 +2458,74 @@ V2-E2（固定 ID 的复制、dialog 与分享预览），不在本阶段开始�
 - 当前视觉：taste 通过，但单页平面与色彩归属不足，不作为最终视觉。
 - 房间、颜色、动效方向：用户确认，可进入分片施工。
 - 该轮只更新规划与交接，未修改产品代码，也未启动 V2-B；按新切片顺序，V2-B 随后作为独立一片实施（见上方 V2-B 执行记录）。
+
+## V3 Batch 3 收口（2026-09-19）
+
+```text
+日期 / 执行者：2026-09-19 / 当前实现 Agent
+范围：Batch 3 最终词表判定、draft / override / lexical 复核、新增标签污染检查与回归
+状态：verified（内容与工程）；不包含 schema 3、小径 UI 或地图
+代码基线：eaf93d6
+```
+
+### 完成范围
+
+1. 对用户提出的 11 个词表外概念完成全语料与边界审计：新增稳定标签 `tag-054 债务`、`tag-055 失败`；另由缺口审计补入 `tag-056 希望`。其余建议并入现有标签边界，`准备`对应句诚实保留 draft。
+2. 逐条处理原 29 条 unresolved，并复核 override / lexical；最终 294 reviewed / 6 draft。6 条 draft 不进入后续 reviewed 数据，也不要求用户继续处理。
+3. 对三个新增标签的全部试标命中做专项污染复核，移除债务→解雇/时间浪费/贫困、希望→礼貌请求/统计期望/一般文学段落等系统性误标。
+4. 偏薄标签处置完成：`运气`试标仅 1 本，但全语料词面证据 64 条 / 23 本，因此保留；不为凑覆盖制造 assignment。
+5. `.private/tags/review-queue.md` source hash 仍为 `203f381a…fd0c00`，未被生成器覆盖；`tags:review-apply` 报告 3 条直接应用、11 条 Agent 判定、0 条待决。
+
+### 最终私有结果
+
+```text
+稳定词表                 56 标签 / 6 家族
+试标                     300
+reviewed / draft         294 / 6
+1 / 2 / 3 标签           113 / 114 / 73
+多标签                   62.3%
+provenance               ensemble 152 / override 128 / lexical 11 / unresolved 6 / human 3
+标签覆盖                 56 / 56
+孤儿 / 过宽              0 / 0
+试标偏薄                 运气 1 本（全语料 64 条 / 23 本，保留）
+词表待决                 0
+```
+
+### 数据与边界
+
+- 全部 embedding 与重算继续使用本机 `Xenova/bge-large-zh-v1.5@a48549b-q8-cls`；没有远程 embedding 请求。
+- private 词表、种子、assignments、理由与审计继续只在 `.private/tags/`；public snapshot 仍为空 schema 2，publication policy 未修改。
+- 未开始 schema 3、主题小径、地图、public export、public covers、repo、push 或部署。
+
+### 实际命令与结果
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run tags:promote` / `tags:seeds` / `tags:trial:generate` | 56 标签 / 448 候选种子 / 41 边界；300 条整批重算；仅本机模型 |
+| `npm run tags:trial:review` / `tags:review-apply` / `tags:trial:audit` | 294 reviewed / 6 draft；3 条直接用户决定、11 条 Agent 判定、待决 0；56 / 56 覆盖 |
+| `npm run tags:review-queue` | 生成 158 条 Agent 诊断报告；未覆盖用户手写文件 |
+| `npm run check:local` | typecheck、lint、269 单测 / 25 文件、schema 2 local 校验通过；唯一警告仍为无原始换行 |
+| `npm run verify:ids` / `npm run smoke:local` | 20 本 / 46 条种子稳定；6 / 6 真实数据 smoke 通过 |
+| `npm run test:e2e` | 106 / 106 local Chromium 通过 |
+| `npm run test:tags` | 首轮暴露测试按全局 editorialOrder 映射 checkbox 的陈旧假设；改为按可访问标签名定位后 10 / 10 通过 |
+| `npm run test:publication` / `npm run test:public` | 9 / 9；1 / 1 通过 |
+| `npm run build` / `npm run isolation:public` | public build 成功；隔离 clean；0 本 / 0 条 |
+| `vite build --mode local-private` / `tag-studio-private` | 均按预期退出 1，保护错误文本保持不变 |
+| `git diff --check` / `.private` tracked | 通过 / 0 |
+
+### 浏览器证据
+
+- 本阶段没有消费者 UI 或视觉变更，因此不新增产品截图，也不把旧截图冒充 V3 视觉验收。
+- Studio 数据契约和 56 标签布局已由 10 个 Chromium E2E 验证；修复的是测试定位方式，不是放宽 1–3 标签约束。
+
+### 未验证项
+
+- 6 条 draft 是明确保留的内容空缺，不伪装为通过；4,663 条全量标注仍属于 Batch 6。
+- 真机移动端、Safari 与首次访客继续未验证；Studio 不做移动端验收。
+
+### 下一步
+
+提交本阶段后，进入 Batch 4 schema 3、主题小径与 V3 视觉基础；正式发布 Gate 不变。
 
 ## 公开发布前待处理事项（发布阻断项，不阻断本机开发）
 

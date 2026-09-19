@@ -25,14 +25,19 @@ async function main(): Promise<void> {
             familyId?: string;
         }>;
     };
-    if (candidate.schemaVersion !== 1 || candidate.tags.length !== 53 || candidate.families.length !== 6) {
-        throw new Error('approved Batch 2 candidate vocabulary is missing or has changed');
+    if (
+        candidate.schemaVersion !== 1 ||
+        candidate.tags.length < 53 ||
+        candidate.tags.length > 60 ||
+        candidate.families.length !== 6
+    ) {
+        throw new Error('approved Batch 2 vocabulary plus reviewed Batch 3 additions is missing or has changed');
     }
     const familyIds = new Map(candidate.families.map((family, index) => [family.id, `family-${String(index + 1).padStart(2, '0')}`]));
     const tagIds = new Map(candidate.tags.map((tag, index) => [tag.id, `tag-${String(index + 1).padStart(3, '0')}`]));
     const vocabulary: TopicTagVocabulary = {
         schemaVersion: 1,
-        approvedAt: '2026-09-18',
+        approvedAt: '2026-09-19',
         families: candidate.families.map((family, index) => ({
             id: familyIds.get(family.id) ?? '',
             title: family.title,
@@ -48,7 +53,10 @@ async function main(): Promise<void> {
             ...(tag.familyId === undefined ? {} : { familyId: familyIds.get(tag.familyId) ?? '' }),
             editorialOrder: index + 1,
             status: 'reviewed',
-            note: `Batch 2 candidate ${tag.id}; user approved the complete vocabulary for Batch 3 trial on 2026-09-18.`,
+            note:
+                Number(tag.id.slice(3)) <= 53
+                    ? `Batch 2 candidate ${tag.id}; user approved the complete vocabulary for Batch 3 trial on 2026-09-18.`
+                    : `Batch 3 closeout addition ${tag.id}; retained after full-corpus coverage and boundary review on 2026-09-19.`,
         })),
     };
     const checked = validateTopicTagVocabulary(vocabulary);
@@ -65,7 +73,7 @@ async function main(): Promise<void> {
         tags: normalized.tags.length,
         families: normalized.families.length,
         source: 'candidate-vocabulary.json',
-        userGate: 'approved-complete-vocabulary-for-batch-3-trial',
+        userGate: 'batch-2-approved-plus-batch-3-agent-closeout',
     });
     await writeAtomic(resolve(root, 'id-migration.json'), {
         schemaVersion: 1,

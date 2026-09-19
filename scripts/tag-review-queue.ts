@@ -11,25 +11,18 @@ import {
 import { LOCAL_SNAPSHOT_PATH } from './embeddings/privatePaths.ts';
 
 /**
- * The reading list for the Batch 3 Gate (docs/25 §11).
+ * The implementation-agent diagnostic report for the Batch 3 Gate (docs/25 §11).
  *
- * Reviewing 300 passages is not the job; most of them agree with the embedding proposal and survived a
- * full-text read. This writes the subset that a person actually has to decide, in the order that costs the
- * least attention, with everything needed to judge: the whole passage, what the ensemble proposed and how
- * confident it was, what the full-text pass concluded, and a checkbox line to answer on.
+ * Henry's handwritten review-queue.md is never overwritten. This generated report keeps the high-risk
+ * subsets inspectable after closeout, but it is not a user task list: unresolved passages remain honest
+ * drafts, while override and lexical passages record the editorial decision already made.
  *
- * Tiers:
- *   A  `unresolved`  32  no approved tag is supported by the passage alone — needs a decision
- *   B  `override`    50  the proposal was replaced — needs a sanity check
- *   C  `lexical`     18  a low-confidence proposal was replaced by explicit wording — needs a check
- *   D  thin tags      5  every passage of the tags that only reach one or two books
- *   E  spot check    15  a fixed every-13th sample of the untouched proposals, as a control group
- *
- * Tier E exists so that "the other 200 are fine" is a claim that was actually tested, not assumed.
+ * Tier E remains a deterministic control sample so that accepting untouched ensemble proposals is tested,
+ * not merely assumed.
  */
 const PROVENANCE_ORDER: AssignmentProvenance[] = ['unresolved', 'override', 'lexical'];
 const SPOT_CHECK_STRIDE = 13;
-const THIN_TAG_IDS = ['tag-004', 'tag-030', 'tag-034'];
+const THIN_TAG_IDS = ['tag-004'];
 
 async function writeAtomic(path: string, value: string): Promise<void> {
     await mkdir(dirname(path), { recursive: true });
@@ -96,33 +89,25 @@ async function main(): Promise<void> {
     const queueTotal = unresolved.length + override.length + lexical.length + thinTagEntries.length + spotCheck.length;
 
     const lines: string[] = [
-        '# Batch 3 审核队列',
+        '# Batch 3 Agent 复核报告',
         '',
         `生成时间：${new Date().toISOString()}`,
         `词表哈希：${assignmentsCheck.value.vocabularyHash.slice(0, 16)}…`,
         '',
-        `300 条试标里，真正需要你决定的是 **${String(queueTotal)} 条**。剩下 ${String(assignments.length - queueTotal)} 条要么与模型提议一致、要么已被抽查覆盖，不必逐条看。`,
+        `高风险与控制样本共 **${String(queueTotal)} 条**；本报告供实现 Agent 留档，不要求用户逐条处理。`,
         '',
-        '## 怎么用这份文件',
+        '## 阅读方式',
         '',
-        '1. 按 A → E 顺序读，前面的最重要。',
-        '2. 每条都给了全部原文、模型原提议和分数、以及当时的判断理由。',
-        '3. 直接在这份文件里勾选，或把结论发回对话（例如「h-1350 改成 不确定性」）。',
-        '4. 想自己改标签，用 `npm run tags:studio`（`http://127.0.0.1:5175/tag-studio.html`），那里能按「来源」筛选出同一批条目。',
-        '',
-        '## 什么算审核通过',
-        '',
-        '- Tier A 每条都有一个明确结论：保留、改写，或确认「无法归类」；',
-        '- Tier B / C 你不同意的比例记录下来，若超过约一成，说明这类判断需要重做；',
-        '- Tier D 三个偏薄标签各给出一个处理方向；',
-        '- Tier E 抽查若发现明显错误，则不应把未抽查的条目当作通过。',
+        '1. Tier A 是诚实保留的 draft；Tier B / C 是已完成的编辑判断；Tier D 记录偏薄标签处置；Tier E 是确定性控制样本。',
+        '2. 每条保留完整原文、模型原提议、分数与最终理由，便于后续回归。',
+        '3. 如产品边界以后改变，可用 `npm run tags:studio` 重新打开；当前 Batch 3 不再等待用户勾选。',
         '',
         '---',
         '',
-        `## Tier A — 无法归类（${String(unresolved.length)} 条，必须决定）`,
+        `## Tier A — 无法归类（${String(unresolved.length)} 条，保留 draft）`,
         '',
         '这些条目原文单独读不出任何已批准标签的语义。我的处理是**保持原提议、标记 draft，不猜**。',
-        '你可以：确认无法归类（那就作为真实的低覆盖保留），或指定一个真正合适的标签，或指出这里缺一个新概念。',
+        '收口结论：原文无法在不猜测的前提下支撑标签，保持 draft，不进入 reviewed 数据。',
         '',
     ];
     for (const [index, assignment] of unresolved.entries()) {
@@ -134,7 +119,7 @@ async function main(): Promise<void> {
             `- 当前保留：${names(vocabulary, assignment.tagIds)}（draft）`,
             `- 模型提议：${assignment.candidates.slice(0, 3).map((candidate) => `${labelOf(vocabulary, candidate.tagId)} ${candidate.score.toFixed(2)}`).join(' / ')}`,
             `- 我的理由：${assignment.rationale}`,
-            '- 你的决定：☐ 确认无法归类　☐ 改成 ____________　☐ 缺少新概念 ____________',
+            '- 收口状态：保留 draft；未来仅在词表或产品语境变化时重开。',
             '',
             `> ${oneLine(highlight?.text ?? '')}`,
             '',
@@ -146,7 +131,7 @@ async function main(): Promise<void> {
         '',
         `## Tier B — 全文推翻模型提议（${String(override.length)} 条）`,
         '',
-        '模型选的标签在完整原文里站不住，我换成了别的。**这是最需要你检查的一批**：如果我的判断有偏差，错在这里最集中。',
+        '模型选的标签在完整原文里站不住，已由实现 Agent 改写；这是后续回归最应优先查看的一批。',
         '',
     );
     for (const [index, assignment] of override.entries()) {
@@ -158,7 +143,7 @@ async function main(): Promise<void> {
             `- 我改成：**${names(vocabulary, assignment.tagIds)}**`,
             `- 模型原提议：${assignment.candidates.slice(0, 3).map((candidate) => `${labelOf(vocabulary, candidate.tagId)} ${candidate.score.toFixed(2)}`).join(' / ')}`,
             `- 我的理由：${assignment.rationale}`,
-            '- 你的决定：☐ 同意　☐ 应回到模型提议　☐ 都不对，应为 ____________',
+            '- 收口状态：已复核并写入 override。',
             '',
             `> ${oneLine(highlight?.text ?? '')}`,
             '',
@@ -182,7 +167,7 @@ async function main(): Promise<void> {
             `- 我给：**${names(vocabulary, assignment.tagIds)}**`,
             `- 模型原提议：${assignment.candidates.slice(0, 3).map((candidate) => `${labelOf(vocabulary, candidate.tagId)} ${candidate.score.toFixed(2)}`).join(' / ')}`,
             `- 我的理由：${assignment.rationale}`,
-            '- 你的决定：☐ 同意　☐ 属于同词不同义，应删除　☐ 应为 ____________',
+            '- 收口状态：已复核词面是否等于语义命中。',
             '',
             `> ${oneLine(highlight?.text ?? '')}`,
             '',
@@ -194,7 +179,7 @@ async function main(): Promise<void> {
         '',
         `## Tier D — 偏薄标签的全部条目（${String(thinTagEntries.length)} 条）`,
         '',
-        '这三个标签在 300 条里只覆盖 1–2 本书，走不出一条路。请决定每个标签的方向：补充种子重跑、并入相邻标签、或接受低覆盖。',
+        '试标偏薄不等于全语料偏薄；收口时结合全语料跨书证据决定保留或合并。',
         '',
         '| 标签 | 划线数 | 书籍数 |',
         '| --- | ---: | ---: |',
@@ -212,7 +197,7 @@ async function main(): Promise<void> {
             `### D${String(index + 1)} · ${assignment.highlightId} · 《${book?.title ?? '未知'}》`,
             '',
             `- 标签：${names(vocabulary, assignment.tagIds)}（${assignment.provenance}）`,
-            '- 你的决定：☐ 合适　☐ 定义太窄，应扩为 ____________　☐ 并入 ____________',
+            '- 收口状态：运气以全语料 64 条 / 23 本证据保留。',
             '',
             `> ${oneLine(highlight?.text ?? '')}`,
             '',
@@ -235,7 +220,7 @@ async function main(): Promise<void> {
             `### E${String(index + 1)} · ${assignment.highlightId} · 《${book?.title ?? '未知'}》`,
             '',
             `- 标签：${names(vocabulary, assignment.tagIds)}（confidence ${assignment.confidence}，与模型一致）`,
-            '- 你的决定：☐ 合理　☐ 有问题：____________',
+            '- 控制组状态：供后续回归抽查，不是用户待办。',
             '',
             `> ${oneLine(highlight?.text ?? '')}`,
             '',
@@ -249,8 +234,8 @@ async function main(): Promise<void> {
         '',
         `- 全部试标：${String(assignments.length)}；其中 ${String(assignments.filter((a) => a.status === 'reviewed').length)} reviewed / ${String(assignments.filter((a) => a.status === 'draft').length)} draft。`,
         `- 来源分布：${PROVENANCE_ORDER.map((kind) => `${kind} ${String(assignments.filter((a) => a.provenance === kind).length)}`).join('，')}，ensemble ${String(ensemble.length)}。`,
-        '- `reviewed` 只表示「已过一遍全文」，**不表示 Henry 认可**。',
-        '- 每条你改动过的条目，`provenance` 会自动变成 `human`，与模型提议永久区分开。',
+        '- `reviewed` 表示实现 Agent 已完成全文复核，**不表示 Henry 逐条背书**。',
+        '- 每条经 Studio 人工改动的条目，`provenance` 会自动变成 `human`，与模型提议永久区分开。',
         '',
     );
 
