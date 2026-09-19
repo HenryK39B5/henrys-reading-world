@@ -13,7 +13,7 @@ function readySnapshot(): Snapshot {
         visibility: 'local-only',
         themes: [{ id: 't-001', title: 'Theme One' }],
         books: [{ id: 'b-001', title: 'Book & <One>', author: 'Author One', themeIds: ['t-001'] }],
-        highlights: [{ id: 'h-001', bookId: 'b-001', text: 'first passage', year: 2023 }],
+        highlights: [{ id: 'h-001', bookId: 'b-001', text: 'first passage', year: 2023, tagIds: [] }],
     };
 }
 

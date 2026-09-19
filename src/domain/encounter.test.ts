@@ -29,7 +29,7 @@ function makeBook(id: string, themeIds: string[] = ['t-001']): Book {
 }
 
 function passage(id: string, bookId: string, text: string = READABLE): Highlight {
-    return { id, bookId, text, year: 2025 };
+    return { id, bookId, text, year: 2025, tagIds: [] };
 }
 
 const BOOKS: Book[] = [makeBook('b-001', ['t-001']), makeBook('b-002', ['t-002']), makeBook('b-003', ['t-001'])];

@@ -1,12 +1,14 @@
 import { countNonWhitespace, hasOriginalLineBreak, lengthBand } from './length.ts';
 import {
     MAX_THEME_IDS_PER_BOOK,
+    MAX_TOPIC_TAGS_PER_HIGHLIGHT,
     SNAPSHOT_SCHEMA_VERSION,
     type Book,
     type Highlight,
     type Owner,
     type Snapshot,
     type Theme,
+    type TopicTag,
     type Visibility,
 } from './types.ts';
 
@@ -25,6 +27,7 @@ const ID_PATTERNS = {
     book: /^b-\d{3,}$/u,
     theme: /^t-\d{3,}$/u,
     highlight: /^h-\d{3,}$/u,
+    tag: /^tag-\d{3,}$/u,
 };
 
 const COVER_PUBLIC_PATTERN = /^covers\/[a-z0-9][a-z0-9._-]*\.(?:jpg|jpeg|png|webp)$/u;
@@ -117,6 +120,30 @@ function validateTheme(ctx: Context, index: number, value: unknown): Theme | nul
     return description === undefined ? { id, title } : { id, title, description };
 }
 
+function validateTopicTag(ctx: Context, index: number, value: unknown): TopicTag | null {
+    const where = `tags[${index}]`;
+    if (!isRecord(value)) {
+        ctx.errors.push(`${where}: expected an object`);
+        return null;
+    }
+    if (!checkKeys(ctx, where, value, ['id', 'title', 'description'])) {
+        return null;
+    }
+    const id = readNonEmptyString(ctx, `${where}.id`, value['id']);
+    const title = readNonEmptyString(ctx, `${where}.title`, value['title']);
+    const description = readOptionalNonEmptyString(ctx, `${where}.description`, value['description']);
+    if (id !== null && !ID_PATTERNS.tag.test(id)) {
+        ctx.errors.push(`${where}.id: expected an id like tag-001`);
+    }
+    if (title !== null && ([...title].length < 2 || [...title].length > 4)) {
+        ctx.errors.push(`${where}.title: expected 2-4 characters`);
+    }
+    if (id === null || title === null) {
+        return null;
+    }
+    return description === undefined ? { id, title } : { id, title, description };
+}
+
 function validateBook(ctx: Context, index: number, value: unknown): Book | null {
     const where = `books[${index}]`;
     if (!isRecord(value)) {
@@ -181,13 +208,31 @@ function validateHighlight(ctx: Context, index: number, value: unknown): Highlig
         ctx.errors.push(`${where}: expected an object`);
         return null;
     }
-    if (!checkKeys(ctx, where, value, ['id', 'bookId', 'text', 'year'])) {
+    if (!checkKeys(ctx, where, value, ['id', 'bookId', 'text', 'year', 'tagIds'])) {
         return null;
     }
 
     const id = readNonEmptyString(ctx, `${where}.id`, value['id']);
     const bookId = readNonEmptyString(ctx, `${where}.bookId`, value['bookId']);
     const text = readNonEmptyString(ctx, `${where}.text`, value['text']);
+    const tagIds: string[] = [];
+    const tagIdsRaw = readArray(ctx, `${where}.tagIds`, value['tagIds']);
+    if (tagIdsRaw !== null) {
+        for (const entry of tagIdsRaw) {
+            if (typeof entry !== 'string' || entry.length === 0) {
+                ctx.errors.push(`${where}.tagIds: expected tag id strings`);
+                continue;
+            }
+            if (tagIds.includes(entry)) {
+                ctx.errors.push(`${where}.tagIds: duplicate reference ${entry}`);
+                continue;
+            }
+            tagIds.push(entry);
+        }
+        if (tagIds.length > MAX_TOPIC_TAGS_PER_HIGHLIGHT) {
+            ctx.errors.push(`${where}.tagIds: at most ${String(MAX_TOPIC_TAGS_PER_HIGHLIGHT)} tags`);
+        }
+    }
     if (id !== null && !ID_PATTERNS.highlight.test(id)) {
         ctx.errors.push(`${where}.id: expected an id like h-001`);
     }
@@ -205,7 +250,7 @@ function validateHighlight(ctx: Context, index: number, value: unknown): Highlig
     if (id === null || bookId === null || text === null) {
         return null;
     }
-    return { id, bookId, text, ...(year === undefined ? {} : { year }) };
+    return { id, bookId, text, ...(year === undefined ? {} : { year }), tagIds };
 }
 
 function pushDuplicateErrors(ctx: Context, label: string, ids: string[]): void {
@@ -224,7 +269,7 @@ function pushDuplicateErrors(ctx: Context, label: string, ids: string[]): void {
  * These warn; they never relax the contract above.
  */
 function checkContentCoverage(ctx: Context, snapshot: Snapshot): void {
-    const { highlights, books, themes } = snapshot;
+    const { highlights, books, themes, tags } = snapshot;
     if (highlights.length === 0 && books.length === 0) {
         // The public snapshot is intentionally empty until the release decision is made.
         return;
@@ -234,6 +279,8 @@ function checkContentCoverage(ctx: Context, snapshot: Snapshot): void {
     const booksPerTheme = new Map<string, Set<string>>();
     const highlightsPerTheme = new Map<string, number>();
     const booksById = new Map(books.map((book) => [book.id, book]));
+    const taggedHighlights = new Map<string, number>();
+    const taggedBooks = new Map<string, Set<string>>();
     const years = new Set<number>();
     const bands = new Set<string>();
     let lineBreakSample = false;
@@ -246,6 +293,12 @@ function checkContentCoverage(ctx: Context, snapshot: Snapshot): void {
         bands.add(lengthBand(highlight.text));
         if (hasOriginalLineBreak(highlight.text)) {
             lineBreakSample = true;
+        }
+        for (const tagId of highlight.tagIds) {
+            taggedHighlights.set(tagId, (taggedHighlights.get(tagId) ?? 0) + 1);
+            const booksForTag = taggedBooks.get(tagId) ?? new Set<string>();
+            booksForTag.add(highlight.bookId);
+            taggedBooks.set(tagId, booksForTag);
         }
         const book = booksById.get(highlight.bookId);
         for (const themeId of book?.themeIds ?? []) {
@@ -268,6 +321,22 @@ function checkContentCoverage(ctx: Context, snapshot: Snapshot): void {
             ctx.warnings.push(`content: theme ${theme.id} has no book on its shelf`);
         } else if (bookCount < 2) {
             ctx.warnings.push(`content: theme ${theme.id} connects ${String(bookCount)} book; 2 or more are expected`);
+        }
+    }
+
+    const untaggedHighlights = highlights.filter((highlight) => highlight.tagIds.length === 0).length;
+    if (untaggedHighlights > 0) {
+        ctx.warnings.push(`content: ${String(untaggedHighlights)} highlight(s) have no reviewed topic tag in this pilot`);
+    }
+    for (const tag of tags) {
+        const highlightCount = taggedHighlights.get(tag.id) ?? 0;
+        const bookCount = taggedBooks.get(tag.id)?.size ?? 0;
+        if (highlightCount === 0) {
+            ctx.warnings.push(`content: topic tag ${tag.id} has no reviewed highlight`);
+        } else if (bookCount < 3 || highlightCount < 5) {
+            ctx.warnings.push(
+                `content: topic tag ${tag.id} connects ${String(bookCount)} book(s) and ${String(highlightCount)} highlight(s); public paths should normally reach 3 books and 5 highlights`,
+            );
         }
     }
 
@@ -312,7 +381,7 @@ export function validateSnapshot(input: unknown, options: ValidateOptions = {}):
     if (!isRecord(input)) {
         return { ok: false, errors: ['snapshot: expected an object'], warnings: [] };
     }
-    if (!checkKeys(ctx, 'snapshot', input, ['schemaVersion', 'visibility', 'owner', 'themes', 'books', 'highlights'])) {
+    if (!checkKeys(ctx, 'snapshot', input, ['schemaVersion', 'visibility', 'owner', 'themes', 'tags', 'books', 'highlights'])) {
         return { ok: false, errors: ctx.errors, warnings: ctx.warnings };
     }
     if (input['schemaVersion'] !== SNAPSHOT_SCHEMA_VERSION) {
@@ -344,6 +413,26 @@ export function validateSnapshot(input: unknown, options: ValidateOptions = {}):
             'themes',
             themes.map((theme) => theme.id),
         );
+    }
+
+    const tagsRaw = readArray(ctx, 'tags', input['tags']);
+    const tags: TopicTag[] = [];
+    if (tagsRaw !== null) {
+        tagsRaw.forEach((entry, index) => {
+            const tag = validateTopicTag(ctx, index, entry);
+            if (tag !== null) {
+                tags.push(tag);
+            }
+        });
+        pushDuplicateErrors(
+            ctx,
+            'tags',
+            tags.map((tag) => tag.id),
+        );
+        const duplicateTitles = tags.map((tag) => tag.title).filter((title, index, all) => all.indexOf(title) !== index);
+        for (const title of new Set(duplicateTitles)) {
+            ctx.errors.push(`tags: duplicate title ${title}`);
+        }
     }
 
     const booksRaw = readArray(ctx, 'books', input['books']);
@@ -380,6 +469,8 @@ export function validateSnapshot(input: unknown, options: ValidateOptions = {}):
 
     const bookIds = new Set(books.map((book) => book.id));
     const themeIds = new Set(themes.map((theme) => theme.id));
+    const tagIds = new Set(tags.map((tag) => tag.id));
+    const tagOrder = new Map(tags.map((tag, index) => [tag.id, index]));
     for (const book of books) {
         for (const themeId of book.themeIds) {
             if (!themeIds.has(themeId)) {
@@ -390,6 +481,17 @@ export function validateSnapshot(input: unknown, options: ValidateOptions = {}):
     for (const highlight of highlights) {
         if (!bookIds.has(highlight.bookId)) {
             ctx.errors.push(`highlights: ${highlight.id} references unknown book ${highlight.bookId}`);
+        }
+        for (const tagId of highlight.tagIds) {
+            if (!tagIds.has(tagId)) {
+                ctx.errors.push(`highlights: ${highlight.id} references unknown topic tag ${tagId}`);
+            }
+        }
+        const sortedTagIds = [...highlight.tagIds].sort(
+            (left, right) => (tagOrder.get(left) ?? Number.MAX_SAFE_INTEGER) - (tagOrder.get(right) ?? Number.MAX_SAFE_INTEGER),
+        );
+        if (sortedTagIds.join('\0') !== highlight.tagIds.join('\0')) {
+            ctx.errors.push(`highlights: ${highlight.id} tagIds must follow snapshot tag order`);
         }
     }
 
@@ -402,6 +504,7 @@ export function validateSnapshot(input: unknown, options: ValidateOptions = {}):
         visibility: visibility as Visibility,
         owner,
         themes,
+        tags,
         books,
         highlights,
     };

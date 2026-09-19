@@ -17,13 +17,17 @@ function makeSnapshot(overrides: Partial<Snapshot> = {}): Snapshot {
             { id: 't-002', title: 'Theme Two' },
             { id: 't-003', title: 'Theme Three' },
         ],
+        tags: [
+            { id: 'tag-001', title: '风险', description: '可能损失与结果波动。' },
+            { id: 'tag-002', title: '选择', description: '在多个方向之间作出决定。' },
+        ],
         books: [
             { id: 'b-001', title: 'Book One', author: 'Author One', themeIds: ['t-001'] },
             { id: 'b-002', title: 'Book Two', author: 'Author Two', themeIds: ['t-001', 't-002'] },
         ],
         highlights: [
-            { id: 'h-001', bookId: 'b-001', text: 'short passage', year: 2021 },
-            { id: 'h-002', bookId: 'b-002', text: 'second passage', year: 2024 },
+            { id: 'h-001', bookId: 'b-001', text: 'short passage', year: 2021, tagIds: ['tag-001'] },
+            { id: 'h-002', bookId: 'b-002', text: 'second passage', year: 2024, tagIds: ['tag-001', 'tag-002'] },
         ],
         ...overrides,
     };
@@ -63,7 +67,7 @@ describe('validateSnapshot structure', () => {
         }
     });
 
-    it('rejects the v1 per-passage editorial fields that v2 removed', () => {
+    it('rejects superseded per-passage editorial fields while keeping V3 topic tags', () => {
         const snapshot = makeSnapshot();
         for (const field of ['topicIds', 'qualityScore', 'openingCandidate', 'surpriseCandidate', 'standaloneReadable', 'pinned']) {
             const raw = {
@@ -73,6 +77,64 @@ describe('validateSnapshot structure', () => {
             const result = validateSnapshot(raw, { currentYear: 2025 });
             expect(result.ok, `highlight field ${field} must be rejected`).toBe(false);
         }
+    });
+
+    it('keeps Topic Tags separate from Book Themes and rejects dangling, duplicated or unordered tag references', () => {
+        const snapshot = makeSnapshot();
+        const dangling = validateSnapshot({
+            ...snapshot,
+            highlights: [{ ...snapshot.highlights[0], tagIds: ['tag-404'] }],
+        }, { currentYear: 2025 });
+        expect(dangling.ok).toBe(false);
+        if (!dangling.ok) {
+            expect(dangling.errors.join(' ')).toContain('unknown topic tag tag-404');
+        }
+
+        const duplicated = validateSnapshot({
+            ...snapshot,
+            highlights: [{ ...snapshot.highlights[0], tagIds: ['tag-001', 'tag-001'] }],
+        }, { currentYear: 2025 });
+        expect(duplicated.ok).toBe(false);
+
+        const unordered = validateSnapshot({
+            ...snapshot,
+            highlights: [{ ...snapshot.highlights[0], tagIds: ['tag-002', 'tag-001'] }],
+        }, { currentYear: 2025 });
+        expect(unordered.ok).toBe(false);
+        if (!unordered.ok) {
+            expect(unordered.errors.join(' ')).toContain('snapshot tag order');
+        }
+    });
+
+    it('rejects private tag-production fields from the consumer snapshot', () => {
+        const snapshot = makeSnapshot();
+        const raw = {
+            ...snapshot,
+            tags: [{ ...snapshot.tags[0], confidence: 'high', rationale: 'private' }],
+        };
+        const result = validateSnapshot(raw, { currentYear: 2025 });
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+            expect(result.errors.join(' ')).toContain('confidence');
+            expect(result.errors.join(' ')).toContain('rationale');
+        }
+    });
+
+    it('allows an explicit empty tagIds array during the Batch 4 pilot, but never a missing one', () => {
+        const snapshot = makeSnapshot();
+        const pilot = validateSnapshot({
+            ...snapshot,
+            highlights: [{ ...snapshot.highlights[0], tagIds: [] }],
+        }, { currentYear: 2025 });
+        expect(pilot.ok).toBe(true);
+        if (pilot.ok) {
+            expect(pilot.warnings.join(' ')).toContain('no reviewed topic tag');
+        }
+
+        const withoutTags: Record<string, unknown> = { ...snapshot.highlights[0] };
+        delete withoutTags['tagIds'];
+        const missing = validateSnapshot({ ...snapshot, highlights: [withoutTags] }, { currentYear: 2025 });
+        expect(missing.ok).toBe(false);
     });
 
     it('rejects a book with more than one primary plus two secondary shelves', () => {
@@ -166,6 +228,7 @@ describe('validateSnapshot structure', () => {
             visibility: 'public',
             owner: { displayName: 'Owner', siteTitle: 'Reading World' },
             themes: [],
+            tags: [],
             books: [],
             highlights: [],
         };
@@ -198,8 +261,8 @@ describe('coverage warnings', () => {
                 { id: 'b-003', title: 'Book Three', author: 'Author Three', themeIds: ['t-001'] },
             ],
             highlights: [
-                { id: 'h-001', bookId: 'b-002', text: 'short passage', year: 2021 },
-                { id: 'h-002', bookId: 'b-003', text: 'second passage', year: 2024 },
+                { id: 'h-001', bookId: 'b-002', text: 'short passage', year: 2021, tagIds: [] },
+                { id: 'h-002', bookId: 'b-003', text: 'second passage', year: 2024, tagIds: [] },
             ],
         };
         const result = validateSnapshot(raw, { currentYear: 2025 });
@@ -244,11 +307,15 @@ describe('indexSnapshot', () => {
         expect(index.coverage.highlightCount).toBe(2);
         expect(index.coverage.bookCount).toBe(2);
         expect(index.coverage.themeCount).toBe(2);
+        expect(index.coverage.tagCount).toBe(2);
+        expect(index.coverage.taggedHighlightCount).toBe(2);
         expect(index.years).toEqual([2021, 2024]);
         expect(index.highlightsByBook.get('b-001')).toHaveLength(1);
         // t-001 is carried by both books, so both passages are on that shelf.
         expect(index.highlightsByTheme.get('t-001')).toHaveLength(2);
         expect(index.highlightsByTheme.get('t-003')).toBeUndefined();
+        expect(index.highlightsByTag.get('tag-001')).toHaveLength(2);
+        expect(index.highlightsByTag.get('tag-002')).toHaveLength(1);
     });
 
     it('reports an empty snapshot honestly', () => {

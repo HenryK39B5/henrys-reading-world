@@ -4,7 +4,7 @@ import type { CachedEmbedding } from '../scripts/embeddings/core.ts';
 import { selectTagDiscoverySample } from '../scripts/embeddings/tagDiscovery.ts';
 
 const snapshot: Snapshot = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     visibility: 'local-only',
     owner: { displayName: 'Henry', siteTitle: "Henry's Reading World" },
     themes: [
@@ -12,21 +12,22 @@ const snapshot: Snapshot = {
         { id: 't-002', title: '二' },
         { id: 't-003', title: '三' },
     ],
+    tags: [],
     books: [
         { id: 'b-001', title: '甲', author: '甲', themeIds: ['t-001'] },
         { id: 'b-002', title: '乙', author: '乙', themeIds: ['t-002'] },
         { id: 'b-003', title: '丙', author: '丙', themeIds: ['t-003'] },
     ],
     highlights: [
-        { id: 'h-001', bookId: 'b-001', text: '短句甲' },
-        { id: 'h-002', bookId: 'b-001', text: '一段长度明显不同的中等文本，用来验证书内语义边缘选择。' },
-        { id: 'h-003', bookId: 'b-001', text: '第三个方向' },
-        { id: 'h-004', bookId: 'b-002', text: '短句乙' },
-        { id: 'h-005', bookId: 'b-002', text: '另一个方向' },
-        { id: 'h-006', bookId: 'b-002', text: '第三方向乙' },
-        { id: 'h-007', bookId: 'b-003', text: '短句丙' },
-        { id: 'h-008', bookId: 'b-003', text: '另一个方向丙' },
-        { id: 'h-009', bookId: 'b-003', text: '第三方向丙' },
+        { id: 'h-001', bookId: 'b-001', text: '短句甲', tagIds: [] },
+        { id: 'h-002', bookId: 'b-001', text: '一段长度明显不同的中等文本，用来验证书内语义边缘选择。', tagIds: [] },
+        { id: 'h-003', bookId: 'b-001', text: '第三个方向', tagIds: [] },
+        { id: 'h-004', bookId: 'b-002', text: '短句乙', tagIds: [] },
+        { id: 'h-005', bookId: 'b-002', text: '另一个方向', tagIds: [] },
+        { id: 'h-006', bookId: 'b-002', text: '第三方向乙', tagIds: [] },
+        { id: 'h-007', bookId: 'b-003', text: '短句丙', tagIds: [] },
+        { id: 'h-008', bookId: 'b-003', text: '另一个方向丙', tagIds: [] },
+        { id: 'h-009', bookId: 'b-003', text: '第三方向丙', tagIds: [] },
     ],
 };
 

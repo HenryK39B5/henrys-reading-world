@@ -1,11 +1,12 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "visibility": "public",
   "owner": {
     "displayName": "Henry",
     "siteTitle": "Henry's Reading World"
   },
   "themes": [],
+  "tags": [],
   "books": [],
   "highlights": []
 }

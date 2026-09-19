@@ -1,8 +1,8 @@
 /**
- * Assemble the local-only development snapshot (schema v2) from the authorized real captures.
+ * Assemble the local-only development snapshot (schema v3) from the authorized real captures.
  *
- * v1 built a hand-picked 46-passage sample. v2 puts the whole real library on the page: every
- * structurally valid, de-duplicated candidate passage, with theme shelves owned by books.
+ * The whole real library remains available. Batch 4 adds public-safe TopicTag definitions and applies
+ * only reviewed trial assignments; unreviewed passages and honest drafts keep `tagIds: []`.
  *
  * Inputs (private):
  *   .private/curation/candidate-pool.json - every usable real passage with a stable candidate id
@@ -31,8 +31,10 @@ import {
     type Highlight,
     type Snapshot,
     type Theme,
+    type TopicTag,
 } from '../src/domain/types.ts';
 import { validateSnapshot } from '../src/domain/validate.ts';
+import { validateTopicTagAssignments, validateTopicTagVocabulary } from '../src/domain/topicTags.ts';
 import { parseBookMetadataOverrides, type BookMetadataOverrides } from './bookMetadataOverrides.ts';
 
 type Candidate = {
@@ -51,6 +53,8 @@ const ID_MAP_PATH = join(ROOT, '.private/curation/id-map-v2.json');
 const THEMES_PATH = join(ROOT, '.private/curation/book-themes.json');
 const METADATA_OVERRIDES_PATH = join(ROOT, '.private/curation/book-metadata-overrides.json');
 const COVERS_PATH = join(ROOT, '.private/curation/covers.json');
+const TAG_VOCABULARY_PATH = join(ROOT, '.private/tags/vocabulary.json');
+const TAG_ASSIGNMENTS_PATH = join(ROOT, '.private/tags/assignments.json');
 const COVERS_DIR = join(ROOT, '.private/covers');
 const SNAPSHOT_PATH = join(ROOT, '.private/local-snapshot.json');
 const MAP_PATH = join(ROOT, '.private/curation/snapshot-source-map.json');
@@ -266,6 +270,7 @@ async function main(): Promise<void> {
                 bookId,
                 text: candidate.text,
                 ...(candidate.year === null ? {} : { year: candidate.year }),
+                tagIds: [],
             });
             sourceMap.push({
                 highlightId,
@@ -284,15 +289,52 @@ async function main(): Promise<void> {
 
     highlights.sort((left, right) => highlightNumber(left.id) - highlightNumber(right.id));
 
-    const ownerAbout = '一个可以随便抽一句、按主题书架或按书闲逛的个人阅读空间。';
-    const snapshot: Snapshot = {
+    const vocabularyCheck = validateTopicTagVocabulary(
+        await requireJson(TAG_VOCABULARY_PATH, '先完成 Batch 3 稳定词表，再运行 npm run snapshot:local。'),
+    );
+    if (!vocabularyCheck.ok) {
+        throw new Error(`topic tag vocabulary does not validate: ${vocabularyCheck.errors.join('; ')}`);
+    }
+    const vocabulary = vocabularyCheck.value;
+    const tags: TopicTag[] = vocabulary.tags
+        .filter((tag) => tag.status === 'reviewed' || tag.status === 'publish')
+        .map((tag) => ({ id: tag.id, title: tag.title, description: tag.definition }));
+    const allowedTagIds = new Set(tags.map((tag) => tag.id));
+
+    const ownerAbout = '一个可以随便抽一句、按主题书架、主题小径或按书闲逛的个人阅读空间。';
+    const pilotSnapshot: Snapshot = {
         schemaVersion: SNAPSHOT_SCHEMA_VERSION,
         visibility: 'local-only',
         owner: { displayName: 'Henry', siteTitle: "Henry's Reading World", about: ownerAbout },
         themes,
+        tags,
         books,
         highlights,
     };
+    const assignmentsCheck = validateTopicTagAssignments(
+        await requireJson(TAG_ASSIGNMENTS_PATH, '先完成 Batch 3 试标与审核，再运行 npm run snapshot:local。'),
+        pilotSnapshot,
+        vocabulary,
+    );
+    if (!assignmentsCheck.ok) {
+        throw new Error(`topic tag assignments do not validate: ${assignmentsCheck.errors.join('; ')}`);
+    }
+    const reviewedAssignments = new Map(
+        assignmentsCheck.value.assignments
+            .filter((assignment) => assignment.status === 'reviewed')
+            .map((assignment) => {
+                const unavailable = assignment.tagIds.filter((tagId) => !allowedTagIds.has(tagId));
+                if (unavailable.length > 0) {
+                    throw new Error(`reviewed assignment ${assignment.highlightId} references unpublished tag(s): ${unavailable.join(', ')}`);
+                }
+                return [assignment.highlightId, assignment.tagIds] as const;
+            }),
+    );
+    const taggedHighlights = highlights.map((highlight) => ({
+        ...highlight,
+        tagIds: reviewedAssignments.get(highlight.id) ?? [],
+    }));
+    const snapshot: Snapshot = { ...pilotSnapshot, highlights: taggedHighlights };
 
     const result = validateSnapshot(snapshot);
     if (!result.ok) {
@@ -309,7 +351,11 @@ async function main(): Promise<void> {
     await writeFile(MAP_PATH, JSON.stringify({ generatedAt: new Date().toISOString(), entries: sourceMap }, null, 2), 'utf8');
 
     console.log(
-        `local snapshot written: ${String(result.snapshot.highlights.length)} highlights, ${String(result.snapshot.books.length)} books, ${String(result.snapshot.themes.length)} theme shelves`,
+        `local snapshot written: ${String(result.snapshot.highlights.length)} highlights, ${String(result.snapshot.books.length)} books, ${String(result.snapshot.themes.length)} theme shelves, ${String(result.snapshot.tags.length)} topic tags`,
+    );
+    const reviewedHighlightCount = result.snapshot.highlights.filter((highlight) => highlight.tagIds.length > 0).length;
+    console.log(
+        `reviewed tag assignments applied: ${String(reviewedHighlightCount)}; untagged pilot highlights: ${String(result.snapshot.highlights.length - reviewedHighlightCount)}`,
     );
     const withCovers = result.snapshot.books.filter((book) => book.coverPath !== undefined).length;
     console.log(`books with a local cover: ${String(withCovers)}; without: ${String(result.snapshot.books.length - withCovers)}`);

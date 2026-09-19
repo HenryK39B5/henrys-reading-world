@@ -32,7 +32,7 @@ import { SNAPSHOT_SCHEMA_VERSION, type Highlight, type Snapshot } from './types.
  * test.
  */
 function highlight(id: string, bookId: string, text = '一段用于验证的占位文本。', year?: number): Highlight {
-    return year === undefined ? { id, bookId, text } : { id, bookId, text, year };
+    return year === undefined ? { id, bookId, text, tagIds: [] } : { id, bookId, text, year, tagIds: [] };
 }
 
 const LONG = '长'.repeat(LONG_PASSAGE);
@@ -46,6 +46,7 @@ function snapshot(): Snapshot {
             { id: 't-001', title: '书架一' },
             { id: 't-002', title: '书架二' },
         ],
+        tags: [],
         books: [
             { id: 'b-001', title: '书一', author: '作者一', themeIds: ['t-001'], coverPath: 'local-covers/one.jpg' },
             { id: 'b-002', title: '书二', author: '作者二', themeIds: ['t-002'] },

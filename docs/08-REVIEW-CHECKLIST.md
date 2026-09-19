@@ -2527,6 +2527,53 @@ provenance               ensemble 152 / override 128 / lexical 11 / unresolved 6
 
 提交本阶段后，进入 Batch 4 schema 3、主题小径与 V3 视觉基础；正式发布 Gate 不变。
 
+## V3 Batch 4A：schema 3 与 reviewed 试标投影（2026-09-19）
+
+```text
+日期 / 执行者：2026-09-19 / 实现 Agent
+范围：schema 3、TopicTag 公共安全契约、reviewed assignment 本地投影
+状态：verified（纯领域与真实本地数据）；消费者 UI 尚未开始
+数据模式：完整 local-only 4,663 条 + 私有 Batch 3 词表 / assignments
+代码基线：14995d7
+```
+
+### 完成范围
+
+- `Snapshot` 升级为 schema 3：新增扁平 `tags` 与每条 `Highlight.tagIds`；Book Theme 仍只属于 Book。
+- strict validator 新增 `tag-NNN`、2–4 字标题、未知引用、重复引用、最多 3 个标签、快照稳定顺序及私有生产字段拒绝。
+- local builder 读取 `.private/tags/vocabulary.json` 与 `assignments.json`，只应用 `status=reviewed` 的 294 条分配。
+- 6 条 draft 与尚未进入 Batch 6 的其余划线明确写为 `tagIds: []`；不读取其占位标签，不为覆盖率补造语义。
+- public 空快照同步升级为 schema 3，仍保持 0 本 / 0 条 / 0 标签。
+- publication preview 保留实际被选划线引用的标签定义，不携带 confidence、rationale、candidate、family 或 note。
+- 派生索引新增 `tagsById`、`highlightsByTag`、`tagsInUse` 与 tagged coverage。
+
+### 真实数据结果
+
+- local：4,663 条 / 130 本 / 14 个 Book Theme / 56 个 Topic Tag。
+- 已应用 reviewed 标签：294 条；明确未标注：4,369 条（含 6 条 draft）。
+- 当前试点 56 个标签全部至少有一条 reviewed 划线；8 个标签尚未达到未来公开小径建议的 3 本 / 5 条阈值，只记 warning，不伪装成全量分布。
+- 唯一历史数据警告仍为没有原始换行样本。
+
+### 实际命令与结果
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run snapshot:local` | schema 3 重建成功；294 reviewed 应用，4,369 未标注 |
+| `npm run validate:data:local` | 通过；10 条诚实覆盖 warning |
+| `npm run validate:data` | public schema 3 空快照通过 |
+| `npm run typecheck` | 通过 |
+| 定向 Vitest | 51 条 schema / tag / publication 相关测试通过 |
+
+### 浏览器证据 / 未验证项
+
+- 本阶段没有消费者页面变化，因此未生成截图；浏览器 Gate 留给 Batch 4C–4D。
+- 主题小径算法、路由、岔路、分享全标签与视觉尚未实现。
+- 真机、Safari 与首次访客仍未验证。
+
+### 下一步
+
+进入 Batch 4B：实现可注入 RNG 的小径公平轮、显式重开、岔路保持当前句，以及可关闭并稳定降级的书内 embedding 节奏。
+
 ## 公开发布前待处理事项（发布阻断项，不阻断本机开发）
 
 | 编号 | 事项 | 依据 |

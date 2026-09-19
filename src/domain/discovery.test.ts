@@ -22,7 +22,7 @@ function makeBook(id: string, themeIds: string[] = ['t-001']): Book {
 }
 
 function passage(bookId: string, index: number, text: string = READABLE): Highlight {
-    return { id: `${bookId}-h-${String(index).padStart(4, '0')}`, bookId, text, year: 2025 };
+    return { id: `${bookId}-h-${String(index).padStart(4, '0')}`, bookId, text, year: 2025, tagIds: [] };
 }
 
 function countPassages(count: number, bookId: string, text: string = READABLE): Highlight[] {

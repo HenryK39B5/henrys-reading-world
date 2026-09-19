@@ -16,6 +16,7 @@ function passages(count: number): Highlight[] {
         id: `h-${String(index + 1).padStart(3, '0')}`,
         bookId: BOOK,
         text: '一段用于验证的占位文本。',
+        tagIds: [],
     }));
 }
 

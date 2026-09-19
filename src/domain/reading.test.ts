@@ -18,7 +18,9 @@ function book(id: string, themeIds: string[] = []): Book {
 }
 
 function passage(id: string, bookId: string, year?: number): Highlight {
-    return year === undefined ? { id, bookId, text: '一段划线' } : { id, bookId, text: '一段划线', year };
+    return year === undefined
+        ? { id, bookId, text: '一段划线', tagIds: [] }
+        : { id, bookId, text: '一段划线', year, tagIds: [] };
 }
 
 function snapshot(books: Book[], highlights: Highlight[]): Snapshot {
@@ -27,6 +29,7 @@ function snapshot(books: Book[], highlights: Highlight[]): Snapshot {
         visibility: 'public',
         owner: { displayName: 'Henry', siteTitle: 'Henry' },
         themes: [],
+        tags: [],
         books,
         highlights,
     };

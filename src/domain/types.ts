@@ -1,14 +1,15 @@
 /**
- * Data contract for the reading world (schema v2 — docs/10, docs/11 §1).
+ * Data contract for the reading world (schema v3 — docs/19–22).
  *
- * The snapshot is the only shape the UI understands. Source identifiers, credentials and raw
- * capture envelopes never appear here; see docs/03-DATA-CONTRACT.md.
+ * The snapshot is the only shape the consumer UI understands. Source identifiers, credentials,
+ * embedding vectors, confidence, rationale and raw capture envelopes never appear here.
  *
- * v2 moves themes from passages to books. A shelf label says "this book is filed under …", never
- * "this sentence is about …", so an individual passage carries no editorial scoring at all.
+ * Book Theme and Highlight Topic Tag are deliberately separate: shelves classify books, while
+ * 1–3 equal topic tags describe a passage. During the Batch 4 pilot, unreviewed passages carry an
+ * honest empty `tagIds` array instead of an invented label.
  */
 
-export const SNAPSHOT_SCHEMA_VERSION = 2;
+export const SNAPSHOT_SCHEMA_VERSION = 3;
 
 export type Visibility = 'public' | 'local-only';
 
@@ -31,6 +32,15 @@ export type Theme = {
     description?: string;
 };
 
+/** A flat, public-safe concept attached to individual highlights. */
+export type TopicTag = {
+    id: string;
+    title: string;
+    description?: string;
+};
+
+export const MAX_TOPIC_TAGS_PER_HIGHLIGHT = 3;
+
 export type Book = {
     /** Stable project-local id, never a platform or account identifier. */
     id: string;
@@ -50,6 +60,8 @@ export type Highlight = {
     text: string;
     /** Only present when the capture carried a usable creation timestamp. */
     year?: number;
+    /** Equal-status topic clues in snapshot editorial order; empty only while the pilot is incomplete. */
+    tagIds: string[];
 };
 
 export type Snapshot = {
@@ -57,6 +69,7 @@ export type Snapshot = {
     visibility: Visibility;
     owner: Owner;
     themes: Theme[];
+    tags: TopicTag[];
     books: Book[];
     highlights: Highlight[];
 };
@@ -66,6 +79,7 @@ export const EMPTY_SNAPSHOT: Snapshot = {
     visibility: 'public',
     owner: { displayName: 'Henry', siteTitle: "Henry's Reading World" },
     themes: [],
+    tags: [],
     books: [],
     highlights: [],
 };

@@ -23,7 +23,7 @@ import type { Book, Highlight } from './types.ts';
  */
 const PLACEHOLDER = '一段用于验证的占位文本。';
 
-const HIGHLIGHT: Highlight = { id: 'h-001', bookId: 'b-001', text: PLACEHOLDER, year: 2025 };
+const HIGHLIGHT: Highlight = { id: 'h-001', bookId: 'b-001', text: PLACEHOLDER, year: 2025, tagIds: [] };
 const BOOK: Book = { id: 'b-001', title: '书名占位', author: '作者占位', themeIds: ['t-001'] };
 
 function open(state: ShareState, id: string): ShareState {

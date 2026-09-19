@@ -15,7 +15,7 @@ import {
 
 /** Structural fixtures: they pin ordering and filtering, never real reading content. */
 function highlight(id: string, bookId: string, year: number | undefined): Highlight {
-    const base: Highlight = { id, bookId, text: `passage ${id}` };
+    const base: Highlight = { id, bookId, text: `passage ${id}`, tagIds: [] };
     return year === undefined ? base : { ...base, year };
 }
 
@@ -28,6 +28,7 @@ function snapshot(): Snapshot {
             { id: 't-001', title: 'Theme One' },
             { id: 't-002', title: 'Theme Two' },
         ],
+        tags: [],
         books: [
             { id: 'b-001', title: 'Book One', author: 'Author One', themeIds: ['t-001'] },
             { id: 'b-002', title: 'Book Two', author: 'Author Two', themeIds: ['t-001', 't-002'] },

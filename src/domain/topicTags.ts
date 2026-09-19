@@ -1,8 +1,7 @@
-import type { Snapshot } from './types.ts';
+import { MAX_TOPIC_TAGS_PER_HIGHLIGHT, type Snapshot } from './types.ts';
 
 export const TOPIC_TAG_VOCABULARY_SCHEMA_VERSION = 1;
 export const TOPIC_TAG_ASSIGNMENTS_SCHEMA_VERSION = 1;
-export const MAX_TOPIC_TAGS_PER_HIGHLIGHT = 3;
 
 export type TopicTagStatus = 'draft' | 'reviewed' | 'publish';
 export type AssignmentStatus = 'draft' | 'reviewed';

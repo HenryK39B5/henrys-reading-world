@@ -463,6 +463,10 @@ export function projectPublicationPreview(policy: PublicationPolicy, snapshot: S
     const themes: Theme[] = snapshot.themes
         .filter((theme) => themeIdsInUse.has(theme.id))
         .map((theme) => ({ ...theme }));
+    const tagIdsInUse = new Set(highlights.flatMap((highlight) => highlight.tagIds));
+    const tags = snapshot.tags
+        .filter((tag) => tagIdsInUse.has(tag.id))
+        .map((tag) => ({ ...tag }));
 
     const summary = publicationSummary(policy, snapshot);
     const longHighlights = highlights
@@ -480,6 +484,7 @@ export function projectPublicationPreview(policy: PublicationPolicy, snapshot: S
             visibility: 'local-only',
             owner: { ...snapshot.owner },
             themes,
+            tags,
             books,
             highlights,
         },
