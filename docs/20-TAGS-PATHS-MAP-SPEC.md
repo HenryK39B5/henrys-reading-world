@@ -2,7 +2,7 @@
 
 > 日期：2026-09-18
 >
-> 状态：Batch 0 产品 / 数据 / 交互规格；Batch 4 已实现 schema 3、主题小径与 16 维量化路径投影，实际字段见 `docs/03` 与 `docs/26`。世界地图字段仍是 Batch 5 目标。
+> 状态：Batch 5 消费者地图已实现：schema 3、主题小径、独立全量地图布局、Canvas 世界总览、主题区域、划线详情与 Book Aura 均已进入 Local World。实际字段见 `docs/03`，Batch 4 / 5 实况见 `docs/26–27`。
 >
 > 权威关系：产品目标以 `docs/19` 为准，视觉以 `docs/21` 为准，施工顺序以 `docs/22` 为准。
 
@@ -344,7 +344,7 @@ API key 只来自非 `VITE_*` 环境变量。终端不打印向量、密钥或�
 - 总览使用 Canvas、预计算图层或等效低 DOM 实现；
 - 不创建 4,663 个 DOM 按钮，也不同时渲染 4,663 段文字；
 - 区域层只暴露当前子集的可交互点；
-- 移动端默认小径列表，地图主动打开为全屏 / 大画布体验；
+- 移动端保持大画布为主路径，语义小径 / 区域列表紧邻地图且可独立完成同等任务；
 - 键盘与屏幕阅读器通过小径列表、区域列表和当前划线详情完成等价任务；
 - reduced-motion 取消平移 / 缩放动画，状态直接准确到位。
 
@@ -395,6 +395,11 @@ type MapLayout = {
   version: string;
   points: Array<{ highlightId: string; x: number; y: number }>;
   labels: Array<{ tagId: string; x: number; y: number }>;
+  density: { columns: number; rows: number; values: number[] };
+  contours: Array<{
+    level: number;
+    segments: Array<{ x1: number; y1: number; x2: number; y2: number }>;
+  }>;
 };
 
 type SnapshotV3 = {
@@ -409,7 +414,7 @@ type SnapshotV3 = {
 };
 ```
 
-Batch 4 最终选择：只为 reviewed 小径试点导出 16 维、-127..127 整数的固定随机符号投影，用于选书后的近 / 中 / 远节奏；原始高维向量、confidence 与理由不进入 snapshot。地图仍将在 Batch 5 独立生成布局坐标，不能把 `pathVector` 当作地图点位。
+Batch 4 最终选择：只为 reviewed 小径试点导出 16 维、-127..127 整数的固定随机符号投影，用于选书后的近 / 中 / 远节奏；原始高维向量、confidence 与理由不进入 snapshot。Batch 5 使用独立 96 维稀疏投影 + 固定 seed UMAP 生成 0–10,000 量化地图坐标，并从全部 4,663 点派生 64×40 密度网格与三层真实等高线；没有把 `pathVector` 当地图点位。
 
 ## 12. 发布审核增量
 

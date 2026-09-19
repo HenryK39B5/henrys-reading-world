@@ -4,9 +4,9 @@
 
 ## 当前状态
 
-- 阶段：v1 Slice 0–4、V2-A～V2-E4D、Release-A、V3 Batch 0–4 均已完成；**schema 3、56 条真实主题小径、294 条 reviewed 试点、岔路与全标签分享已进入 Local World**。下一阶段是 Batch 5 世界地图 MVP。
+- 阶段：v1 Slice 0–4、V2-A～V2-E4D、Release-A、V3 Batch 0–5 均已完成；**schema 3、56 条真实主题小径与 4,663 点阅读世界地图已进入 Local World**。当前等待 Batch 5 地图体验 Gate，再决定是否进入 Batch 6 全量标注。
 - 发布审核：用户已完成两轮审核，私有清单当前为 **108 本公开 / 22 本排除 / 6 条单独排除**，`reviewComplete=true`。这些决定继续有效，但 Release-B 暂停到 V3 Gate 之后；未生成 public snapshot、未创建 GitHub repo、未 push。
-- 产品方向：`docs/19-PRODUCT-DIRECTION-V3.md`；标签 / 小径 / 地图规格：`docs/20-TAGS-PATHS-MAP-SPEC.md`；视觉：`docs/21-V3-VISUAL-DIRECTION.md`；施工：`docs/22-V3-IMPLEMENTATION-PLAN.md`；embedding 实际评测：`docs/23-EMBEDDING-EVALUATION.md`；Batch 2 标签发现：`docs/24-BATCH-2-TAG-DISCOVERY.md`；Batch 3 试标与 Studio：`docs/25-BATCH-3-TAG-STUDIO.md`；Batch 4 小径与视觉实况：`docs/26-BATCH-4-PATHS-AND-VISUAL.md`。
+- 产品方向：`docs/19-PRODUCT-DIRECTION-V3.md`；标签 / 小径 / 地图规格：`docs/20-TAGS-PATHS-MAP-SPEC.md`；视觉：`docs/21-V3-VISUAL-DIRECTION.md`；施工：`docs/22-V3-IMPLEMENTATION-PLAN.md`；embedding 实际评测：`docs/23-EMBEDDING-EVALUATION.md`；Batch 2 标签发现：`docs/24-BATCH-2-TAG-DISCOVERY.md`；Batch 3 试标与 Studio：`docs/25-BATCH-3-TAG-STUDIO.md`；Batch 4 小径与视觉实况：`docs/26-BATCH-4-PATHS-AND-VISUAL.md`；Batch 5 世界地图实况：`docs/27-BATCH-5-WORLD-MAP.md`。
 - 硬约束：所有开发只使用 Henry 本人的真实微信读书划线，不使用 fake / demo 数据；Book Theme 属于书籍，V3 Topic Tag 属于划线，但不做人格标签、质量评分或 AI 观点总结。
 - 当前页面数据（local-only）：**4,663 条真实划线 · 130 本书 · 14 个主题书架 · 56 个 Topic Tag · 2024–2026**；当前 294 条 reviewed 试点可沿小径访问，其余 4,369 条继续通过原房间全量可达且不造标签。
 - 原始数据与快照只存在于本机 `.private/`，已被 `.gitignore` 排除，不进入前端包。
@@ -16,7 +16,8 @@
 
 ```powershell
 npm ci                      # 首次：按锁文件安装依赖（已安装过则跳过）
-npm run snapshot:local      # 生成 schema 3 local snapshot：全量内容 + reviewed 标签试点
+npm run map:layout          # 从本机 embedding 重建固定 seed 地图布局
+npm run snapshot:local      # 生成 schema 3 local snapshot：全量内容 + reviewed 标签试点 + 地图
 npm run dev:local           # 打开 http://127.0.0.1:5173
 ```
 
@@ -38,6 +39,7 @@ npm run check:local         # typecheck + lint + 单测 + 快照校验（开发�
 npm run verify:ids          # 20 本 / 46 条稳定 ID 指向同一真实材料
 npm run test:e2e            # Playwright，真实 Chromium：房间、小径、岔路、分享、缩放、键盘与隐私
 npm run capture:v3-batch4  # Batch 4 的 1440 / 390 / 320、最长文、三岔路与 reduced-motion 证据
+npm run capture:v3-batch5  # Batch 5 世界 / 区域 / 详情 / 6 本 Book Aura / reduced-motion 证据
 npm run test:publication    # 发布审核器的浏览器验收（独立服务器与端口，使用临时清单目录）
 npm run capture:review      # 生成评审截图 + 可读数字，输出到 .private/review/rooms-batch/
 npm run capture:v2e         # 生成 V2-E 证据截图（dialog、卡片、200% 缩放、剪贴板失败），输出到 .private/review/v2-e/
@@ -109,16 +111,17 @@ npm run snapshot:local                    # 挑选结果 → 开发快照
 
 ### 当前体验路径
 
-当前代码已进入 V3 Batch 4；世界地图尚未实现。真实 URL 与主要循环：
+当前代码已进入 V3 Batch 5；真实 URL 与主要循环：
 
 1. `/` 门厅：读一句话 → `再来一句` → `分享`；底部可去主题书架、主题小径、所有书或 About。
 2. 点书名（出处行）→ 原位展开面板 → `再看一处`（同书）→ `查看这本书` 进入书籍房间。
 3. `/themes` 主题书架 → 某个书架房间：`再来一句` 持续留在该书架。
 4. `/paths` 主题小径：56 个稳定线索按 editorial order 展示真实书数 / 划线数；进入 `/paths/:tagId` 后按书公平完成有限轮，可切换“纯公平 / 有呼吸”。
 5. 多标签划线是岔路：点击另一线索时当前句保留，下一次继续才离开；浏览器 Back 恢复原路径、原句与轮次。
-6. `/books` 所有书：初始 12 本、每次 +20，可按真实年份或书架筛选；点书进入 `/books/:id`——书籍房间是一次一句的有限随机轮。
-7. 浏览器返回与 `返回上一处` 一致；回到房间时恢复原句、筛选、批次与滚动位置。
-8. 分享锁定稳定 highlight ID；页面、复制文字和卡片完整显示该条全部 Topic Tag，不截断为 `+N`。
+6. `/map` 阅读世界地图：单一 Canvas 绘制全部 4,663 个真实点与等高线；点击标签进入主题区域，区域列表可打开完整划线详情；`点亮一本书` 用真实 Book Aura 标出该书全部点。URL 的 `tag` / `book` / `h` 保存语义现场，Browser Back 恢复原位置与缩放。
+7. `/books` 所有书：初始 12 本、每次 +20，可按真实年份或书架筛选；点书进入 `/books/:id`——书籍房间是一次一句的有限随机轮，并可直接在地图点亮这本书。
+8. 浏览器返回与 `返回上一处` 一致；回到房间时恢复原句、筛选、批次与滚动位置。
+9. 分享锁定稳定 highlight ID；页面、复制文字和卡片完整显示该条全部 Topic Tag，不截断为 `+N`。
 
 ### 公开发布审核（Release-A，尚未公开）
 
@@ -190,12 +193,13 @@ npm run test:publication       # 审核器的浏览器验收（用临时目录�
 | [24 — Batch 2 标签发现](docs/24-BATCH-2-TAG-DISCOVERY.md) | 全量 embedding、按书公平样本、私有候选词表、人工种子与用户 Gate |
 | [25 — Batch 3 试标与 Studio](docs/25-BATCH-3-TAG-STUDIO.md) | 56 个稳定标签、私有 assignment 契约、300 条试标、收口审计与 Local Tag Studio |
 | [26 — Batch 4 主题小径与视觉基础](docs/26-BATCH-4-PATHS-AND-VISUAL.md) | schema 3、真实试点投影、公平小径、岔路、全标签分享与浏览器证据 |
+| [27 — Batch 5 世界地图](docs/27-BATCH-5-WORLD-MAP.md) | 全量固定 seed 地图布局、Canvas 地形、主题区域、详情、Book Aura、恢复与视觉证据 |
 
 ## 真实数据现状
 
 - 笔记本概览全部分页：132 本有笔记的书；已抓取 130 本划线，共约 4,700 行（`.private/weread/highlights/`）。
 - 候选池：4,663 条（去重、长度 8–400 字）；其中短 1,054 / 中 2,626 / 长 983。
-- schema 3 快照：**4,663 条划线 · 130 本书 · 14 个主题书架 · 56 个 Topic Tag**；294 条 reviewed 划线带 1–3 个标签与 16 维量化路径投影，4,369 条未标注内容不造标签。
+- schema 3 快照：**4,663 条划线 · 130 本书 · 14 个主题书架 · 56 个 Topic Tag**；294 条 reviewed 划线带 1–3 个标签与 16 维量化路径投影，4,369 条未标注内容不造标签；地图为全部 4,663 条提供独立 0–10,000 二维点位、64×40 密度网格与三层等高线。
 - 每本书的 1–3 个 Book Theme 由 Agent 依据书名、作者与等距样本生成（`.private/curation/book-themes.json`）；V3 将在不替代 Book Theme 的前提下新增逐条 Topic Tag，并使用私有 embedding 辅助内容生产。
 - **已知数据缺口（真实情况，未用假数据补齐）**：Henry 的真实划线中没有带原始换行的样本；年份只跨 2024–2026，无法呈现"来自 4 年前"这类更长的时间纵深。校验器会持续报告前者。
 

@@ -31,6 +31,7 @@
     "capture:v2e": "playwright test --config playwright.capture-v2e.config.ts",
     "capture:v2e4": "playwright test --config playwright.capture-v2e4.config.ts",
     "capture:v3-batch4": "playwright test --config playwright.capture-v3-batch4.config.ts",
+    "capture:v3-batch5": "playwright test --config playwright.capture-v3-batch5.config.ts",
     "capture:release-a": "playwright test --config playwright.capture-release-a.config.ts && playwright test --config playwright.capture-publication.config.ts",
     "publication:init": "node scripts/publication-init.ts",
     "publication:review": "vite --mode review-private",

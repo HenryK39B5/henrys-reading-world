@@ -1,6 +1,6 @@
 # 02 — 技术与工程设计（v1 基线）
 
-> 栈、安全隔离、URL 和工程底线继续有效。Release-A 已完成。**V3 Batch 4 已实现 schema 3、294 条 reviewed 试点投影、主题小径、岔路、全标签分享和首轮视觉基础；Batch 5 世界地图尚未开始。** Release-B 正式 public snapshot、Pages、push 与部署继续暂停。
+> 栈、安全隔离、URL 和工程底线继续有效。Release-A 已完成。**V3 Batch 5 已完成独立地图布局与消费者地图：4,663 点 Canvas 世界总览、56 个主题区域、划线详情、Book Aura 与无障碍列表均已进入 Local World；当前等待地图体验 Gate。** Release-B 正式 public snapshot、Pages、push 与部署继续暂停。
 
 ## 1. 栈与命令
 
@@ -77,7 +77,7 @@ e2e/                         # Playwright 浏览器验收
 
 `EncounterState`：`currentId`、`historyIds`（曝光顺序，可重复）、`stageScope`（`all` 或 `theme:<id>`）、`cycles`（`all`、每个 `theme:<id>` 与每本书的 `book:<id>` 访问 cycle 各一份，分别保存 `bookIds` 与 `highlightIds`）、`phase: idle|exiting|entering`、`pending` + `pendingKind: stage|book`、`commitCount`、`lastResult`、`sourceOpen`。
 
-UI 状态：出处开关、当前选书 / 主题 / 年份、分享预览的固定 `highlightId`；V3 另有每个 `tagId` 各自保存的有限 `PathWalkState`（当前句、已见 ID、按书 cycle、轮次与节奏模式）。历史计数只在内容真正提交显示时更新；React StrictMode 二次调用不能消耗两次选句或注册重复计时器。
+UI 状态：出处开关、当前选书 / 主题 / 年份、分享预览的固定 `highlightId`；V3 另有每个 `tagId` 各自保存的有限 `PathWalkState`（当前句、已见 ID、按书 cycle、轮次与节奏模式），以及地图 world / 各主题 scope 独立保存的 viewport。地图当前主题、点亮书与详情由 `?tag=`、`?book=`、`?h=` 表达，viewport 只属于本地 session，避免普通拖动污染历史记录。历史计数只在内容真正提交显示时更新；React StrictMode 二次调用不能消耗两次选句或注册重复计时器。
 
 - `NEXT_STAGE`：空闲才接受；用当前 `stageScope` 走两阶段抽样（先公平选书、再选句），立即进入 exiting，不提前计为曝光；提交时写入该范围的 cycle 与当个书的访问 cycle。
 - `NEXT_IN_BOOK`：只在该书内抽取，不改变 `stageScope`，也不消耗 `all` / `theme:<id>` 的 cycle（只推进该书自己的访问 cycle）；耗尽时明确报告，不静默换书，也不重置 cycle 重复已看划线。
@@ -95,9 +95,10 @@ UI 状态：出处开关、当前选书 / 主题 / 年份、分享预览的固�
 
 ## 6. URL 与分享
 
-> V3 Batch 4 更新：消费者现有八种房间 / 列表路径，新增主题小径；地图 `/map` 留到 Batch 5。
+> V3 Batch 5 更新：消费者共九种房间 / 列表路径，地图使用同一 SPA router 与稳定 query 状态。
 
-- 房间路径：`/` 门厅、`/themes` 主题书架、`/themes/:themeId` 主题房间、`/paths` 主题小径列表、`/paths/:tagId` 小径房间、`/books` 所有书、`/books/:bookId` 书籍房间、`/about` 关于。
+- 房间路径：`/` 门厅、`/themes` 主题书架、`/themes/:themeId` 主题房间、`/paths` 主题小径列表、`/paths/:tagId` 小径房间、`/map` 世界地图、`/books` 所有书、`/books/:bookId` 书籍房间、`/about` 关于。
+- 地图上下文属于 URL：`?tag=<tagId>` 打开主题区域，`?book=<bookId>` 点亮该书全部点，`?h=<highlightId>` 打开真实划线详情；三者可组合，非法引用会被规范化移除。地图 viewport 不写 query，每个 world / tag scope 在文档生命周期内独立记忆，Browser Back 返回原位置与缩放。
 - 筛选属于 URL：`?year=<四位年份>`（仅书籍空间）、`?theme=<themeId>`（书库只看某个书架）。无法解析的值不会进入界面，地址栏会被规范化为实际房间。
 - 站点内链接都是真实 `<a href>`，可以新标签页打开、书签、无 JavaScript 也能跟随；router 只接管点击。
 - 页面“返回上一处”与浏览器后退使用同一个 `history.back()`，不另建一套返回逻辑。

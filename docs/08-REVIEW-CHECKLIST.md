@@ -4,7 +4,7 @@
 
 | 项目 | 状态 | 说明 |
 | --- | --- | --- |
-| 产品基线 | V3 Batch 4 已完成 | 产品 / 施工以 `docs/19–22` 为准，Batch 1–4 实况见 `docs/23–26`；下一阶段为 Batch 5 世界地图 |
+| 产品基线 | V3 Batch 5 已完成，待用户体验 Gate | 产品 / 施工以 `docs/19–22` 为准，Batch 1–5 实况见 `docs/23–27`；用户通过地图后才进入 Batch 6 全量标注 |
 | 开发文档 | 已准备 | 用户追加“只用真实数据”已纳入 |
 | Codex skill 移植 | 完成 | 项目 `.agents/skills/weread-skills/`，原安装未改 |
 | skill 版本 | 1.0.4 | 官方更新包已审查，项目约束已重新应用 |
@@ -14,7 +14,7 @@
 | 私密状态 | 已获开发授权 | 323 个书架条目均 secret=1；用户已授权全部书籍用于开发 |
 | 真实划线原文 | 已获取并全量入库 | 候选池与 schema 3 local-only 快照均为 4,663 条（8–400 字去重后）；294 条 reviewed 试点带 Topic Tag，其余不造标签 |
 | 全部书籍开发授权 | 已批准 | 包括私密阅读；取消 6 本限制 |
-| 本机开发快照 | 已生成 | `.private/local-snapshot.json`：4,663 条 / 130 本 / 14 个书籍主题书架 / 56 个 Topic Tag，visibility=local-only；294 条 reviewed 小径试点带 16 维路径投影 |
+| 本机开发快照 | 已生成 | `.private/local-snapshot.json`：4,663 条 / 130 本 / 14 个书籍主题书架 / 56 个 Topic Tag，visibility=local-only；294 条 reviewed 小径试点带 16 维路径投影；全部 4,663 条带独立地图点位 |
 | 前端工程骨架 | 已完成（Slice 0） | React 19 + TS 6 + Vite 8；严格数据校验、仅本机隔离 |
 | 文字舞台（Slice 1） | 已完成 | 真实句子为视觉中心；三档排版；导航（3 项待开放）；160/280ms 转场 |
 | 换句交互（Slice 1） | 已完成 | 状态机 + 快速连点防重入 + reduced-motion 即时切换 + 单一 aria-live |
@@ -22,9 +22,9 @@
 | Surprise 机制修订 | 已按用户反馈调整 | 去掉“距今年份”分支，改为“换书 + 带来本次会话未出现过的主题”的领域意外 |
 | 出处展开（Slice 3） | 已完成 | 原位展开、真实收录计数、再看一处 / 收起、焦点回归、耗尽与单条明确说明 |
 | 书籍 / 主题 / About（Slice 4） | 已完成 | 书籍区与书详情、5 个主题的跨书连线、真实年份筛选与空交集处理、真实计数 About |
-| 导航 | V3 五项入口已开放 | 随机 / 主题书架 / 主题小径 / 所有书 / 关于均为真链接；地图留给 Batch 5 |
-| 浏览器验证 | Batch 4 全量重跑 | Playwright + Chromium（本机）：**109 个 local 消费者用例** + **10 个 Tag Studio** + **9 个审核器** + **1 个 public 空态**；Batch 4 视觉取证 3 / 3 |
-| 本机检查 | Batch 4 全绿 | `check:local`：typecheck + lint + **284 个单测（29 文件）** + schema 3 数据校验；`verify:ids`、6 个真实数据 smoke、public build、`isolation:public` 与 local-private build 拒绝均通过 |
+| 导航 | V3 五项主导航 + 地图次入口已开放 | 随机 / 主题书架 / 主题小径 / 所有书 / 关于为主导航；小径、书房与地图区域提供 `/map` 入口 |
+| 浏览器验证 | Batch 5 全量重跑 | Playwright + Chromium（本机）：**114 个 local 消费者用例** + **10 个 Tag Studio** + **9 个审核器** + **1 个 public 空态**；Batch 5 视觉取证 3 / 3 |
+| 本机检查 | Batch 5 全绿 | `check:local`：typecheck + lint + **294 个单测（31 文件）** + schema 3 数据校验；`verify:ids`、6 个真实数据 smoke、public build、`isolation:public` 与 local-private build 拒绝均通过 |
 | 视觉检查（Astra） | 已执行 | 1440 / 390 实际截图；发现并修正孤字成行、26px 点击目标、出处行间距、移动端书目节奏 |
 | 评审证据工具 | 已建立 | `npm run capture:review`：截图 + 可读数字（字号 / 行数 / 对比度 / 点击目标 / 溢出 / 延迟）|
 | 封面与色彩（视觉修复） | 已完成 | 127 张真实书封下载到 `.private/covers/`；`local-covers/` 仅由 dev:local 服务；每本书主色从封面实时提取并降饱和 |
@@ -48,7 +48,8 @@
 | V3 Batch 1 embedding 评测 | 已完成并迁移到本机 | SiliconFlow 三模型结果保留为历史对照；当前默认 `Xenova/bge-large-zh-v1.5@a48549b-q8-cls`，同集综合分 0.7810，4,663 条本机向量已完成，后续不再发送新的划线文本 |
 | V3 Batch 2 标签发现 | 已完成并获用户批准 | 全量 4,663 条 embedding、300 条按书公平样本、53 个私有候选标签、35 组边界、159 条人工种子；用户已批准完整词表进入 Batch 3 |
 | V3 Batch 3 稳定词表与试标 | 已收口 | 56 个稳定标签；14 条用户意见全部处置（3 条直接应用、11 条 Agent 判定、待决 0）；300 条试标 294 reviewed / 6 draft；0 孤儿、0 过宽，唯一偏薄「运气」有全语料 64 条 / 23 本证据 |
-| V3 Batch 4 schema 3、小径与视觉 | 已完成，待用户体验 Gate | 294 条 reviewed 投影为 56 条真实小径；公平有限轮、可关闭语义节奏、岔路保持当前句、Back 恢复、全部标签分享及 1440 / 390 / 320 视觉基础完成；详见 `docs/26` |
+| V3 Batch 4 schema 3、小径与视觉 | 已完成，用户体验 Gate 已通过 | 294 条 reviewed 投影为 56 条真实小径；公平有限轮、可关闭语义节奏、岔路保持当前句、Back 恢复、全部标签分享及 1440 / 390 / 320 视觉基础完成；详见 `docs/26` |
+| V3 Batch 5 世界地图 | 已完成，待用户体验 Gate | 4,663 点独立固定 seed 地图、56 个主题区域、Canvas、详情、Book Aura、语义列表、Back 恢复与 1440 / 390 / 320 / 200% 证据完成；详见 `docs/27` |
 | 真实访客 Gate | 未进行 | 用户本人体验反馈非常积极（V2-E4D 就是其反馈驱动的收尾），但尚无首次访客结果，不冒充产品 Gate 通过 |
 
 原始返回、更新包、候选池、快照与截图全部留在 `.private/`，已被 `.gitignore` 排除，未进入前端包。
@@ -2707,6 +2708,65 @@ provenance               ensemble 152 / override 128 / lexical 11 / unresolved 6
 - public / local 生成命令与输出路径独立；public 当前为空，因此未生成正式 public map，更未导出或发布。
 
 下一阶段：Batch 5B Canvas 世界总览、主题区域、划线详情与无障碍区域列表。
+
+## V3 Batch 5B–5D：消费者地图、Book Aura 与视觉 Gate（2026-09-19）
+
+```text
+日期 / 执行者：2026-09-19 / 实现 Agent
+范围：Canvas 世界总览、主题区域、划线详情、语义替代、Book Aura、恢复、响应式与完整回归
+状态：verified（本机 Chromium）；待用户地图体验 Gate
+数据模式：schema 3 local-only；4,663 地图点 / 56 reviewed 区域；public 仍为空
+代码基线：d73d925（Batch 5A）
+```
+
+### 完成范围
+
+- 新增 `/map?tag=…&book=…&h=…`：世界总览、主题区域、稳定划线详情与点亮书可以组合并由真实 URL 表达。
+- 单一 Canvas 绘制全部 4,663 点、64×40 密度、三层等高线、主题标签、当前区域点、Book Aura 点和当前详情点；没有创建 4,663 个 DOM 按钮或全文节点。
+- 总览只开放标签命中；主题区域只开放当前 tag 的 reviewed 点；点亮书时该书全部点可交互，未标注点不获得虚构主题归属。
+- 小径列表和当前区域划线列表作为完整语义替代；Canvas 支持焦点、方向键、`+/-`、拖动、滚轮和复位。
+- 世界与每个主题 scope 独立保存 viewport；打开区域 / 书 / 详情写入 history，拖动缩放不污染 history；Browser Back 恢复原位置、缩放和语义现场。
+- 从小径列表、小径房间和书籍房间进入地图；书房入口自动以该书真实 Book Aura 点亮全部点。
+- 地图详情显示完整原文、出处、全部标签、分享、书房与小径入口；移动端详情移到 Canvas 下方。
+- public 空快照 `/map` 显示诚实空态；snapshot map 白名单与私有 map manifest HTTP 阻断加入隐私回归。
+
+### 实际命令与结果
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run check:local` | typecheck、lint、**294 单测 / 31 文件**、schema 3 local 校验通过；10 条既有试点 warning 保留 |
+| `npm run test:e2e -- --workers=2` | **114 / 114** local Chromium |
+| 地图 / rooms / privacy / Slice 0 / keyboard / zoom 定向 E2E | **45 / 45** |
+| `npm run capture:v3-batch5` | **3 / 3**；世界、区域、详情、六本 Aura、reduced-motion |
+| `npm run test:tags` / `test:publication` / `test:public` | **10 / 10**、**9 / 9**、**1 / 1** |
+| `npm run verify:ids` / `smoke:local` | 20 本 / 46 条种子 ID 稳定；4,663 / 130；**6 / 6** smoke |
+| `npm run build` / `npm run isolation:public` | public 空快照构建成功；dist clean，真实书名 / 原文 / coverPath 为 0，私有 map / embedding / 凭证探针 absent |
+| `npm run build -- --mode local-private` | 按预期拒绝；保护错误原文保持不变 |
+| `git diff --check` | 通过 |
+
+### 浏览器与视觉证据
+
+- `.private/review/v3-batch5/world-1440.png`、`world-390.png`、`world-320.png`；
+- `region-1440.png`、`region-390.png`、`region-320.png`；
+- `detail-390.png`；
+- `book-aura-1.png`～`book-aura-6.png`，至少四种真实封面色；
+- `region-reduced-motion-390.png`；
+- Canvas 像素检查非空；1440 / 390 / 320 与 200% 等价视口无横向溢出，标签和控件无重叠裁切。
+
+### 设计判断与偏差
+
+- 移动端没有按早期草案“默认只显示列表”；最终保持大画布为主路径，同时让语义列表紧邻地图并可独立完成同等任务，更符合地图作为作品的产品目标。
+- 56 个标签中心都可进入区域，但当前只有 294 条 reviewed 点可在主题区域命名和打开；其余 4,369 点只构成未命名地形，避免 Batch 6 前伪造语义。
+- Canvas 的地形、密度和等高线来自真实布局；标签避让只移动文字，不移动真实点或标签中心。
+- Book Aura 不画连线，不把地图做成网络图或 Dashboard。
+
+### 未验证项与下一步
+
+- Safari、真机触摸和真实首次访客仍未验证。
+- Batch 6 全量标注尚未开始；全量标签完成后地图区域密度和 public 布局仍需重建 / 复核。
+- public snapshot、public covers、repo、push、workflow 与部署均未开始。
+
+下一步：由用户体验 `/map` 的世界总览、主题区域、详情与 Book Aura。用户通过地图 Gate 后才进入 Batch 6；未通过则只修正 Batch 5，不提前扩全量标签。
 
 ## 公开发布前待处理事项（发布阻断项，不阻断本机开发）
 

@@ -2,7 +2,7 @@
 
 > 日期：2026-09-19
 >
-> 状态：V3 施工权威；Batch 0–4 已完成，Batch 4 用户体验 Gate 已通过。Batch 5A 已开始：独立的全量 4,663 点地图布局与 schema 已完成，地图消费者 UI 仍在施工；Release-B 继续暂停。
+> 状态：V3 施工权威；Batch 0–5 已完成，Batch 4 用户体验 Gate 已通过，Batch 5 世界地图正在等待用户体验 Gate；Release-B 继续暂停。
 >
 > Release-B 暂停。V3 不自动授权正式 public snapshot、public covers、repo、push、workflow 或部署。
 
@@ -247,6 +247,18 @@ Batch 3 最终实况（2026-09-19）：56 / 56 标签覆盖，0 孤儿、0 过�
 - 标签避让、点密度、等高线、区域放大；
 - 性能、键盘替代、200%、reduced-motion；
 - 用户确认地图后才进入全量标注。
+
+### 8.5 实际完成（2026-09-19）
+
+- 地图专属 96 维稀疏投影 + 固定 seed UMAP 已覆盖全部 4,663 条真实划线，量化为 0–10,000 坐标；没有复用 16 维小径投影；
+- local snapshot 携带 4,663 点、56 个 reviewed 标签中心、64×40 密度网格与 624 条三层等高线段；私有 manifest 保留模型、参数和 hash；
+- `/map?tag=…&book=…&h=…` 完成世界总览、主题区域、划线详情与 Book Aura；只在主题区域或点亮书时开放点命中；
+- 单一 Canvas 绘制全量地形，DOM 不随 4,663 点增长；主题列表和当前区域划线列表提供完整键盘 / 屏幕阅读器替代；
+- 世界 / 各主题 viewport 独立记忆，Browser Back 恢复缩放、位置、当前区域与详情；移动端详情移到 Canvas 下方；
+- 1440 / 390 / 320、200% 等价 reflow、键盘平移缩放、reduced-motion、三标签详情与至少 6 本真实 Book Aura 已有浏览器证据；
+- public snapshot 继续为空且不含 map；没有 public export、public covers、repo、push、workflow 或部署。
+
+完整实况见 `docs/27-BATCH-5-WORLD-MAP.md`。
 
 ## 9. Batch 6 — 全量 4,663 条标签生产
 

@@ -4,7 +4,7 @@
 
 本轮实现 Henry's Reading World V3：在既有真实划线房间体验上加入逐条主题标签、主题小径、embedding 辅助内容生产、阅读世界地图与全局视觉重构；同时保留只在本机运行的 Studio / 发布审核工具。不建设公众登录、远程后台或运行时 AI 服务。
 
-阅读顺序：`PRODUCT_BRIEF.md` → **`docs/19-PRODUCT-DIRECTION-V3.md` → `docs/20-TAGS-PATHS-MAP-SPEC.md` → `docs/21-V3-VISUAL-DIRECTION.md` → `docs/22-V3-IMPLEMENTATION-PLAN.md` → `docs/23-EMBEDDING-EVALUATION.md` → `docs/24-BATCH-2-TAG-DISCOVERY.md` → `docs/25-BATCH-3-TAG-STUDIO.md` → `docs/26-BATCH-4-PATHS-AND-VISUAL.md`** → `docs/17-PUBLICATION-DIRECTION-AND-RELEASE-A.md` → `docs/10-PRODUCT-DIRECTION-V2.md` → `docs/12-ROOMS-COLOR-MOTION-DIRECTION.md` → `docs/11-V2-IMPLEMENTATION-PLAN.md` → `docs/18-RELEASE-A-PUBLICATION-REVIEW-IMPLEMENTER-PROMPT.md` → `docs/01-SCOPE-AND-DECISIONS.md` → `docs/02-TECHNICAL-DESIGN.md` → `docs/03-DATA-CONTRACT.md` → `docs/04-SERENDIPITY-SPEC.md` → `docs/05-UX-SPEC.md` → `docs/06-IMPLEMENTATION-PLAN.md` → `docs/07-IMPLEMENTATION-HANDOFF.md`。`19–22` 是当前 V3 产品与施工权威，`23` 记录 Batch 1 实际评测，`24` 记录 Batch 2 标签发现，`25` 记录 Batch 3 稳定词表、试标与 Local Tag Studio，`26` 记录 Batch 4 schema 3、主题小径、岔路与视觉基础；`17/18` 保留已完成的公开审核与 Release-A 契约；`10–12` 保留 V2 公平、房间和 Book Aura 历史基线，冲突处由 V3 取代。
+阅读顺序：`PRODUCT_BRIEF.md` → **`docs/19-PRODUCT-DIRECTION-V3.md` → `docs/20-TAGS-PATHS-MAP-SPEC.md` → `docs/21-V3-VISUAL-DIRECTION.md` → `docs/22-V3-IMPLEMENTATION-PLAN.md` → `docs/23-EMBEDDING-EVALUATION.md` → `docs/24-BATCH-2-TAG-DISCOVERY.md` → `docs/25-BATCH-3-TAG-STUDIO.md` → `docs/26-BATCH-4-PATHS-AND-VISUAL.md` → `docs/27-BATCH-5-WORLD-MAP.md`** → `docs/17-PUBLICATION-DIRECTION-AND-RELEASE-A.md` → `docs/10-PRODUCT-DIRECTION-V2.md` → `docs/12-ROOMS-COLOR-MOTION-DIRECTION.md` → `docs/11-V2-IMPLEMENTATION-PLAN.md` → `docs/18-RELEASE-A-PUBLICATION-REVIEW-IMPLEMENTER-PROMPT.md` → `docs/01-SCOPE-AND-DECISIONS.md` → `docs/02-TECHNICAL-DESIGN.md` → `docs/03-DATA-CONTRACT.md` → `docs/04-SERENDIPITY-SPEC.md` → `docs/05-UX-SPEC.md` → `docs/06-IMPLEMENTATION-PLAN.md` → `docs/07-IMPLEMENTATION-HANDOFF.md`。`19–22` 是当前 V3 产品与施工权威，`23` 记录 Batch 1 实际评测，`24` 记录 Batch 2 标签发现，`25` 记录 Batch 3 稳定词表、试标与 Local Tag Studio，`26` 记录 Batch 4 schema 3、主题小径、岔路与视觉基础，`27` 记录 Batch 5 全量地图布局、Canvas 世界、主题区域与 Book Aura；`17/18` 保留已完成的公开审核与 Release-A 契约；`10–12` 保留 V2 公平、房间和 Book Aura 历史基线，冲突处由 V3 取代。
 
 用户明确要求所有产品开发使用真实微信读书数据，不使用 fake data。Critique #1 后产品从“前三句策展并塑造印象”调整为全量真实划线的轻松漫游；V3 进一步确认：Book Theme 继续作为书架分类，Highlight 新增 1–3 个地位平等的 Topic Tag，形成主题小径与岔路；embedding 只用于本机标签发现、标注辅助、地图布局和小径软节奏，不做独立类似划线入口、AI 搜索、问答或人格分析。产品采用一个 Reading World、Public/Local 两个数据范围和一个 Local Studio。公开范围的既有决定继续有效，但 Release-B 暂停到 V3 Gate 之后。真正出现新冲突时再请用户决定。
 
@@ -13,7 +13,7 @@
 ## 执行规则
 
 - 先检查目录、现有实现及 Git 状态；保护既有工作，不因为本交接写着“无代码”就覆盖后续代码。
-- 当前 Slice 0–4、V2-A～V2-E4D、**Release-A（A1～A4）与 V3 Batch 0–4** 均已完成；用户已于 2026-09-19 通过 Batch 4 体验 Gate并授权进入 Batch 5。Batch 5A 已完成全量 4,663 点的独立地图布局与 schema，消费者地图 UI 正在施工；294 条 reviewed 试点继续形成 56 条主题小径，6 条 draft 与其余未标注内容不造标签。正式导出 public snapshot、复制 public covers、创建 repo、push 或部署仍需单独 Gate。
+- 当前 Slice 0–4、V2-A～V2-E4D、**Release-A（A1～A4）与 V3 Batch 0–5** 均已完成；用户已于 2026-09-19 通过 Batch 4 体验 Gate并授权进入 Batch 5，当前等待 Batch 5 世界地图体验 Gate。地图使用独立全量 4,663 点布局，294 条 reviewed 试点继续形成 56 条可命名主题区域与小径；6 条 draft 与其余未标注内容只作为未命名地形点，不造标签。正式导出 public snapshot、复制 public covers、创建 repo、push 或部署仍需单独 Gate。
 - 使用 Windows 原生 Node/npm/Git 与 PowerShell。不要混用 WSL 路径。
 - 不在非空项目根目录直接运行可能覆盖文档的脚手架；优先逐文件建立 Vite 配置。
 - 版本首次安装时选择彼此兼容的稳定版本并提交 npm 锁文件，不凭空声称某版本是最新。
