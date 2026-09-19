@@ -12,6 +12,8 @@ describe('routes are parsed from real paths', () => {
         expect(parseRoute('/')).toEqual({ name: 'hall', highlightId: null });
         expect(parseRoute('/themes')).toEqual({ name: 'themes' });
         expect(parseRoute('/themes/t-001')).toEqual({ name: 'theme', themeId: 't-001' });
+        expect(parseRoute('/paths')).toEqual({ name: 'paths' });
+        expect(parseRoute('/paths/tag-001')).toEqual({ name: 'path', tagId: 'tag-001' });
         expect(parseRoute('/books')).toEqual({ name: 'books', year: null, themeId: null });
         expect(parseRoute('/books/b-013')).toEqual({ name: 'book', bookId: 'b-013' });
         expect(parseRoute('/about')).toEqual({ name: 'about' });
@@ -32,6 +34,7 @@ describe('routes are parsed from real paths', () => {
     it('reports an unknown path instead of inventing a room', () => {
         expect(parseRoute('/nope')).toEqual({ name: 'unknown', path: '/nope' });
         expect(parseRoute('/themes/t-001/extra')).toEqual({ name: 'unknown', path: '/themes/t-001/extra' });
+        expect(parseRoute('/paths/tag-001/extra')).toEqual({ name: 'unknown', path: '/paths/tag-001/extra' });
         expect(parseRoute('/books/b-001/2024')).toEqual({ name: 'unknown', path: '/books/b-001/2024' });
     });
 
@@ -41,6 +44,7 @@ describe('routes are parsed from real paths', () => {
 
     it('ignores a trailing slash but keeps the room', () => {
         expect(parseRoute('/themes/')).toEqual({ name: 'themes' });
+        expect(parseRoute('/paths/')).toEqual({ name: 'paths' });
         expect(parseRoute('/books/')).toEqual({ name: 'books', year: null, themeId: null });
     });
 });
@@ -52,6 +56,8 @@ describe('routes are rebuilt as canonical URLs', () => {
             '/?h=h-001',
             '/themes',
             '/themes/t-001',
+            '/paths',
+            '/paths/tag-001',
             '/books',
             '/books/b-013',
             '/about',
@@ -87,6 +93,8 @@ describe('routes are rebuilt as canonical URLs', () => {
             routeKey({ name: 'hall', highlightId: null }),
             routeKey({ name: 'themes' }),
             routeKey({ name: 'theme', themeId: 't-001' }),
+            routeKey({ name: 'paths' }),
+            routeKey({ name: 'path', tagId: 'tag-001' }),
             routeKey({ name: 'books', year: null, themeId: null }),
             routeKey({ name: 'books', year: 2025, themeId: null }),
             routeKey({ name: 'book', bookId: 'b-001' }),

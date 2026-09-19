@@ -21,6 +21,10 @@ export type StageRoomProps = {
 export function StageRoom({ index, nowYear, session, emptyNote, onOpenBook, onShare }: StageRoomProps) {
     const current = session.state.currentId === null ? undefined : index.highlightsById.get(session.state.currentId);
     const book = current === undefined ? undefined : index.booksById.get(current.bookId);
+    const tags =
+        current === undefined
+            ? []
+            : current.tagIds.map((tagId) => index.tagsById.get(tagId)).filter((tag) => tag !== undefined);
 
     if (current === undefined || book === undefined) {
         return (
@@ -34,6 +38,7 @@ export function StageRoom({ index, nowYear, session, emptyNote, onOpenBook, onSh
         <EncounterStage
             highlight={current}
             book={book}
+            tags={tags}
             phase={session.state.phase}
             busy={session.busy}
             nowYear={nowYear}

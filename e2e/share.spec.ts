@@ -9,8 +9,9 @@ import { expect, test, type Page } from '@playwright/test';
  * is locked when the dialog opens and nothing behind the dialog can rewrite it; the preview never crops a
  * long sentence; and local-only mode never pretends a link is publicly reachable.
  */
-type Highlight = { id: string; text: string; bookId: string };
+type Highlight = { id: string; text: string; bookId: string; tagIds: string[] };
 type Book = { id: string; title: string; author: string; themeIds: string[] };
+type TopicTag = { id: string; title: string };
 
 const SNAPSHOT_PATH = join(process.cwd(), '.private/local-snapshot.json');
 const hasSnapshot = existsSync(SNAPSHOT_PATH);
@@ -18,6 +19,7 @@ const hasSnapshot = existsSync(SNAPSHOT_PATH);
 type RealData = {
     highlights: Highlight[];
     bookById: Map<string, Book>;
+    tagById: Map<string, TopicTag>;
     firstOfBook: Map<string, Highlight>;
     countByBook: Map<string, number>;
     lengths: { shortest: Highlight; longest: Highlight; medium: Highlight; shortestLength: number; longestLength: number };
@@ -28,7 +30,11 @@ function nonWhitespace(text: string): number {
 }
 
 function loadSnapshot(): RealData {
-    const parsed = JSON.parse(readFileSync(SNAPSHOT_PATH, 'utf8')) as { highlights: Highlight[]; books: Book[] };
+    const parsed = JSON.parse(readFileSync(SNAPSHOT_PATH, 'utf8')) as {
+        highlights: Highlight[];
+        books: Book[];
+        tags: TopicTag[];
+    };
     const firstOfBook = new Map<string, Highlight>();
     const countByBook = new Map<string, number>();
     for (const highlight of parsed.highlights) {
@@ -50,6 +56,7 @@ function loadSnapshot(): RealData {
     return {
         highlights: parsed.highlights,
         bookById: new Map(parsed.books.map((book) => [book.id, book])),
+        tagById: new Map(parsed.tags.map((tag) => [tag.id, tag])),
         firstOfBook,
         countByBook,
         lengths: {
@@ -63,8 +70,11 @@ function loadSnapshot(): RealData {
 }
 
 /** The exact text `复制文字` must produce, built from the same real record the page shows. */
-function expectedCopyText(highlight: Highlight, book: Book | undefined): string {
-    return `${highlight.text}\n\n——《${book?.title ?? '出处缺失'}》${book?.author ?? '作者信息暂缺'}\n\n来自 Henry's Reading World`;
+function expectedCopyText(highlight: Highlight, book: Book | undefined, tagById: Map<string, TopicTag>): string {
+    const tagLine = highlight.tagIds.length === 0
+        ? ''
+        : `\n\n${highlight.tagIds.map((tagId) => `#${tagById.get(tagId)?.title ?? ''}`).join(' ')}`;
+    return `${highlight.text}${tagLine}\n\n——《${book?.title ?? '出处缺失'}》${book?.author ?? '作者信息暂缺'}\n\n来自 Henry's Reading World`;
 }
 
 async function openDialogFrom(page: Page, triggerTestId: string): Promise<void> {
@@ -111,7 +121,7 @@ test.describe('sharing the passage on screen', () => {
         await page.getByTestId('share-copy-text').click();
         await expect(page.getByTestId('share-status')).toHaveText('已复制');
         const copied = await readClipboard(page);
-        expect(copied).toBe(expectedCopyText(highlight, data.bookById.get(highlight.bookId)));
+        expect(copied).toBe(expectedCopyText(highlight, data.bookById.get(highlight.bookId), data.tagById));
         // The site name is its own paragraph, never appended to the author's line (docs/17 §7).
         expect(copied.endsWith("\n\n来自 Henry's Reading World")).toBe(true);
         expect(copied.split('\n').at(-2)).toBe('');
@@ -157,7 +167,9 @@ test.describe('sharing the passage on screen', () => {
         await expect(page.getByTestId('share-card-text')).toHaveText(text);
         // And the copy still describes the locked passage, not whatever the stage may be doing.
         await page.getByTestId('share-copy-text').click();
-        expect(await readClipboard(page)).toBe(expectedCopyText(highlight, data.bookById.get(highlight.bookId)));
+        expect(await readClipboard(page)).toBe(
+            expectedCopyText(highlight, data.bookById.get(highlight.bookId), data.tagById),
+        );
     });
 
     test('re-locks the new passage the next time it is opened', async ({ page }) => {

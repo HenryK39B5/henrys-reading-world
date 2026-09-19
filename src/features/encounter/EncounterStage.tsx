@@ -5,7 +5,8 @@ import { coverUrl, useCoverAccent } from '../../app/covers.ts';
 import type { Phase } from '../../domain/encounter.ts';
 import { lengthBand } from '../../domain/length.ts';
 import { describeBookCollection, relativeYearLabel } from '../../domain/timeLabel.ts';
-import type { Book, Highlight } from '../../domain/types.ts';
+import type { Book, Highlight, TopicTag } from '../../domain/types.ts';
+import { TopicClues } from '../paths/TopicClues.tsx';
 import './stage.css';
 
 export const SOURCE_PANEL_ID = 'source-panel';
@@ -13,6 +14,7 @@ export const SOURCE_PANEL_ID = 'source-panel';
 export type EncounterStageProps = {
     highlight: Highlight;
     book: Book | undefined;
+    tags: TopicTag[];
     phase: Phase;
     busy: boolean;
     nowYear: number;
@@ -46,6 +48,7 @@ export type EncounterStageProps = {
 export function EncounterStage({
     highlight,
     book,
+    tags,
     phase,
     busy,
     nowYear,
@@ -133,6 +136,8 @@ export function EncounterStage({
                     {timeLabel === null ? null : <span className="stage-time">{timeLabel}</span>}
                 </p>
             </div>
+
+            <TopicClues tags={tags} />
 
             <div id={SOURCE_PANEL_ID} className="source-panel" hidden={!sourceOpen} data-testid="source-panel">
                 <div className="source-body">

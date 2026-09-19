@@ -9,6 +9,7 @@ type NavEntry = {
 const ENTRIES: NavEntry[] = [
     { id: 'hall', label: '随便看看', href: '/' },
     { id: 'themes', label: '主题书架', href: '/themes' },
+    { id: 'paths', label: '主题小径', href: '/paths' },
     { id: 'books', label: '所有书', href: '/books' },
     { id: 'about', label: '关于', href: '/about' },
 ];
@@ -21,6 +22,9 @@ function activeId(route: RoomRoute): string {
         case 'themes':
         case 'theme':
             return 'themes';
+        case 'paths':
+        case 'path':
+            return 'paths';
         case 'books':
         case 'book':
             return 'books';

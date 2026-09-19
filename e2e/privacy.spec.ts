@@ -14,10 +14,11 @@ import { hasSnapshot, loadSnapshot } from './support/snapshot.ts';
 test.use({ permissions: ['clipboard-read', 'clipboard-write'] });
 
 /** Keys the data contract allows on the wire (docs/03 §2). Anything else is a leak or a mistake. */
-const ALLOWED_SNAPSHOT_KEYS = ['schemaVersion', 'visibility', 'owner', 'books', 'themes', 'highlights'];
+const ALLOWED_SNAPSHOT_KEYS = ['schemaVersion', 'visibility', 'owner', 'books', 'themes', 'tags', 'highlights'];
 const ALLOWED_BOOK_KEYS = ['id', 'title', 'author', 'description', 'coverPath', 'themeIds'];
 const ALLOWED_THEME_KEYS = ['id', 'title', 'description'];
-const ALLOWED_HIGHLIGHT_KEYS = ['id', 'bookId', 'text', 'year'];
+const ALLOWED_TAG_KEYS = ['id', 'title', 'description'];
+const ALLOWED_HIGHLIGHT_KEYS = ['id', 'bookId', 'text', 'year', 'tagIds', 'pathVector'];
 const ALLOWED_OWNER_KEYS = ['displayName', 'siteTitle', 'about'];
 
 test.describe('the client talks to nothing but itself', () => {
@@ -32,10 +33,13 @@ test.describe('the client talks to nothing but itself', () => {
 
         const bookId = data.biggestBookId ?? data.books[0]?.id ?? '';
         const themeId = data.themes[0]?.id ?? '';
+        const tagId = data.tags[0]?.id ?? '';
         for (const path of [
             '/',
             '/themes',
             `/themes/${encodeURIComponent(themeId)}`,
+            '/paths',
+            `/paths/${encodeURIComponent(tagId)}`,
             '/books',
             `/books/${encodeURIComponent(bookId)}`,
             '/about',
@@ -74,6 +78,7 @@ test.describe('the client talks to nothing but itself', () => {
             owner: Record<string, unknown>;
             books: Record<string, unknown>[];
             themes: Record<string, unknown>[];
+            tags: Record<string, unknown>[];
             highlights: Record<string, unknown>[];
         };
 
@@ -84,6 +89,9 @@ test.describe('the client talks to nothing but itself', () => {
         }
         for (const theme of snapshot.themes) {
             expect(Object.keys(theme).filter((key) => !ALLOWED_THEME_KEYS.includes(key))).toEqual([]);
+        }
+        for (const tag of snapshot.tags) {
+            expect(Object.keys(tag).filter((key) => !ALLOWED_TAG_KEYS.includes(key))).toEqual([]);
         }
         for (const highlight of snapshot.highlights) {
             expect(Object.keys(highlight).filter((key) => !ALLOWED_HIGHLIGHT_KEYS.includes(key))).toEqual([]);
@@ -100,6 +108,11 @@ test.describe('the client talks to nothing but itself', () => {
             'noteCount',
             'reviewCount',
             'apiKey',
+            'confidence',
+            'rationale',
+            'candidates',
+            'familyId',
+            'note',
         ]) {
             expect(payload.includes(forbidden), `${forbidden} must never be served`).toBe(false);
         }

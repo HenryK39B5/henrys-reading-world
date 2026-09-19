@@ -12,8 +12,12 @@ import { HallRoom } from '../features/rooms/HallRoom.tsx';
 import { ThemeRoom } from '../features/rooms/ThemeRoom.tsx';
 import { ThemesRoom } from '../features/rooms/ThemesRoom.tsx';
 import { UnknownRoom } from '../features/rooms/UnknownRoom.tsx';
+import { PathRoom } from '../features/paths/PathRoom.tsx';
+import { PathsRoom } from '../features/paths/PathsRoom.tsx';
 import { useBatches } from '../features/rooms/useBatches.ts';
-import { useBookWalks } from '../features/rooms/useBookRoom.ts';import { useRoomMemory } from '../features/rooms/useRoomMemory.ts';
+import { useBookWalks } from '../features/rooms/useBookRoom.ts';
+import { usePathWalks } from '../features/rooms/usePathRoom.ts';
+import { useRoomMemory } from '../features/rooms/useRoomMemory.ts';
 import { ShareDialog } from '../features/share/ShareDialog.tsx';
 import { useShare } from '../features/share/useShare.ts';
 import { Nav } from './Nav.tsx';
@@ -22,6 +26,7 @@ import { roomPath, routeKey, routePath, type RouterApi } from './router.ts';
 import { DATA_MODE } from './snapshotSource.ts';
 import './page.css';
 import '../features/rooms/rooms.css';
+import '../features/paths/paths.css';
 
 export type ReadingWorldProps = {
     snapshot: Snapshot;
@@ -94,6 +99,8 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
 
     const activeBookId = route.name === 'book' ? route.bookId : '';
     const bookWalks = useBookWalks(activeBookId, index);
+    const activeTagId = route.name === 'path' ? route.tagId : '';
+    const pathWalks = usePathWalks(activeTagId, index.snapshot.highlights);
     // A library screen and a book room are different collections; only the library still batches.
     const bookBatches = useBatches(INITIAL_BOOK_BATCH);
 
@@ -113,6 +120,10 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
      * rooms use — keeps the words, the source and the colour describing one thing.
      */
     const sharedBook = sharedHighlight === undefined ? undefined : index.booksById.get(sharedHighlight.bookId);
+    const sharedTags =
+        sharedHighlight === undefined
+            ? []
+            : sharedHighlight.tagIds.map((tagId) => index.tagsById.get(tagId)).filter((tag) => tag !== undefined);
     const shareAccent = useCoverAccent(coverUrl(sharedBook?.coverPath));
 
     /**
@@ -130,11 +141,23 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
                 ? null
                 : (index.highlightsById.get(stage.state.currentId)?.bookId ?? null);
         }
+        if (route.name === 'path') {
+            return pathWalks.state.currentId === null
+                ? null
+                : (index.highlightsById.get(pathWalks.state.currentId)?.bookId ?? null);
+        }
         return null;
     })();
     const focusBook = focusBookId === null ? undefined : index.booksById.get(focusBookId);
     const aura = useCoverAccent(coverUrl(focusBook?.coverPath));
-    const auraTarget = route.name === 'book' ? '0.1' : route.name === 'hall' ? '0.05' : route.name === 'theme' ? '0.045' : '0';
+    const auraTarget =
+        route.name === 'book'
+            ? '0.1'
+            : route.name === 'hall'
+              ? '0.05'
+              : route.name === 'theme' || route.name === 'path'
+                ? '0.045'
+                : '0';
 
     useRoomMemory(routeKey(route));
 
@@ -237,6 +260,19 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
                         onShare={share.open}
                     />
                 );
+            case 'paths':
+                return <PathsRoom index={index} />;
+            case 'path':
+                return (
+                    <PathRoom
+                        index={index}
+                        tagId={route.tagId}
+                        nowYear={nowYear}
+                        room={pathWalks}
+                        onOpenBook={openBook}
+                        onShare={share.open}
+                    />
+                );
             case 'books':
                 return <BooksRoom index={index} year={route.year} themeId={route.themeId} batches={bookBatches} />;
             case 'book':
@@ -297,6 +333,7 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
                 <ShareDialog
                     highlight={sharedHighlight}
                     book={sharedBook}
+                    tags={sharedTags}
                     accent={shareAccent}
                     localOnly={DATA_MODE === 'local'}
                     copyStatus={share.state.copyStatus}

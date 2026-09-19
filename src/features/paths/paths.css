@@ -1,0 +1,340 @@
+.room-kicker {
+    margin: 0 0 5px;
+    color: var(--ink-soft);
+    font-size: 12px;
+    letter-spacing: 0;
+}
+
+/* Equal-status topic clues: textual exits, not category pills. */
+.topic-clues {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 14px;
+    margin-top: 20px;
+    max-width: 48em;
+    color: var(--ink-soft);
+    font-size: 13px;
+}
+
+.topic-clues-label {
+    flex: 0 0 auto;
+    color: var(--ink-faint);
+}
+
+.topic-clues-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 15px;
+}
+
+.topic-clue {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--ink-soft);
+    text-decoration: underline;
+    text-decoration-color: var(--rule-strong);
+    text-underline-offset: 0.35em;
+}
+
+.topic-clue[aria-current='page'] {
+    color: var(--ink);
+    text-decoration-color: var(--accent);
+    text-decoration-thickness: 2px;
+}
+
+@media (hover: hover) {
+    .topic-clue:hover {
+        color: var(--accent);
+        text-decoration-color: currentColor;
+    }
+}
+
+/* ---- Path index ---- */
+
+.paths-head,
+.path-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--rule-strong);
+}
+
+.paths-total {
+    color: var(--ink-soft);
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.path-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.path-list-item {
+    border-bottom: 1px solid var(--rule);
+}
+
+.path-list-link {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) auto 24px;
+    align-items: center;
+    gap: 16px;
+    min-height: 108px;
+    padding: 16px 0;
+    text-decoration: none;
+}
+
+.path-list-number {
+    color: var(--ink-faint);
+    font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    font-size: 12px;
+}
+
+.path-list-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.path-list-title {
+    font-family: var(--stage-font);
+    font-size: 24px;
+    font-weight: 400;
+}
+
+.path-list-description {
+    max-width: 48em;
+    color: var(--ink-soft);
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.path-list-count {
+    color: var(--ink-soft);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.path-list-arrow {
+    color: var(--ink-faint);
+    font-size: 17px;
+    transition: transform 160ms ease-out, color 160ms ease-out;
+}
+
+@media (hover: hover) {
+    .path-list-link:hover .path-list-title,
+    .path-list-link:focus-visible .path-list-title {
+        color: var(--accent);
+    }
+
+    .path-list-link:hover .path-list-arrow,
+    .path-list-link:focus-visible .path-list-arrow {
+        color: var(--accent);
+        transform: translateX(3px);
+    }
+}
+
+/* ---- One path ---- */
+
+.path-heading {
+    margin: 0;
+    font-family: var(--stage-font);
+    font-size: 34px;
+    font-weight: 400;
+    letter-spacing: 0;
+}
+
+.path-definition {
+    max-width: 46em;
+    margin: 14px 0 0;
+    color: var(--ink-soft);
+    font-size: 14px;
+}
+
+.path-rhythm {
+    display: inline-grid;
+    grid-template-columns: repeat(2, minmax(72px, 1fr));
+    border: 1px solid var(--rule-strong);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.path-rhythm-option {
+    min-height: 40px;
+    padding: 5px 12px;
+    border: 0;
+    border-right: 1px solid var(--rule-strong);
+    background: transparent;
+    color: var(--ink-soft);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.path-rhythm-option:last-child {
+    border-right: 0;
+}
+
+.path-rhythm-option[aria-pressed='true'] {
+    background: var(--surface-muted);
+    color: var(--ink);
+}
+
+.path-stage {
+    min-height: 50svh;
+    padding: 64px 0 36px;
+    animation: path-passage-arrive 260ms ease-out both;
+}
+
+@keyframes path-passage-arrive {
+    from { opacity: 0; transform: translateY(7px); }
+    to { opacity: 1; transform: none; }
+}
+
+.path-passage {
+    margin: 0;
+}
+
+.path-text {
+    max-width: 30em;
+    margin: 0;
+    color: var(--ink);
+    font-family: var(--stage-font);
+    font-size: 31px;
+    line-height: 1.82;
+    overflow-wrap: anywhere;
+    text-wrap: pretty;
+    white-space: pre-wrap;
+}
+
+.path-stage[data-band='short'] .path-text {
+    font-size: 40px;
+    line-height: 1.7;
+    text-wrap: balance;
+}
+
+.path-stage[data-band='long'] .path-text {
+    font-size: 24px;
+    line-height: 1.95;
+}
+
+.path-source {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 5px;
+    margin: 22px 0 0;
+    color: var(--ink-soft);
+    font-size: 13px;
+}
+
+.path-book-link {
+    min-height: 44px;
+    padding: 4px 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+}
+
+.path-book-link:hover {
+    color: var(--accent);
+}
+
+.path-footer {
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+}
+
+.path-progress {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 12px;
+}
+
+.path-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+    margin-top: 14px;
+}
+
+.path-complete {
+    margin-top: 12px;
+}
+
+@media (max-width: 700px) {
+    .paths-head,
+    .path-head {
+        align-items: flex-start;
+    }
+
+    .path-head {
+        flex-direction: column;
+    }
+
+    .path-list-link {
+        grid-template-columns: 30px minmax(0, 1fr) 18px;
+        gap: 10px;
+        min-height: 120px;
+    }
+
+    .path-list-count {
+        grid-column: 2;
+        white-space: normal;
+    }
+
+    .path-list-arrow {
+        grid-column: 3;
+        grid-row: 1 / span 2;
+    }
+
+    .path-stage {
+        min-height: 54svh;
+        padding-top: 42px;
+    }
+
+    .path-text,
+    .path-stage[data-band='short'] .path-text {
+        font-size: 28px;
+    }
+
+    .path-stage[data-band='long'] .path-text {
+        font-size: 21px;
+    }
+}
+
+@media (max-width: 360px) {
+    .path-list-link {
+        grid-template-columns: minmax(0, 1fr) 18px;
+    }
+
+    .path-list-number {
+        display: none;
+    }
+
+    .path-list-count {
+        grid-column: 1;
+    }
+
+    .path-list-arrow {
+        grid-column: 2;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .path-stage {
+        animation: none;
+    }
+
+    .path-list-arrow {
+        transition: none;
+    }
+}

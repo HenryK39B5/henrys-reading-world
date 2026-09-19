@@ -56,9 +56,19 @@ async function settledCard(
         .poll(
             async () => {
                 const state = await cardState(page);
+                return `${state.accent}|${state.background}`;
+            },
+            { message: 'the card must settle on its final cover palette', timeout: 8000 },
+        )
+        .toMatch(/^#[0-9a-f]{6}\|rgb\(/u);
+    await page.waitForTimeout(700);
+    await expect
+        .poll(
+            async () => {
+                const state = await cardState(page);
                 return state.background === cssOf(sharePalette(state.accent).background);
             },
-            { message: 'the card must settle on its own palette', timeout: 8000 },
+            { message: 'the settled accent and painted surface must agree', timeout: 8000 },
         )
         .toBe(true);
     return cardState(page);

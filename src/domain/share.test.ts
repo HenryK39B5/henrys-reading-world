@@ -93,6 +93,17 @@ describe('the copied text is the real passage plus its real source', () => {
         );
     });
 
+    it('includes every Topic Tag in editorial order without truncation', () => {
+        const tags = [
+            { id: 'tag-001', title: '希望' },
+            { id: 'tag-002', title: '机会' },
+            { id: 'tag-003', title: '不确定性' },
+        ];
+        expect(shareText(HIGHLIGHT, BOOK, tags)).toBe(
+            `${PLACEHOLDER}\n\n#希望 #机会 #不确定性\n\n——《书名占位》作者占位\n\n来自 ${SITE_NAME}`,
+        );
+    });
+
     it('keeps the site name on its own paragraph, so it does not read as a second author', () => {
         const text = shareText(HIGHLIGHT, BOOK);
         const lines = text.split('\n');

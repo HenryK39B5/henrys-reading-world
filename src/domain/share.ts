@@ -9,7 +9,7 @@
  * Pure and framework-free: the reducer, the address and the copied text are all unit-testable without a
  * browser, and the React layer only wires a dialog to it.
  */
-import type { Book, Highlight } from './types.ts';
+import type { Book, Highlight, TopicTag } from './types.ts';
 
 export const SITE_NAME = "Henry's Reading World";
 
@@ -73,10 +73,11 @@ export function shareUrl(origin: string, highlightId: string): string {
  * or a note reads as two facts — who wrote this, and where the copy came from — instead of the site looking
  * like a second author tacked onto the end of the attribution line (the user's own report on V2-E4D).
  */
-export function shareText(highlight: Highlight, book: Book | undefined): string {
+export function shareText(highlight: Highlight, book: Book | undefined, tags: readonly TopicTag[] = []): string {
     const title = orFallback(book?.title, UNKNOWN_TITLE);
     const author = orFallback(book?.author, UNKNOWN_AUTHOR);
-    return `${highlight.text}\n\n——《${title}》${author}\n\n来自 ${SITE_NAME}`;
+    const tagLine = tags.length === 0 ? '' : `\n\n${tags.map((tag) => `#${tag.title}`).join(' ')}`;
+    return `${highlight.text}${tagLine}\n\n——《${title}》${author}\n\n来自 ${SITE_NAME}`;
 }
 
 /** A field the snapshot left blank is missing, not an empty thing to print. */

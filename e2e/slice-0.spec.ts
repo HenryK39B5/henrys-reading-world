@@ -47,12 +47,19 @@ test('keeps private files and credentials unreachable over HTTP', async ({ page,
     // The only sanctioned private endpoint is the validated snapshot route.
     const snapshot = await request.get('/__local_snapshot');
     expect(snapshot.status()).toBe(200);
-    const payload = (await snapshot.json()) as { visibility: string; schemaVersion: number; highlights: unknown[]; themes: unknown[] };
+    const payload = (await snapshot.json()) as {
+        visibility: string;
+        schemaVersion: number;
+        highlights: unknown[];
+        themes: unknown[];
+        tags: unknown[];
+    };
     expect(payload.visibility).toBe('local-only');
-    expect(payload.schemaVersion).toBe(2);
-    // v2 puts the whole real library behind the stage rather than a curated sample (docs/10 §7).
+    expect(payload.schemaVersion).toBe(3);
+    // schema 3 keeps the full library and adds reviewed Topic Tags without shrinking the V2 range.
     expect(payload.highlights.length).toBeGreaterThanOrEqual(1000);
     expect(payload.themes.length).toBeGreaterThanOrEqual(8);
+    expect(payload.tags.length).toBe(56);
 
     const post = await request.post('/__local_snapshot');
     expect(post.status()).toBe(405);

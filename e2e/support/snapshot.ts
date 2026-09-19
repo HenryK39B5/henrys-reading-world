@@ -8,14 +8,23 @@ import { join } from 'node:path';
  * than against a fixed order. When the private file is absent every browser check skips instead of
  * quietly passing on fake content.
  */
-export type Highlight = { id: string; text: string; bookId: string; year?: number };
+export type Highlight = {
+    id: string;
+    text: string;
+    bookId: string;
+    year?: number;
+    tagIds: string[];
+    pathVector?: number[];
+};
 export type Book = { id: string; title: string; author: string; themeIds: string[]; coverPath?: string };
 export type Theme = { id: string; title: string };
+export type TopicTag = { id: string; title: string; description?: string };
 
 export type RealData = {
     highlights: Highlight[];
     books: Book[];
     themes: Theme[];
+    tags: TopicTag[];
     bookById: Map<string, Book>;
     countByBook: Map<string, number>;
     /** Keyed by the trimmed text, so a rendered passage can be looked up. */
@@ -42,6 +51,7 @@ export function loadSnapshot(): RealData {
         highlights: Highlight[];
         books: Book[];
         themes: Theme[];
+        tags: TopicTag[];
     };
 
     const countByBook = new Map<string, number>();
@@ -79,6 +89,7 @@ export function loadSnapshot(): RealData {
         highlights: parsed.highlights,
         books: parsed.books,
         themes: parsed.themes,
+        tags: parsed.tags,
         bookById: new Map(parsed.books.map((book) => [book.id, book])),
         countByBook,
         byText: new Map(parsed.highlights.map((item) => [item.text.trim(), item])),

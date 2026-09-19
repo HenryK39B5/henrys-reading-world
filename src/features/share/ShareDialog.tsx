@@ -10,7 +10,7 @@ import {
     type ShareCopyStatus,
 } from '../../domain/share.ts';
 import { sharePalette } from '../../domain/sharePalette.ts';
-import type { Book, Highlight } from '../../domain/types.ts';
+import type { Book, Highlight, TopicTag } from '../../domain/types.ts';
 import { useScrollLock } from './useScrollLock.ts';
 import './share.css';
 
@@ -18,6 +18,7 @@ export type ShareDialogProps = {
     /** The locked passage. It is read-only here: the dialog never re-derives it from the stage. */
     highlight: Highlight;
     book: Book | undefined;
+    tags: TopicTag[];
     /**
      * The accent of the locked passage's own book.
      *
@@ -88,6 +89,7 @@ function useExtendedCard(ref: React.RefObject<HTMLDivElement | null>): boolean {
 export function ShareDialog({
     highlight,
     book,
+    tags,
     accent,
     localOnly,
     copyStatus,
@@ -212,6 +214,13 @@ export function ShareDialog({
                 <blockquote className="share-card-text" data-testid="share-card-text">
                     {highlight.text}
                 </blockquote>
+                {tags.length === 0 ? null : (
+                    <p className="share-card-tags" data-testid="share-card-tags">
+                        {tags.map((tag) => (
+                            <span key={tag.id}>#{tag.title}</span>
+                        ))}
+                    </p>
+                )}
                 <div className="share-card-meta">
                     <p className="share-card-source">
                         《<cite className="share-card-title">{title}</cite>》
@@ -245,7 +254,7 @@ export function ShareDialog({
                     data-testid="share-copy-text"
                     ref={copyTextRef}
                     onClick={() => {
-                        void copy('文字', shareText(highlight, book));
+                        void copy('文字', shareText(highlight, book, tags));
                     }}
                 >
                     复制文字

@@ -4,6 +4,7 @@ import { passagesOfBook } from '../../domain/reading.ts';
 import type { SnapshotIndex } from '../../domain/snapshot.ts';
 import { describeBookCollection, relativeYearLabel } from '../../domain/timeLabel.ts';
 import { summarizeThemes } from '../../domain/world.ts';
+import { TopicClues } from '../paths/TopicClues.tsx';
 import type { BookRoomController } from './useBookRoom.ts';
 
 export type BookRoomProps = {
@@ -54,6 +55,10 @@ export function BookRoom({ index, bookId, nowYear, room, onBack, onShare }: Book
     const shelves = summarizeThemes(index).filter((entry) => book.themeIds.includes(entry.theme.id));
     const progress = walkProgress(room.state, passages);
     const timeLabel = current === undefined ? null : relativeYearLabel(current.year, nowYear);
+    const tags =
+        current === undefined
+            ? []
+            : current.tagIds.map((tagId) => index.tagsById.get(tagId)).filter((tag) => tag !== undefined);
     const single = passages.length <= 1;
 
     return (
@@ -99,6 +104,8 @@ export function BookRoom({ index, bookId, nowYear, room, onBack, onShare }: Book
                         {timeLabel === null ? null : <p className="book-random-time">{timeLabel}</p>}
                     </blockquote>
                 )}
+
+                <TopicClues tags={tags} />
 
                 <p className="book-walk-progress" data-testid="book-walk-progress" role="status">
                     本轮已看 {progress.seen} / {progress.total}

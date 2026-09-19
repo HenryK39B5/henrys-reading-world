@@ -26,6 +26,8 @@ export type RoomRoute =
     | { name: 'hall'; highlightId: string | null }
     | { name: 'themes' }
     | { name: 'theme'; themeId: string }
+    | { name: 'paths' }
+    | { name: 'path'; tagId: string }
     | ({ name: 'books' } & BookFilters)
     /**
      * 书籍房间. It names a book and nothing else: the room walks that book's passages in rounds, so a
@@ -81,6 +83,14 @@ export function parseRoute(pathname: string, search = ''): RoomRoute {
             return { name: 'theme', themeId: second };
         }
     }
+    if (head === 'paths') {
+        if (segments.length === 1) {
+            return { name: 'paths' };
+        }
+        if (segments.length === 2 && second !== undefined) {
+            return { name: 'path', tagId: second };
+        }
+    }
     if (head === 'books') {
         if (segments.length === 1) {
             return { name: 'books', year: readYear(params), themeId: params.get('theme') };
@@ -106,6 +116,10 @@ export function routePath(route: RoomRoute): string {
             return '/themes';
         case 'theme':
             return `/themes/${encodeURIComponent(route.themeId)}`;
+        case 'paths':
+            return '/paths';
+        case 'path':
+            return `/paths/${encodeURIComponent(route.tagId)}`;
         case 'about':
             return '/about';
         case 'books': {

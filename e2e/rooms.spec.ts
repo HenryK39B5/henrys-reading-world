@@ -10,8 +10,9 @@ import { expect, test, type Page } from '@playwright/test';
  * when that file is absent. Which passage appears is the fair engine's business, so nothing here asserts
  * a fixed passage order.
  */
-type Highlight = { id: string; text: string; bookId: string; year?: number };
+type Highlight = { id: string; text: string; bookId: string; year?: number; tagIds: string[] };
 type Book = { id: string; title: string; author: string; themeIds: string[] };
+type TopicTag = { id: string; title: string };
 
 const SNAPSHOT_PATH = join(process.cwd(), '.private/local-snapshot.json');
 const hasSnapshot = existsSync(SNAPSHOT_PATH);
@@ -20,6 +21,7 @@ type RealData = {
     highlights: Highlight[];
     books: Book[];
     themes: { id: string; title: string }[];
+    tags: TopicTag[];
     countByBook: Map<string, number>;
     bookById: Map<string, Book>;
     byText: Map<string, Highlight>;
@@ -31,6 +33,7 @@ function loadSnapshot(): RealData {
         highlights: Highlight[];
         books: Book[];
         themes: { id: string; title: string }[];
+        tags: TopicTag[];
     };
     const countByBook = new Map<string, number>();
     for (const highlight of parsed.highlights) {
@@ -46,6 +49,7 @@ function loadSnapshot(): RealData {
         highlights: parsed.highlights,
         books: parsed.books,
         themes: parsed.themes,
+        tags: parsed.tags,
         countByBook,
         bookById: new Map(parsed.books.map((book) => [book.id, book])),
         byText: new Map(parsed.highlights.map((item) => [item.text.trim(), item])),
@@ -155,12 +159,14 @@ test.describe('rooms and their URLs', () => {
     test.skip(!hasSnapshot, 'private local snapshot is not available');
 
     test('every room is reachable by its own URL and survives a refresh', async ({ page }) => {
-        const { themes, books } = loadSnapshot();
+        const { themes, books, tags } = loadSnapshot();
         const shelf = themes[0];
         const book = books[0];
+        const tag = tags[0];
         expect(shelf).toBeDefined();
         expect(book).toBeDefined();
-        if (shelf === undefined || book === undefined) {
+        expect(tag).toBeDefined();
+        if (shelf === undefined || book === undefined || tag === undefined) {
             return;
         }
 
@@ -168,6 +174,8 @@ test.describe('rooms and their URLs', () => {
             { path: '/', heading: '随便看看', nav: 'nav-hall' },
             { path: '/themes', heading: '主题书架', nav: 'nav-themes' },
             { path: `/themes/${shelf.id}`, heading: `正在逛：${shelf.title}`, nav: 'nav-themes' },
+            { path: '/paths', heading: '主题小径', nav: 'nav-paths' },
+            { path: `/paths/${tag.id}`, heading: tag.title, nav: 'nav-paths' },
             { path: '/books', heading: '所有书', nav: 'nav-books' },
             { path: `/books/${book.id}`, heading: `《${book.title}》`, nav: 'nav-books' },
             { path: '/about', heading: '关于', nav: 'nav-about' },
