@@ -45,7 +45,9 @@ export function PathsRoom({ index }: { index: SnapshotIndex }) {
             )}
 
             <nav className="room-exits" aria-label="主题小径的出口">
-                <span className="room-note">世界地图将在下一阶段开放。</span>
+                <a className="room-exit" href="/map" data-testid="paths-map-link">
+                    打开阅读世界地图
+                </a>
                 <a className="room-exit" href="/themes">
                     逛主题书架
                 </a>

@@ -24,6 +24,7 @@ function activeId(route: RoomRoute): string {
             return 'themes';
         case 'paths':
         case 'path':
+        case 'map':
             return 'paths';
         case 'books':
         case 'book':

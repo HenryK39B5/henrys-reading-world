@@ -10,6 +10,7 @@ test('every room has an honest empty state in public mode', async ({ page }) => 
         { path: '/themes', heading: '主题书架', note: '这里还没有可展示的真实划线' },
         { path: '/paths', heading: '主题小径', note: '目前还没有完成审核的主题小径' },
         { path: '/paths/tag-001', heading: '小径不存在', note: '不在当前收录范围内' },
+        { path: '/map', heading: '阅读世界地图', note: '还没有生成可展示的地图' },
         { path: '/books', heading: '所有书', note: '这里没有可展示的书。' },
         { path: '/books/b-001', heading: '书不在收录范围', note: '不在收录范围内' },
         { path: '/themes/t-001', heading: '书架不存在', note: '不在收录范围内' },

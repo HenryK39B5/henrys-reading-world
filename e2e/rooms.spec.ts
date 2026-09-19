@@ -176,6 +176,8 @@ test.describe('rooms and their URLs', () => {
             { path: `/themes/${shelf.id}`, heading: `正在逛：${shelf.title}`, nav: 'nav-themes' },
             { path: '/paths', heading: '主题小径', nav: 'nav-paths' },
             { path: `/paths/${tag.id}`, heading: tag.title, nav: 'nav-paths' },
+            { path: '/map', heading: '阅读世界地图', nav: 'nav-paths' },
+            { path: `/map?tag=${tag.id}`, heading: tag.title, nav: 'nav-paths' },
             { path: '/books', heading: '所有书', nav: 'nav-books' },
             { path: `/books/${book.id}`, heading: `《${book.title}》`, nav: 'nav-books' },
             { path: '/about', heading: '关于', nav: 'nav-about' },

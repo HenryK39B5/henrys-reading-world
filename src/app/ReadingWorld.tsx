@@ -12,6 +12,7 @@ import { HallRoom } from '../features/rooms/HallRoom.tsx';
 import { ThemeRoom } from '../features/rooms/ThemeRoom.tsx';
 import { ThemesRoom } from '../features/rooms/ThemesRoom.tsx';
 import { UnknownRoom } from '../features/rooms/UnknownRoom.tsx';
+import { MapRoom } from '../features/map/MapRoom.tsx';
 import { PathRoom } from '../features/paths/PathRoom.tsx';
 import { PathsRoom } from '../features/paths/PathsRoom.tsx';
 import { useBatches } from '../features/rooms/useBatches.ts';
@@ -27,6 +28,7 @@ import { DATA_MODE } from './snapshotSource.ts';
 import './page.css';
 import '../features/rooms/rooms.css';
 import '../features/paths/paths.css';
+import '../features/map/map.css';
 
 export type ReadingWorldProps = {
     snapshot: Snapshot;
@@ -270,6 +272,17 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
                         nowYear={nowYear}
                         room={pathWalks}
                         onOpenBook={openBook}
+                        onShare={share.open}
+                    />
+                );
+            case 'map':
+                return (
+                    <MapRoom
+                        index={index}
+                        tagId={route.tagId}
+                        bookId={route.bookId}
+                        highlightId={route.highlightId}
+                        onNavigate={router.navigate}
                         onShare={share.open}
                     />
                 );

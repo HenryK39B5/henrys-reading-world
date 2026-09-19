@@ -28,6 +28,7 @@ export type RoomRoute =
     | { name: 'theme'; themeId: string }
     | { name: 'paths' }
     | { name: 'path'; tagId: string }
+    | { name: 'map'; tagId: string | null; bookId: string | null; highlightId: string | null }
     | ({ name: 'books' } & BookFilters)
     /**
      * 书籍房间. It names a book and nothing else: the room walks that book's passages in rounds, so a
@@ -91,6 +92,14 @@ export function parseRoute(pathname: string, search = ''): RoomRoute {
             return { name: 'path', tagId: second };
         }
     }
+    if (head === 'map' && segments.length === 1) {
+        return {
+            name: 'map',
+            tagId: params.get('tag'),
+            bookId: params.get('book'),
+            highlightId: readHighlightId(params),
+        };
+    }
     if (head === 'books') {
         if (segments.length === 1) {
             return { name: 'books', year: readYear(params), themeId: params.get('theme') };
@@ -120,6 +129,14 @@ export function routePath(route: RoomRoute): string {
             return '/paths';
         case 'path':
             return `/paths/${encodeURIComponent(route.tagId)}`;
+        case 'map': {
+            const params = new URLSearchParams();
+            if (route.tagId !== null) params.set('tag', route.tagId);
+            if (route.bookId !== null) params.set('book', route.bookId);
+            if (route.highlightId !== null) params.set('h', route.highlightId);
+            const query = params.toString();
+            return query.length === 0 ? '/map' : `/map?${query}`;
+        }
         case 'about':
             return '/about';
         case 'books': {
@@ -148,7 +165,9 @@ export function routePath(route: RoomRoute): string {
  * its own scroll position, its own stage session or its own aura entrance (docs/15 §6.1).
  */
 export function roomPath(route: RoomRoute): string {
-    return route.name === 'hall' ? '/' : routePath(route);
+    if (route.name === 'hall') return '/';
+    if (route.name === 'map') return '/map';
+    return routePath(route);
 }
 
 /**

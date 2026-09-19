@@ -154,6 +154,9 @@ export function BookRoom({ index, bookId, nowYear, room, onBack, onShare }: Book
                         返回上一处
                     </button>
                 )}
+                <a className="room-exit" href={`/map?book=${encodeURIComponent(book.id)}`} data-testid="book-map-link">
+                    在地图中点亮这本书
+                </a>
                 <a className="room-exit" href="/books" data-testid="exit-books">
                     所有书
                 </a>

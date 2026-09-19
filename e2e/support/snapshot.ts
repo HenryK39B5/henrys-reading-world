@@ -19,12 +19,21 @@ export type Highlight = {
 export type Book = { id: string; title: string; author: string; themeIds: string[]; coverPath?: string };
 export type Theme = { id: string; title: string };
 export type TopicTag = { id: string; title: string; description?: string };
+export type MapPoint = { highlightId: string; x: number; y: number };
+export type MapLayout = {
+    version: string;
+    points: MapPoint[];
+    labels: Array<{ tagId: string; x: number; y: number }>;
+    density: { columns: number; rows: number; values: number[] };
+    contours: Array<{ level: number; segments: number[][] }>;
+};
 
 export type RealData = {
     highlights: Highlight[];
     books: Book[];
     themes: Theme[];
     tags: TopicTag[];
+    map?: MapLayout;
     bookById: Map<string, Book>;
     countByBook: Map<string, number>;
     /** Keyed by the trimmed text, so a rendered passage can be looked up. */
@@ -52,6 +61,7 @@ export function loadSnapshot(): RealData {
         books: Book[];
         themes: Theme[];
         tags: TopicTag[];
+        map?: MapLayout;
     };
 
     const countByBook = new Map<string, number>();
@@ -90,6 +100,7 @@ export function loadSnapshot(): RealData {
         books: parsed.books,
         themes: parsed.themes,
         tags: parsed.tags,
+        ...(parsed.map === undefined ? {} : { map: parsed.map }),
         bookById: new Map(parsed.books.map((book) => [book.id, book])),
         countByBook,
         byText: new Map(parsed.highlights.map((item) => [item.text.trim(), item])),

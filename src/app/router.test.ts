@@ -14,6 +14,10 @@ describe('routes are parsed from real paths', () => {
         expect(parseRoute('/themes/t-001')).toEqual({ name: 'theme', themeId: 't-001' });
         expect(parseRoute('/paths')).toEqual({ name: 'paths' });
         expect(parseRoute('/paths/tag-001')).toEqual({ name: 'path', tagId: 'tag-001' });
+        expect(parseRoute('/map')).toEqual({ name: 'map', tagId: null, bookId: null, highlightId: null });
+        expect(parseRoute('/map', '?tag=tag-001&book=b-013&h=h-002')).toEqual({
+            name: 'map', tagId: 'tag-001', bookId: 'b-013', highlightId: 'h-002',
+        });
         expect(parseRoute('/books')).toEqual({ name: 'books', year: null, themeId: null });
         expect(parseRoute('/books/b-013')).toEqual({ name: 'book', bookId: 'b-013' });
         expect(parseRoute('/about')).toEqual({ name: 'about' });
@@ -58,6 +62,8 @@ describe('routes are rebuilt as canonical URLs', () => {
             '/themes/t-001',
             '/paths',
             '/paths/tag-001',
+            '/map',
+            '/map?tag=tag-001&book=b-013&h=h-002',
             '/books',
             '/books/b-013',
             '/about',
@@ -78,6 +84,8 @@ describe('routes are rebuilt as canonical URLs', () => {
         expect(routePath({ name: 'books', year: 2025, themeId: 't-001' })).toBe('/books?year=2025&theme=t-001');
         expect(routePath({ name: 'books', year: null, themeId: 't-001' })).toBe('/books?theme=t-001');
         expect(routePath({ name: 'books', year: 2025, themeId: null })).toBe('/books?year=2025');
+        expect(routePath({ name: 'map', tagId: 'tag-001', bookId: 'b-001', highlightId: 'h-001' }))
+            .toBe('/map?tag=tag-001&book=b-001&h=h-001');
     });
 
     it('encodes ids that need it and keeps them stable as memory keys', () => {
@@ -95,12 +103,14 @@ describe('routes are rebuilt as canonical URLs', () => {
             routeKey({ name: 'theme', themeId: 't-001' }),
             routeKey({ name: 'paths' }),
             routeKey({ name: 'path', tagId: 'tag-001' }),
+            routeKey({ name: 'map', tagId: null, bookId: null, highlightId: null }),
             routeKey({ name: 'books', year: null, themeId: null }),
             routeKey({ name: 'books', year: 2025, themeId: null }),
             routeKey({ name: 'book', bookId: 'b-001' }),
             routeKey({ name: 'about' }),
         ];
         expect(new Set(keys).size).toBe(keys.length);
+        expect(roomPath({ name: 'map', tagId: 'tag-001', bookId: null, highlightId: 'h-001' })).toBe('/map');
     });
 });
 

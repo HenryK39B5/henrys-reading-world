@@ -52,6 +52,8 @@ function rooms(): Room[] {
         { label: '主题房间', path: `/themes/${encodeURIComponent(themeId)}` },
         { label: '主题小径', path: '/paths' },
         { label: '小径房间', path: `/paths/${encodeURIComponent(tagId)}` },
+        { label: '世界地图', path: '/map' },
+        { label: '地图主题区域', path: `/map?tag=${encodeURIComponent(tagId)}` },
         { label: '所有书', path: '/books' },
         { label: '书籍房间', path: `/books/${encodeURIComponent(bookId)}` },
         { label: '关于', path: '/about' },

@@ -14,7 +14,7 @@ import { hasSnapshot, loadSnapshot } from './support/snapshot.ts';
 test.use({ permissions: ['clipboard-read', 'clipboard-write'] });
 
 /** Keys the data contract allows on the wire (docs/03 §2). Anything else is a leak or a mistake. */
-const ALLOWED_SNAPSHOT_KEYS = ['schemaVersion', 'visibility', 'owner', 'books', 'themes', 'tags', 'highlights'];
+const ALLOWED_SNAPSHOT_KEYS = ['schemaVersion', 'visibility', 'owner', 'books', 'themes', 'tags', 'highlights', 'map'];
 const ALLOWED_BOOK_KEYS = ['id', 'title', 'author', 'description', 'coverPath', 'themeIds'];
 const ALLOWED_THEME_KEYS = ['id', 'title', 'description'];
 const ALLOWED_TAG_KEYS = ['id', 'title', 'description'];
@@ -40,6 +40,8 @@ test.describe('the client talks to nothing but itself', () => {
             `/themes/${encodeURIComponent(themeId)}`,
             '/paths',
             `/paths/${encodeURIComponent(tagId)}`,
+            '/map',
+            `/map?tag=${encodeURIComponent(tagId)}&book=${encodeURIComponent(bookId)}`,
             '/books',
             `/books/${encodeURIComponent(bookId)}`,
             '/about',
@@ -80,6 +82,13 @@ test.describe('the client talks to nothing but itself', () => {
             themes: Record<string, unknown>[];
             tags: Record<string, unknown>[];
             highlights: Record<string, unknown>[];
+            map?: {
+                version: string;
+                points: Record<string, unknown>[];
+                labels: Record<string, unknown>[];
+                density: Record<string, unknown>;
+                contours: Record<string, unknown>[];
+            };
         };
 
         expect(Object.keys(snapshot).sort()).toEqual([...ALLOWED_SNAPSHOT_KEYS].sort());
@@ -95,6 +104,15 @@ test.describe('the client talks to nothing but itself', () => {
         }
         for (const highlight of snapshot.highlights) {
             expect(Object.keys(highlight).filter((key) => !ALLOWED_HIGHLIGHT_KEYS.includes(key))).toEqual([]);
+        }
+        expect(snapshot.map).toBeDefined();
+        if (snapshot.map !== undefined) {
+            expect(Object.keys(snapshot.map).sort()).toEqual(['contours', 'density', 'labels', 'points', 'version']);
+            expect(snapshot.map.points).toHaveLength(snapshot.highlights.length);
+            expect(snapshot.map.points.every((point) => Object.keys(point).sort().join(',') === 'highlightId,x,y')).toBe(true);
+            expect(snapshot.map.labels.every((label) => Object.keys(label).sort().join(',') === 'tagId,x,y')).toBe(true);
+            expect(Object.keys(snapshot.map.density).sort()).toEqual(['columns', 'rows', 'values']);
+            expect(snapshot.map.contours.every((contour) => Object.keys(contour).sort().join(',') === 'level,segments')).toBe(true);
         }
 
         // Nothing that only exists in the private review ledger, and no credential name, on the wire.
@@ -112,6 +130,13 @@ test.describe('the client talks to nothing but itself', () => {
             'rationale',
             'candidates',
             'familyId',
+            'sourceModel',
+            'sourceDimensions',
+            'projectedDimensions',
+            'snapshotHash',
+            'tagHash',
+            'layoutHash',
+            'generatedAt',
             'note',
         ]) {
             expect(payload.includes(forbidden), `${forbidden} must never be served`).toBe(false);
@@ -130,6 +155,7 @@ test.describe('private files stay private', () => {
         const projectRoot = process.cwd().replace(/\\/gu, '/');
         const attempts = [
             '/.private/local-snapshot.json',
+            '/.private/maps/local-layout.json',
             '/.private/curation/development-authorization.json',
             '/../.private/local-snapshot.json',
             '/%2e%2e/.private/local-snapshot.json',

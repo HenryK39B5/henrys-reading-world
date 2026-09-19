@@ -176,6 +176,18 @@ test.describe('the full keyboard journey', () => {
         await page.keyboard.press('Enter');
         await expect(page.getByTestId('book-walk-progress')).toContainText('本轮已看 3 / ');
 
+        // ---- 世界地图：从书房点亮这本书，Canvas 与语义列表都可由键盘到达 ----
+        await tabUntil(page, 'book-map-link');
+        await page.keyboard.press('Enter');
+        await expect(page.getByTestId('room-heading')).toHaveText('阅读世界地图');
+        await expect(page.locator('.map-book-light strong')).toContainText(book.title);
+        await tabUntil(page, 'map-canvas');
+        const mapZoom = await page.getByTestId('map-canvas').getAttribute('data-map-zoom');
+        await page.keyboard.press('+');
+        await expect(page.getByTestId('map-canvas')).not.toHaveAttribute('data-map-zoom', mapZoom ?? '');
+        await page.goBack();
+        await expect(page.getByTestId('room-heading')).toContainText(book.title);
+
         // ---- 返回上一处 ----
         // The book was opened straight from the hall, so one step back is the hall itself. It goes through
         // the same `history.back()` the browser button uses, rather than a second, private notion of "back".
