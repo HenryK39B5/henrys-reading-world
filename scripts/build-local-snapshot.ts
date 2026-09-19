@@ -35,6 +35,8 @@ import {
 } from '../src/domain/types.ts';
 import { validateSnapshot } from '../src/domain/validate.ts';
 import { validateTopicTagAssignments, validateTopicTagVocabulary } from '../src/domain/topicTags.ts';
+import { highlightTextHash, type EmbeddingCache } from './embeddings/core.ts';
+import { projectPathVector } from './embeddings/pathProjection.ts';
 import { parseBookMetadataOverrides, type BookMetadataOverrides } from './bookMetadataOverrides.ts';
 
 type Candidate = {
@@ -55,6 +57,10 @@ const METADATA_OVERRIDES_PATH = join(ROOT, '.private/curation/book-metadata-over
 const COVERS_PATH = join(ROOT, '.private/curation/covers.json');
 const TAG_VOCABULARY_PATH = join(ROOT, '.private/tags/vocabulary.json');
 const TAG_ASSIGNMENTS_PATH = join(ROOT, '.private/tags/assignments.json');
+const PATH_EMBEDDING_CACHE_PATH = join(
+    ROOT,
+    '.private/embeddings/vectors/local--xenova-bge-large-zh-v1.5-a48549b-q8-cls--1024.json',
+);
 const COVERS_DIR = join(ROOT, '.private/covers');
 const SNAPSHOT_PATH = join(ROOT, '.private/local-snapshot.json');
 const MAP_PATH = join(ROOT, '.private/curation/snapshot-source-map.json');
@@ -330,10 +336,32 @@ async function main(): Promise<void> {
                 return [assignment.highlightId, assignment.tagIds] as const;
             }),
     );
-    const taggedHighlights = highlights.map((highlight) => ({
-        ...highlight,
-        tagIds: reviewedAssignments.get(highlight.id) ?? [],
-    }));
+    const embeddingCache = (await requireJson(
+        PATH_EMBEDDING_CACHE_PATH,
+        '缺少默认本机 embedding 缓存。先运行 npm run embeddings:generate -- --provider local --batch-size 32。',
+    )) as Partial<EmbeddingCache>;
+    if (
+        embeddingCache.provider !== 'local' ||
+        embeddingCache.model !== 'Xenova/bge-large-zh-v1.5@a48549b-q8-cls' ||
+        embeddingCache.dimensions !== 1024 ||
+        typeof embeddingCache.vectors !== 'object' ||
+        embeddingCache.vectors === null
+    ) {
+        throw new Error('default local embedding cache has an unexpected model or shape');
+    }
+    let projectedPathVectors = 0;
+    const taggedHighlights = highlights.map((highlight) => {
+        const tagIds = reviewedAssignments.get(highlight.id) ?? [];
+        if (tagIds.length === 0) {
+            return { ...highlight, tagIds };
+        }
+        const cached = embeddingCache.vectors?.[highlight.id];
+        if (cached === undefined || cached.textHash !== highlightTextHash(highlight)) {
+            throw new Error(`default local embedding cache is missing or stale for ${highlight.id}`);
+        }
+        projectedPathVectors += 1;
+        return { ...highlight, tagIds, pathVector: projectPathVector(cached.values) };
+    });
     const snapshot: Snapshot = { ...pilotSnapshot, highlights: taggedHighlights };
 
     const result = validateSnapshot(snapshot);
@@ -357,6 +385,7 @@ async function main(): Promise<void> {
     console.log(
         `reviewed tag assignments applied: ${String(reviewedHighlightCount)}; untagged pilot highlights: ${String(result.snapshot.highlights.length - reviewedHighlightCount)}`,
     );
+    console.log(`quantized path vectors exported: ${String(projectedPathVectors)} x 16 dimensions`);
     const withCovers = result.snapshot.books.filter((book) => book.coverPath !== undefined).length;
     console.log(`books with a local cover: ${String(withCovers)}; without: ${String(result.snapshot.books.length - withCovers)}`);
     console.log(`source map entries: ${String(sourceMap.length)}`);

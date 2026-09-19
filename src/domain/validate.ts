@@ -2,6 +2,7 @@ import { countNonWhitespace, hasOriginalLineBreak, lengthBand } from './length.t
 import {
     MAX_THEME_IDS_PER_BOOK,
     MAX_TOPIC_TAGS_PER_HIGHLIGHT,
+    PATH_VECTOR_DIMENSIONS,
     SNAPSHOT_SCHEMA_VERSION,
     type Book,
     type Highlight,
@@ -208,7 +209,7 @@ function validateHighlight(ctx: Context, index: number, value: unknown): Highlig
         ctx.errors.push(`${where}: expected an object`);
         return null;
     }
-    if (!checkKeys(ctx, where, value, ['id', 'bookId', 'text', 'year', 'tagIds'])) {
+    if (!checkKeys(ctx, where, value, ['id', 'bookId', 'text', 'year', 'tagIds', 'pathVector'])) {
         return null;
     }
 
@@ -237,6 +238,22 @@ function validateHighlight(ctx: Context, index: number, value: unknown): Highlig
         ctx.errors.push(`${where}.id: expected an id like h-001`);
     }
 
+    let pathVector: number[] | undefined;
+    if (value['pathVector'] !== undefined) {
+        const raw = readArray(ctx, `${where}.pathVector`, value['pathVector']);
+        if (
+            raw !== null &&
+            (raw.length !== PATH_VECTOR_DIMENSIONS ||
+                raw.some((entry) => typeof entry !== 'number' || !Number.isInteger(entry) || entry < -127 || entry > 127))
+        ) {
+            ctx.errors.push(
+                `${where}.pathVector: expected ${String(PATH_VECTOR_DIMENSIONS)} integers between -127 and 127`,
+            );
+        } else if (raw !== null) {
+            pathVector = raw as number[];
+        }
+    }
+
     let year: number | undefined;
     if (value['year'] !== undefined) {
         const raw = value['year'];
@@ -250,7 +267,14 @@ function validateHighlight(ctx: Context, index: number, value: unknown): Highlig
     if (id === null || bookId === null || text === null) {
         return null;
     }
-    return { id, bookId, text, ...(year === undefined ? {} : { year }), tagIds };
+    return {
+        id,
+        bookId,
+        text,
+        ...(year === undefined ? {} : { year }),
+        tagIds,
+        ...(pathVector === undefined ? {} : { pathVector }),
+    };
 }
 
 function pushDuplicateErrors(ctx: Context, label: string, ids: string[]): void {

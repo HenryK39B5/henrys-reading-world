@@ -40,6 +40,8 @@ export type TopicTag = {
 };
 
 export const MAX_TOPIC_TAGS_PER_HIGHLIGHT = 3;
+/** Quantized private-build projection used only to pace a path after a book has been chosen fairly. */
+export const PATH_VECTOR_DIMENSIONS = 16;
 
 export type Book = {
     /** Stable project-local id, never a platform or account identifier. */
@@ -62,6 +64,8 @@ export type Highlight = {
     year?: number;
     /** Equal-status topic clues in snapshot editorial order; empty only while the pilot is incomplete. */
     tagIds: string[];
+    /** Optional low-dimensional, quantized derivative; never a raw embedding and never a path qualifier. */
+    pathVector?: number[];
 };
 
 export type Snapshot = {
