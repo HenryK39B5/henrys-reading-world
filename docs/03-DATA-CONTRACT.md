@@ -21,6 +21,7 @@ type Snapshot = {
   tags: TopicTag[];          // Highlight Topic Tag，公开层保持扁平
   books: Book[];
   highlights: Highlight[];
+  map?: MapLayout;           // Batch 5：消费者安全的预计算二维布局
 };
 
 type Theme = {
@@ -52,9 +53,17 @@ type Highlight = {
   tagIds: string[];          // 0–3 个，按快照 editorial order；正式全量阶段要求 1–3
   pathVector?: number[];     // 16 维 -127..127 整数；只为 reviewed 试点导出
 };
+
+type MapLayout = {
+  version: string;
+  points: Array<{ highlightId: string; x: number; y: number }>;
+  labels: Array<{ tagId: string; x: number; y: number }>;
+  density: { columns: number; rows: number; values: number[] };
+  contours: Array<{ level: number; segments: number[][] }>;
+};
 ```
 
-组件通过稳定 ID 索引取得出处与标签，不复制多个可漂移版本。`pathVector` 是固定算法从本机 1024 维向量派生的低维量化导航数据，只能在公平选书之后调节书内近 / 中 / 远节奏；它不是原始 embedding、标签置信度、地图坐标或候选资格。未来 `map` 仍由 Batch 5 独立加入。
+组件通过稳定 ID 索引取得出处与标签，不复制多个可漂移版本。`pathVector` 是固定算法从本机 1024 维向量派生的低维量化导航数据，只能在公平选书之后调节书内近 / 中 / 远节奏；它不是原始 embedding、标签置信度、地图坐标或候选资格。`map` 由独立的固定 seed 布局管线从全部有效 embedding 生成：坐标与线段量化在 0–10,000，密度为 0–255 网格，每条划线恰好一个点；模型名、参数、输入 hash 与高维向量只留在私有 manifest。
 
 `privacyRisk / hidden / reviewState / sourceBookmarkId / userVid / rawResponse` 不属于前端契约；它们只在私有审核记录里使用。公共快照不是“全部数据 + hidden 标志”。
 
@@ -98,6 +107,7 @@ Agent 可依据已明确的全书开发授权把所选真实记录记为 `local-
 - 重复 ID、空白 text / title、bookId、themeId 或 tagId 悬空。
 - TopicTag ID 不是 `tag-NNN`、标题不是 2–4 字、同名 / 同 ID 重复；Highlight 标签重复、超过 3 个或不按快照顺序。
 - `pathVector` 不是恰好 16 个 -127..127 整数。
+- map 点未一一覆盖全部 highlight、引用未知 highlight / tag、坐标越界、密度网格尺寸不符或等高线数据非法。
 - year 非合理整数或未来年份。
 - 单本书超过 3 个主题标签（1 主 + 2 次）。
 - coverPath 不是获准本地 `covers/` 或 `local-covers/` 路径、含 `..`、URL 或查询参数。

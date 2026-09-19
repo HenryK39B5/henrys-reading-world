@@ -1,11 +1,17 @@
 import { countNonWhitespace, hasOriginalLineBreak, lengthBand } from './length.ts';
 import {
+    MAP_COORDINATE_MAX,
     MAX_THEME_IDS_PER_BOOK,
     MAX_TOPIC_TAGS_PER_HIGHLIGHT,
     PATH_VECTOR_DIMENSIONS,
     SNAPSHOT_SCHEMA_VERSION,
     type Book,
     type Highlight,
+    type MapContour,
+    type MapDensity,
+    type MapLabel,
+    type MapLayout,
+    type MapPoint,
     type Owner,
     type Snapshot,
     type Theme,
@@ -277,6 +283,108 @@ function validateHighlight(ctx: Context, index: number, value: unknown): Highlig
     };
 }
 
+function validateMapLayout(ctx: Context, value: unknown): MapLayout | null {
+    if (!isRecord(value)) {
+        ctx.errors.push('map: expected an object');
+        return null;
+    }
+    if (!checkKeys(ctx, 'map', value, ['version', 'points', 'labels', 'density', 'contours'])) {
+        return null;
+    }
+    const version = readNonEmptyString(ctx, 'map.version', value['version']);
+    const coordinate = (where: string, raw: unknown): number | null => {
+        if (typeof raw !== 'number' || !Number.isInteger(raw) || raw < 0 || raw > MAP_COORDINATE_MAX) {
+            ctx.errors.push(`${where}: expected an integer between 0 and ${String(MAP_COORDINATE_MAX)}`);
+            return null;
+        }
+        return raw;
+    };
+
+    const points: MapPoint[] = [];
+    const pointsRaw = readArray(ctx, 'map.points', value['points']);
+    if (pointsRaw !== null) {
+        pointsRaw.forEach((entry, index) => {
+            const where = `map.points[${index}]`;
+            if (!isRecord(entry) || !checkKeys(ctx, where, entry, ['highlightId', 'x', 'y'])) {
+                if (!isRecord(entry)) ctx.errors.push(`${where}: expected an object`);
+                return;
+            }
+            const highlightId = readNonEmptyString(ctx, `${where}.highlightId`, entry['highlightId']);
+            const x = coordinate(`${where}.x`, entry['x']);
+            const y = coordinate(`${where}.y`, entry['y']);
+            if (highlightId !== null && x !== null && y !== null) points.push({ highlightId, x, y });
+        });
+    }
+
+    const labels: MapLabel[] = [];
+    const labelsRaw = readArray(ctx, 'map.labels', value['labels']);
+    if (labelsRaw !== null) {
+        labelsRaw.forEach((entry, index) => {
+            const where = `map.labels[${index}]`;
+            if (!isRecord(entry) || !checkKeys(ctx, where, entry, ['tagId', 'x', 'y'])) {
+                if (!isRecord(entry)) ctx.errors.push(`${where}: expected an object`);
+                return;
+            }
+            const tagId = readNonEmptyString(ctx, `${where}.tagId`, entry['tagId']);
+            const x = coordinate(`${where}.x`, entry['x']);
+            const y = coordinate(`${where}.y`, entry['y']);
+            if (tagId !== null && x !== null && y !== null) labels.push({ tagId, x, y });
+        });
+    }
+
+    let density: MapDensity | null = null;
+    const densityRaw = value['density'];
+    if (!isRecord(densityRaw)) {
+        ctx.errors.push('map.density: expected an object');
+    } else if (checkKeys(ctx, 'map.density', densityRaw, ['columns', 'rows', 'values'])) {
+        const columns = densityRaw['columns'];
+        const rows = densityRaw['rows'];
+        const values = readArray(ctx, 'map.density.values', densityRaw['values']);
+        if (
+            typeof columns !== 'number' || !Number.isInteger(columns) || columns < 8 || columns > 256 ||
+            typeof rows !== 'number' || !Number.isInteger(rows) || rows < 8 || rows > 256
+        ) {
+            ctx.errors.push('map.density: columns and rows must be integers between 8 and 256');
+        } else if (values !== null) {
+            if (values.length !== columns * rows || values.some((entry) => typeof entry !== 'number' || !Number.isInteger(entry) || entry < 0 || entry > 255)) {
+                ctx.errors.push('map.density.values: expected one 0..255 integer per grid cell');
+            } else {
+                density = { columns, rows, values: values as number[] };
+            }
+        }
+    }
+
+    const contours: MapContour[] = [];
+    const contoursRaw = readArray(ctx, 'map.contours', value['contours']);
+    if (contoursRaw !== null) {
+        contoursRaw.forEach((entry, index) => {
+            const where = `map.contours[${index}]`;
+            if (!isRecord(entry) || !checkKeys(ctx, where, entry, ['level', 'segments'])) {
+                if (!isRecord(entry)) ctx.errors.push(`${where}: expected an object`);
+                return;
+            }
+            const level = entry['level'];
+            const segmentsRaw = readArray(ctx, `${where}.segments`, entry['segments']);
+            const validLevel = typeof level === 'number' && Number.isInteger(level) && level >= 1 && level <= 255;
+            if (!validLevel) {
+                ctx.errors.push(`${where}.level: expected an integer between 1 and 255`);
+            }
+            const segments: number[][] = [];
+            for (const [segmentIndex, segment] of (segmentsRaw ?? []).entries()) {
+                if (!Array.isArray(segment) || segment.length !== 4 || segment.some((part) => typeof part !== 'number' || !Number.isInteger(part) || part < 0 || part > MAP_COORDINATE_MAX)) {
+                    ctx.errors.push(`${where}.segments[${segmentIndex}]: expected four map coordinates`);
+                    continue;
+                }
+                segments.push(segment as number[]);
+            }
+            if (validLevel) contours.push({ level: level as number, segments });
+        });
+    }
+
+    if (version === null || density === null) return null;
+    return { version, points, labels, density, contours };
+}
+
 function pushDuplicateErrors(ctx: Context, label: string, ids: string[]): void {
     const seen = new Set<string>();
     for (const id of ids) {
@@ -405,7 +513,7 @@ export function validateSnapshot(input: unknown, options: ValidateOptions = {}):
     if (!isRecord(input)) {
         return { ok: false, errors: ['snapshot: expected an object'], warnings: [] };
     }
-    if (!checkKeys(ctx, 'snapshot', input, ['schemaVersion', 'visibility', 'owner', 'themes', 'tags', 'books', 'highlights'])) {
+    if (!checkKeys(ctx, 'snapshot', input, ['schemaVersion', 'visibility', 'owner', 'themes', 'tags', 'books', 'highlights', 'map'])) {
         return { ok: false, errors: ctx.errors, warnings: ctx.warnings };
     }
     if (input['schemaVersion'] !== SNAPSHOT_SCHEMA_VERSION) {
@@ -491,7 +599,10 @@ export function validateSnapshot(input: unknown, options: ValidateOptions = {}):
         );
     }
 
+    const map = input['map'] === undefined ? undefined : validateMapLayout(ctx, input['map']);
+
     const bookIds = new Set(books.map((book) => book.id));
+    const highlightsById = new Map(highlights.map((highlight) => [highlight.id, highlight]));
     const themeIds = new Set(themes.map((theme) => theme.id));
     const tagIds = new Set(tags.map((tag) => tag.id));
     const tagOrder = new Map(tags.map((tag, index) => [tag.id, index]));
@@ -519,6 +630,27 @@ export function validateSnapshot(input: unknown, options: ValidateOptions = {}):
         }
     }
 
+    if (map !== undefined && map !== null) {
+        pushDuplicateErrors(ctx, 'map.points', map.points.map((point) => point.highlightId));
+        pushDuplicateErrors(ctx, 'map.labels', map.labels.map((label) => label.tagId));
+        const mappedHighlightIds = new Set(map.points.map((point) => point.highlightId));
+        for (const point of map.points) {
+            if (!highlightsById.has(point.highlightId)) {
+                ctx.errors.push(`map.points: references unknown highlight ${point.highlightId}`);
+            }
+        }
+        for (const highlight of highlights) {
+            if (!mappedHighlightIds.has(highlight.id)) {
+                ctx.errors.push(`map.points: missing highlight ${highlight.id}`);
+            }
+        }
+        for (const label of map.labels) {
+            if (!tagIds.has(label.tagId)) {
+                ctx.errors.push(`map.labels: references unknown topic tag ${label.tagId}`);
+            }
+        }
+    }
+
     if (ctx.errors.length > 0 || owner === null) {
         return { ok: false, errors: ctx.errors, warnings: ctx.warnings };
     }
@@ -531,6 +663,7 @@ export function validateSnapshot(input: unknown, options: ValidateOptions = {}):
         tags,
         books,
         highlights,
+        ...(map === undefined || map === null ? {} : { map }),
     };
     checkContentCoverage(ctx, snapshot);
 

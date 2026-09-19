@@ -68,6 +68,45 @@ export type Highlight = {
     pathVector?: number[];
 };
 
+export const MAP_COORDINATE_MAX = 10_000;
+
+export type MapPoint = {
+    highlightId: string;
+    /** Quantized normalized coordinate in the inclusive 0..MAP_COORDINATE_MAX range. */
+    x: number;
+    y: number;
+};
+
+export type MapLabel = {
+    tagId: string;
+    /** Robust centre of the reviewed members of this tag. */
+    x: number;
+    y: number;
+};
+
+export type MapDensity = {
+    columns: number;
+    rows: number;
+    /** Row-major 0..255 density values. */
+    values: number[];
+};
+
+export type MapContour = {
+    /** Density threshold in the same 0..255 scale as MapDensity.values. */
+    level: number;
+    /** Quantized line segments [x1, y1, x2, y2]. */
+    segments: number[][];
+};
+
+/** Consumer-safe map geometry. Source vectors and layout diagnostics remain private. */
+export type MapLayout = {
+    version: string;
+    points: MapPoint[];
+    labels: MapLabel[];
+    density: MapDensity;
+    contours: MapContour[];
+};
+
 export type Snapshot = {
     schemaVersion: typeof SNAPSHOT_SCHEMA_VERSION;
     visibility: Visibility;
@@ -76,6 +115,7 @@ export type Snapshot = {
     tags: TopicTag[];
     books: Book[];
     highlights: Highlight[];
+    map?: MapLayout;
 };
 
 export const EMPTY_SNAPSHOT: Snapshot = {

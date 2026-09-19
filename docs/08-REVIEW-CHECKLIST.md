@@ -2670,6 +2670,44 @@ provenance               ensemble 152 / override 128 / lexical 11 / unresolved 6
 
 先由用户体验 Batch 4 的主题小径与视觉方向；Gate 通过后进入 Batch 5 世界地图 MVP。正式发布仍等待独立用户授权。
 
+## V3 Batch 5A：全量地图布局与 schema（2026-09-19）
+
+```text
+日期 / 执行者：2026-09-19 / 实现 Agent
+范围：独立地图降维、版本化私有 manifest、消费者安全 MapLayout、strict validator
+状态：verified（纯领域 + 全量真实布局）；地图 UI 尚未开始
+数据模式：schema 3 local-only；4,663 点 / 56 标签中心；public 仍为空
+代码基线：2068185（Batch 4D）
+```
+
+### 完成范围
+
+- 用户体验 Batch 4 后反馈主题小径“挺棒的”，明确授权进入 Batch 5。
+- 新增 `umap-js@1.4.0` 作为只在本机构建脚本使用的成熟降维实现；消费者 bundle 不导入它。
+- 全部 4,663 条真实划线从锁定的本机 1024 维 embedding，经地图专属 96 维稀疏随机投影后，以固定 seed UMAP 生成二维坐标；没有复用小径的 16 维 `pathVector`。
+- 坐标裁掉外侧 1% 极端值后量化为 0–10,000；56 个标签中心使用 reviewed 成员坐标中位数；64×40 密度网格和三层等高线均由真实点生成。
+- 私有 `.private/maps/local-layout.json` 保存模型、seed、参数、snapshot hash、tag hash 与 layout hash；消费者 snapshot 只含 version、point / label / density / contour。
+- strict validator 要求 map 点一一覆盖全部 highlight，拒绝未知 / 重复引用、越界坐标、非法网格、非法等高线和任何额外私有字段。
+- local snapshot 已附带 4,663 点 / 56 标签 / 624 等高线段；public 空快照不含 map。
+
+### 实际命令与结果
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run map:layout`（连续两次） | 两次均为 4,663 点 / 56 标签 / 624 线段；layout hash 均为 `83eb9aed…ecc1d329` |
+| `npm run snapshot:local` | map 成功附加；snapshot 约 2.35 MB；原 10 条诚实内容 warning 不变 |
+| 地图 / validator 定向 Vitest | **28 / 28** |
+| `npm run check:local` | typecheck、lint、**291 单测 / 30 文件**、schema 3 local 校验通过 |
+| `npm run validate:data` | public schema 3 空快照通过 |
+
+### 未验证项 / 下一步
+
+- 当前只完成布局数据，没有开放 `/map`，不能把数据 Gate 冒充地图视觉 Gate。
+- UMAP 视觉质量、标签避让、世界 / 区域 / 详情交互、Book Aura、Back、移动端与性能留给 5B–5D。
+- public / local 生成命令与输出路径独立；public 当前为空，因此未生成正式 public map，更未导出或发布。
+
+下一阶段：Batch 5B Canvas 世界总览、主题区域、划线详情与无障碍区域列表。
+
 ## 公开发布前待处理事项（发布阻断项，不阻断本机开发）
 
 | 编号 | 事项 | 依据 |

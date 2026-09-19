@@ -42,6 +42,8 @@
     "embeddings:baseline": "node scripts/embedding-baseline.ts",
     "embeddings:evaluate": "node scripts/embedding-evaluate.ts",
     "embeddings:generate": "node scripts/embedding-generate.ts",
+    "map:layout": "node scripts/build-map-layout.ts --scope=local",
+    "map:layout:public": "node scripts/build-map-layout.ts --scope=public",
     "embeddings:compare": "node scripts/embedding-compare.ts",
     "embeddings:neighbours": "node scripts/embedding-neighbours.ts",
     "tags:sample": "node scripts/tag-discovery-sample.ts",
@@ -74,6 +76,7 @@
     "globals": "^17.12.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.70.0",
+    "umap-js": "^1.4.0",
     "vite": "^8.3.0",
     "vitest": "^5.0.0"
   }

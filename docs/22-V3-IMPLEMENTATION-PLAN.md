@@ -2,7 +2,7 @@
 
 > 日期：2026-09-19
 >
-> 状态：V3 施工权威；Batch 0–4 已完成。Batch 4 已把 schema 3、294 条 reviewed 试点、56 条主题小径、岔路、全标签分享与视觉基础接入 Local World，详见 `docs/26`。下一阶段是 Batch 5 世界地图 MVP；Release-B 继续暂停。
+> 状态：V3 施工权威；Batch 0–4 已完成，Batch 4 用户体验 Gate 已通过。Batch 5A 已开始：独立的全量 4,663 点地图布局与 schema 已完成，地图消费者 UI 仍在施工；Release-B 继续暂停。
 >
 > Release-B 暂停。V3 不自动授权正式 public snapshot、public covers、repo、push、workflow 或部署。
 

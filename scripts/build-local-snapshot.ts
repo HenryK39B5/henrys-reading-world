@@ -29,13 +29,15 @@ import {
     UNKNOWN_AUTHOR_LABEL,
     type Book,
     type Highlight,
+    type MapLayout,
     type Snapshot,
     type Theme,
     type TopicTag,
 } from '../src/domain/types.ts';
 import { validateSnapshot } from '../src/domain/validate.ts';
 import { validateTopicTagAssignments, validateTopicTagVocabulary } from '../src/domain/topicTags.ts';
-import { highlightTextHash, type EmbeddingCache } from './embeddings/core.ts';
+import { highlightTextHash, snapshotEmbeddingHash, type EmbeddingCache } from './embeddings/core.ts';
+import { mapLayoutHash, mapTagHash } from './embeddings/mapLayout.ts';
 import { projectPathVector } from './embeddings/pathProjection.ts';
 import { parseBookMetadataOverrides, type BookMetadataOverrides } from './bookMetadataOverrides.ts';
 
@@ -61,6 +63,7 @@ const PATH_EMBEDDING_CACHE_PATH = join(
     ROOT,
     '.private/embeddings/vectors/local--xenova-bge-large-zh-v1.5-a48549b-q8-cls--1024.json',
 );
+const MAP_LAYOUT_PATH = join(ROOT, '.private/maps/local-layout.json');
 const COVERS_DIR = join(ROOT, '.private/covers');
 const SNAPSHOT_PATH = join(ROOT, '.private/local-snapshot.json');
 const MAP_PATH = join(ROOT, '.private/curation/snapshot-source-map.json');
@@ -362,7 +365,35 @@ async function main(): Promise<void> {
         projectedPathVectors += 1;
         return { ...highlight, tagIds, pathVector: projectPathVector(cached.values) };
     });
-    const snapshot: Snapshot = { ...pilotSnapshot, highlights: taggedHighlights };
+    const baseSnapshot: Snapshot = { ...pilotSnapshot, highlights: taggedHighlights };
+    let map: MapLayout | undefined;
+    try {
+        const artifact = await readJson(MAP_LAYOUT_PATH);
+        if (!isRecord(artifact) || !isRecord(artifact['manifest']) || !isRecord(artifact['layout'])) {
+            throw new Error('map layout artifact has an unexpected shape');
+        }
+        const manifest = artifact['manifest'];
+        const candidate = artifact['layout'] as MapLayout;
+        const expectedSnapshotHash = snapshotEmbeddingHash(baseSnapshot);
+        const expectedTagHash = mapTagHash(baseSnapshot);
+        if (
+            manifest['scope'] !== 'local' ||
+            manifest['snapshotHash'] !== expectedSnapshotHash ||
+            manifest['tagHash'] !== expectedTagHash ||
+            manifest['layoutVersion'] !== candidate.version ||
+            manifest['layoutHash'] !== mapLayoutHash(candidate)
+        ) {
+            throw new Error('map layout is stale; run npm run map:layout after rebuilding the snapshot inputs');
+        }
+        map = candidate;
+    } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+            warnings.push('map layout is not generated yet; run npm run map:layout, then npm run snapshot:local');
+        } else {
+            throw error;
+        }
+    }
+    const snapshot: Snapshot = { ...baseSnapshot, ...(map === undefined ? {} : { map }) };
 
     const result = validateSnapshot(snapshot);
     if (!result.ok) {
@@ -386,6 +417,7 @@ async function main(): Promise<void> {
         `reviewed tag assignments applied: ${String(reviewedHighlightCount)}; untagged pilot highlights: ${String(result.snapshot.highlights.length - reviewedHighlightCount)}`,
     );
     console.log(`quantized path vectors exported: ${String(projectedPathVectors)} x 16 dimensions`);
+    console.log(map === undefined ? 'map layout exported: none' : `map layout exported: ${String(map.points.length)} points, ${String(map.labels.length)} labels`);
     const withCovers = result.snapshot.books.filter((book) => book.coverPath !== undefined).length;
     console.log(`books with a local cover: ${String(withCovers)}; without: ${String(result.snapshot.books.length - withCovers)}`);
     console.log(`source map entries: ${String(sourceMap.length)}`);

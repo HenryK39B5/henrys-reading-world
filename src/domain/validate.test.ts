@@ -1,12 +1,28 @@
 import { describe, expect, it } from 'vitest';
 import { indexSnapshot } from './snapshot.ts';
-import { SNAPSHOT_SCHEMA_VERSION, type Snapshot } from './types.ts';
+import { MAP_COORDINATE_MAX, SNAPSHOT_SCHEMA_VERSION, type MapLayout, type Snapshot } from './types.ts';
 import { validateSnapshot } from './validate.ts';
 
 /**
  * Structural fixtures only. They verify the contract; they are never shown in the UI and are
  * not presented as anyone's reading history. Real passage content lives in .private data.
  */
+function makeMap(): MapLayout {
+    return {
+        version: 'map-test-v1',
+        points: [
+            { highlightId: 'h-001', x: 1200, y: 2400 },
+            { highlightId: 'h-002', x: 7200, y: 6100 },
+        ],
+        labels: [
+            { tagId: 'tag-001', x: 4200, y: 4300 },
+            { tagId: 'tag-002', x: 7200, y: 6100 },
+        ],
+        density: { columns: 8, rows: 8, values: Array.from<number>({ length: 64 }).fill(0) },
+        contours: [{ level: 96, segments: [[0, 0, MAP_COORDINATE_MAX, MAP_COORDINATE_MAX]] }],
+    };
+}
+
 function makeSnapshot(overrides: Partial<Snapshot> = {}): Snapshot {
     return {
         schemaVersion: SNAPSHOT_SCHEMA_VERSION,
@@ -135,6 +151,50 @@ describe('validateSnapshot structure', () => {
         delete withoutTags['tagIds'];
         const missing = validateSnapshot({ ...snapshot, highlights: [withoutTags] }, { currentYear: 2025 });
         expect(missing.ok).toBe(false);
+    });
+
+    it('accepts a complete consumer-safe map and rejects stale or private geometry', () => {
+        const accepted = validateSnapshot({ ...makeSnapshot(), map: makeMap() }, { currentYear: 2025 });
+        expect(accepted.ok).toBe(true);
+
+        const missing = makeMap();
+        missing.points = missing.points.slice(0, 1);
+        const missingResult = validateSnapshot({ ...makeSnapshot(), map: missing }, { currentYear: 2025 });
+        expect(missingResult.ok).toBe(false);
+        if (!missingResult.ok) expect(missingResult.errors.join(' ')).toContain('missing highlight h-002');
+
+        const privateMap = { ...makeMap(), sourceModel: 'private-model' };
+        const privateResult = validateSnapshot({ ...makeSnapshot(), map: privateMap }, { currentYear: 2025 });
+        expect(privateResult.ok).toBe(false);
+        if (!privateResult.ok) expect(privateResult.errors.join(' ')).toContain('sourceModel');
+    });
+
+    it('rejects invalid map coordinates, grids, contour segments and references', () => {
+        const invalid = makeMap();
+        invalid.points = [{ highlightId: 'h-001', x: -1, y: MAP_COORDINATE_MAX + 1 }, ...invalid.points.slice(1)];
+        invalid.labels = [{ tagId: 'tag-001', x: 0, y: 0 }];
+        invalid.density = { columns: 8, rows: 8, values: [0] };
+        invalid.contours = [{ level: 0, segments: [[0, 0, 1]] }];
+        const result = validateSnapshot({ ...makeSnapshot(), map: invalid }, { currentYear: 2025 });
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+            const errors = result.errors.join(' ');
+            expect(errors).toContain('between 0 and 10000');
+            expect(errors).toContain('one 0..255 integer per grid cell');
+            expect(errors).toContain('between 1 and 255');
+            expect(errors).toContain('four map coordinates');
+        }
+
+        const references = makeMap();
+        references.points = [{ highlightId: 'h-404', x: 0, y: 0 }, ...references.points.slice(1)];
+        references.labels = [{ tagId: 'tag-404', x: 0, y: 0 }];
+        const referenceResult = validateSnapshot({ ...makeSnapshot(), map: references }, { currentYear: 2025 });
+        expect(referenceResult.ok).toBe(false);
+        if (!referenceResult.ok) {
+            const errors = referenceResult.errors.join(' ');
+            expect(errors).toContain('unknown highlight h-404');
+            expect(errors).toContain('unknown topic tag tag-404');
+        }
     });
 
     it('rejects a book with more than one primary plus two secondary shelves', () => {

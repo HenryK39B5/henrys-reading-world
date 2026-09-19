@@ -2,7 +2,7 @@
 
 > 日期：2026-09-19
 >
-> 状态：**Batch 4 已完成，等待用户体验 Gate。** 本阶段只把 Batch 3 的 294 条 reviewed 试点接入 Local World；没有把 6 条 draft 或其余 4,369 条强贴标签。public snapshot 仍为空，世界地图、全量标注、正式导出、push 与部署均未开始。
+> 状态：**Batch 4 已完成，用户体验 Gate 已于 2026-09-19 通过。** 用户反馈主题小径“挺棒的”，已授权进入 Batch 5 世界地图。本阶段只把 Batch 3 的 294 条 reviewed 试点接入 Local World；没有把 6 条 draft 或其余 4,369 条强贴标签。public snapshot 仍为空，正式导出、push 与部署均未开始。
 
 ## 1. 交付范围
 
@@ -159,4 +159,4 @@ npm run build -- --mode local-private
 - 真机移动端、Safari 与真实首次访客仍未验证。
 - public snapshot 仍为空；Release-B～E、repo、push 和部署继续等待独立 Gate。
 
-下一步由用户体验 Batch 4 小径与视觉原型后决定是否进入 Batch 5 世界地图。
+下一步已由用户于 2026-09-19 确认进入 Batch 5 世界地图；地图完成后仍需独立体验 Gate，才可进入 Batch 6 全量标注。
