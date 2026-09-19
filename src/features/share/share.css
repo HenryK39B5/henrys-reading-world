@@ -75,6 +75,17 @@
     overflow-wrap: anywhere;
 }
 
+.share-card-tags {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    margin: 0;
+    color: var(--card-muted);
+    font-size: 12px;
+    line-height: 1.7;
+}
+
 /* The source sits at the foot of the card, divided from the passage by a hairline. Its position is the
    passage's auto margins doing the work: no `margin-top: auto` here, or the free space would be split
    three ways and a short passage would sit high in the card. */
@@ -96,7 +107,7 @@
 .share-card-title {
     font-style: normal;
     color: var(--card-text);
-    letter-spacing: 0.01em;
+    letter-spacing: 0;
 }
 
 .share-card-author {
@@ -117,14 +128,14 @@
 
 .share-card-brand {
     font-size: 10.5px;
-    letter-spacing: 0.14em;
+    letter-spacing: 0;
 }
 
 /* The deployment note belongs with the signature, not under it: no second rule, just a little air. */
 .share-card-badge {
     margin-top: 7px;
     font-size: 10.5px;
-    letter-spacing: 0.04em;
+    letter-spacing: 0;
 }
 
 .share-note {

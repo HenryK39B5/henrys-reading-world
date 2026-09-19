@@ -44,11 +44,14 @@ type Room = { label: string; path: string };
 function rooms(): Room[] {
     const data = loadSnapshot();
     const themeId = data.themes[0]?.id ?? '';
+    const tagId = data.tags[0]?.id ?? '';
     const bookId = data.biggestBookId ?? data.books[0]?.id ?? '';
     return [
         { label: '门厅', path: '/' },
         { label: '主题书架', path: '/themes' },
         { label: '主题房间', path: `/themes/${encodeURIComponent(themeId)}` },
+        { label: '主题小径', path: '/paths' },
+        { label: '小径房间', path: `/paths/${encodeURIComponent(tagId)}` },
         { label: '所有书', path: '/books' },
         { label: '书籍房间', path: `/books/${encodeURIComponent(bookId)}` },
         { label: '关于', path: '/about' },

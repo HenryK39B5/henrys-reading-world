@@ -1,12 +1,16 @@
 :root {
-    --paper: #faf9f6;
-    --ink: #252522;
-    --ink-soft: #66645e;
-    --rule: #dedcd5;
-    --accent: #425a4b;
+    --paper: #f7f5ef;
+    --surface-muted: #eeece5;
+    --ink: #20231f;
+    --ink-soft: #60645d;
+    --ink-faint: #8a8d86;
+    --rule: #d9d5ca;
+    --rule-strong: #bbb6a9;
+    --accent: #315f4b;
+    --accent-warm: #8b4f3f;
     --stage-font: 'Songti SC', 'STSong', 'SimSun', serif;
     --ui-font: system-ui, 'Microsoft YaHei', sans-serif;
-    --measure: 1120px;
+    --measure: 1160px;
 }
 
 * {
@@ -24,6 +28,7 @@ body {
     font-family: var(--ui-font);
     font-size: 16px;
     line-height: 1.7;
+    letter-spacing: 0;
     -webkit-font-smoothing: antialiased;
 }
 

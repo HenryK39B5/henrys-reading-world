@@ -2,7 +2,7 @@
 
 > 日期：2026-09-18
 >
-> 状态：Batch 0 产品 / 数据 / 交互规格。当前代码仍为 schema 2；本文件描述 V3 目标契约，具体字段在实现前由测试固定。
+> 状态：Batch 0 产品 / 数据 / 交互规格；Batch 4 已实现 schema 3、主题小径与 16 维量化路径投影，实际字段见 `docs/03` 与 `docs/26`。世界地图字段仍是 Batch 5 目标。
 >
 > 权威关系：产品目标以 `docs/19` 为准，视觉以 `docs/21` 为准，施工顺序以 `docs/22` 为准。
 
@@ -388,6 +388,7 @@ type Highlight = {
   text: string;
   year?: number;
   tagIds: string[];
+  pathVector?: number[]; // Batch 4：16 维量化软节奏投影，不是原始 embedding
 };
 
 type MapLayout = {
@@ -408,7 +409,7 @@ type SnapshotV3 = {
 };
 ```
 
-最终字段须在 schema 迁移切片中以 strict validator、真实快照、public 空快照和泄漏探针固定。公开快照只含已批准 tag 和已批准 highlight 的坐标；不含 embedding、confidence、rationale、私有 note、候选标签或模型凭证。
+Batch 4 最终选择：只为 reviewed 小径试点导出 16 维、-127..127 整数的固定随机符号投影，用于选书后的近 / 中 / 远节奏；原始高维向量、confidence 与理由不进入 snapshot。地图仍将在 Batch 5 独立生成布局坐标，不能把 `pathVector` 当作地图点位。
 
 ## 12. 发布审核增量
 

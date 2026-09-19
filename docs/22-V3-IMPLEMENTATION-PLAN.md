@@ -2,7 +2,7 @@
 
 > 日期：2026-09-19
 >
-> 状态：V3 施工权威；Batch 0–3 已完成并收口：56 个稳定标签、300 条试标（294 reviewed / 6 draft）、Local Tag Studio 与用户词表意见待决 0。用户明确拒绝逐条审核负担，因此内容复核不再作为用户 Gate；可连续进入 Batch 4。V3 由当前实现 Agent 连续承担产品细化、代码、测试、内容生产、文档与本地提交；不再建立交给其他模型的唯一 Implementer Prompt。
+> 状态：V3 施工权威；Batch 0–4 已完成。Batch 4 已把 schema 3、294 条 reviewed 试点、56 条主题小径、岔路、全标签分享与视觉基础接入 Local World，详见 `docs/26`。下一阶段是 Batch 5 世界地图 MVP；Release-B 继续暂停。
 >
 > Release-B 暂停。V3 不自动授权正式 public snapshot、public covers、repo、push、workflow 或部署。
 
@@ -194,6 +194,18 @@ Batch 3 最终实况（2026-09-19）：56 / 56 标签覆盖，0 孤儿、0 过�
 - 1440 / 390 / 320、200%、键盘、reduced-motion；
 - 1 / 2 / 3 标签与 398 字长文无裁剪；
 - 用户体验小径与视觉原型后决定是否扩全量。
+
+### 7.6 实际完成（2026-09-19）
+
+- schema 3 local：4,663 条 / 130 本 / 14 Book Theme / 56 Topic Tag；294 条 reviewed 投影，4,369 条明确未标注；
+- 294 条 reviewed 项导出 16 维量化路径投影，原始 1024 维向量仍在 `.private`；
+- 56 条真实小径在纯公平 / semantic 两种模式下均全量可达；
+- `/paths`、`/paths/:tagId`、五项导航、每路径 session、岔路保持当前句与 Back 恢复完成；
+- 门厅、主题房间、书房显示全部 reviewed 线索；分享复制和卡片显示全部标签；
+- 1440 / 390 / 320、200% 等价 reflow、键盘、reduced-motion、最长 reviewed 文本有浏览器证据；
+- public snapshot 升级 schema 3 但仍为空；无 public export、repo、push 或部署。
+
+完整实况见 `docs/26-BATCH-4-PATHS-AND-VISUAL.md`。
 
 ## 8. Batch 5 — 世界地图 MVP
 

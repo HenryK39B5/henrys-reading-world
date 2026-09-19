@@ -14,6 +14,7 @@ export default defineConfig({
         '**/capture-v2e.spec.ts',
         '**/capture-v2e4.spec.ts',
         '**/capture-release-a.spec.ts',
+        '**/capture-v3-batch4.spec.ts',
         '**/empty-state.spec.ts',
         '**/publication/**',
         '**/tag-studio/**',

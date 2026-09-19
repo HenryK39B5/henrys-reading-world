@@ -4,7 +4,7 @@
 >
 > 状态：**Batch 3 已收口。** 用户已填写的 14 条意见全部有处置：3 条直接应用为 `human`，11 条由实现 Agent 完成词表与逐句判定，待决数为 0。稳定词表由 53 个扩为 56 个，新增「债务」「失败」「希望」；300 条试标最终为 294 `reviewed` / 6 `draft`，6 条无法在不猜测的前提下归类，明确不进入 reviewed 数据，也不要求用户继续逐条审核。
 >
-> 本文不授权 schema 3、主题小径、世界地图、正式公开导出、push 或部署。范围与下一步见 `docs/22 §6–7`。
+> 本文是 Batch 3 的历史收口记录。当时不授权 schema 3；该 Gate 后来已由用户明确开启并在 Batch 4 完成，当前实况见 `docs/26`。正式公开导出、push 或部署仍未授权。
 
 ## 1. 本阶段完成范围
 
@@ -172,7 +172,7 @@ npm run tags:migrate -- --rename tag-004 --title 运气与偶然 --yes
 - 词表、试标、候选分数、理由、标记、审计报告全部只在 `.private/tags/`，被 `.gitignore` 排除；
 - `rationale`、`candidates`、`confidence`、`flags` 是私有字段，明确不进入任何快照；
 - 消费者代码没有新增模型调用、没有新增公开路由、没有新增依赖；
-- public snapshot 仍为 schema 2、0 本 / 0 条；publication policy 未被触碰；
+- Batch 3 收口当时 public snapshot 仍为 schema 2、0 本 / 0 条；后续 Batch 4 已将空 public 快照升级为 schema 3，并只把 294 条 reviewed 试点接入 local snapshot，详见 `docs/26`；
 - 稳定 ID、正文、主题、年份均未改变。
 
 ## 9. 实际验证

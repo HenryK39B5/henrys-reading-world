@@ -1,6 +1,6 @@
 # 02 — 技术与工程设计（v1 基线）
 
-> 栈、安全隔离、URL 和工程底线继续有效。Release-A 已完成。**当前 V3 技术方向以 `docs/19–22` 为准：增加私有 embedding 管线、Topic Tag、主题小径、世界地图与 Local Tag Studio；Release-B 正式 public snapshot、Pages、push 与部署暂停。** 当前实现仍是 schema 2，迁移必须分片完成。
+> 栈、安全隔离、URL 和工程底线继续有效。Release-A 已完成。**V3 Batch 4 已实现 schema 3、294 条 reviewed 试点投影、主题小径、岔路、全标签分享和首轮视觉基础；Batch 5 世界地图尚未开始。** Release-B 正式 public snapshot、Pages、push 与部署继续暂停。
 
 ## 1. 栈与命令
 
@@ -77,7 +77,7 @@ e2e/                         # Playwright 浏览器验收
 
 `EncounterState`：`currentId`、`historyIds`（曝光顺序，可重复）、`stageScope`（`all` 或 `theme:<id>`）、`cycles`（`all`、每个 `theme:<id>` 与每本书的 `book:<id>` 访问 cycle 各一份，分别保存 `bookIds` 与 `highlightIds`）、`phase: idle|exiting|entering`、`pending` + `pendingKind: stage|book`、`commitCount`、`lastResult`、`sourceOpen`。
 
-UI 状态：出处开关、当前选书 / 主题 / 年份、分享预览的固定 `highlightId`。历史计数只在内容真正提交显示时更新；React StrictMode 二次调用不能消耗两次选句或注册重复计时器。
+UI 状态：出处开关、当前选书 / 主题 / 年份、分享预览的固定 `highlightId`；V3 另有每个 `tagId` 各自保存的有限 `PathWalkState`（当前句、已见 ID、按书 cycle、轮次与节奏模式）。历史计数只在内容真正提交显示时更新；React StrictMode 二次调用不能消耗两次选句或注册重复计时器。
 
 - `NEXT_STAGE`：空闲才接受；用当前 `stageScope` 走两阶段抽样（先公平选书、再选句），立即进入 exiting，不提前计为曝光；提交时写入该范围的 cycle 与当个书的访问 cycle。
 - `NEXT_IN_BOOK`：只在该书内抽取，不改变 `stageScope`，也不消耗 `all` / `theme:<id>` 的 cycle（只推进该书自己的访问 cycle）；耗尽时明确报告，不静默换书，也不重置 cycle 重复已看划线。
@@ -86,15 +86,18 @@ UI 状态：出处开关、当前选书 / 主题 / 年份、分享预览的固�
 - `TRANSITION_END`：回 idle；计时器清理与 token 防止旧回调覆盖新状态。
 - `OPEN_HIGHLIGHT(id)`：取消正在进行的转场，直接切到指定有效记录，记入当前范围的 cycle（避免下一次 `再来一句` 立即抽回刚刚打开的一句）并开始该书的新的访问 cycle；不改变 `stageScope`。
 - 范围 cycle 只能由范围抽取与直接打开推进；长度偏好只在选中的书内部生效，不能先按句长筛选书籍。
-- `OPEN_SHARE`：固定当前 ID；后续换句不得改变已打开的分享内容（V2-E 实现）。
+- `PATH_NEXT`：只在当前 `tagId` 的 reviewed 候选中前进；先走按书公平 cycle，再在选中书内均匀或按 16 维投影走近 / 中 / 远宽区间；轮内不重复，完成后停住。
+- `PATH_RESTART`：由访客明确开始新一轮；不得在末尾静默 reset。
+- `PATH_BRANCH(tagId)`：当前多标签划线保留为新路径首点并先写入目标路径 session，再 push 新 URL；下一次 `PATH_NEXT` 才离开，Back 恢复旧路径现场。
+- `OPEN_SHARE`：固定当前 ID；后续换句不得改变已打开的分享内容（V3 复制文本和卡片包含全部 Topic Tag）。
 
 出处在全局换句 / 跨书选择后关闭；同书“再看一处”保持打开。使用纯 reducer 或同等可测设计，避免散落多个互相竞态的 setTimeout。
 
 ## 6. URL 与分享
 
-> v2 已实现（V2-C1，见 `docs/12 §3`）：六个房间使用 History API 真实路径；每个房间直接访问、刷新都能恢复；离开房间时记住滚动位置，返回时恢复。
+> V3 Batch 4 更新：消费者现有八种房间 / 列表路径，新增主题小径；地图 `/map` 留到 Batch 5。
 
-- 房间路径：`/` 门厅、`/themes` 主题书架、`/themes/:themeId` 主题房间、`/books` 所有书、`/books/:bookId` 书籍房间、`/about` 关于。
+- 房间路径：`/` 门厅、`/themes` 主题书架、`/themes/:themeId` 主题房间、`/paths` 主题小径列表、`/paths/:tagId` 小径房间、`/books` 所有书、`/books/:bookId` 书籍房间、`/about` 关于。
 - 筛选属于 URL：`?year=<四位年份>`（仅书籍空间）、`?theme=<themeId>`（书库只看某个书架）。无法解析的值不会进入界面，地址栏会被规范化为实际房间。
 - 站点内链接都是真实 `<a href>`，可以新标签页打开、书签、无 JavaScript 也能跟随；router 只接管点击。
 - 页面“返回上一处”与浏览器后退使用同一个 `history.back()`，不另建一套返回逻辑。

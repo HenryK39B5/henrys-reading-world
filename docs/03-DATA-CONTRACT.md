@@ -1,6 +1,6 @@
 # 03 — 真实数据契约
 
-> **当前实现：schemaVersion 2。** Book Theme 引用在 Book（`themeIds`），Highlight 当前只保留 `id / bookId / text / year`。全量 4,663 条已进入 local-only 快照。**V3 目标 schema 3 将新增 Topic Tag、Highlight.tagIds 与预计算地图布局，草案见 `docs/20 §11`；Batch 0 不修改现有 schema。** 私有 `PublicationPolicy`、embedding、候选标签、confidence、审核备注与高维向量都不属于公开 Snapshot。
+> **当前实现：schemaVersion 3（V3 Batch 4）。** Book Theme 引用仍在 Book（`themeIds`）；Highlight 新增 0–3 个 `tagIds`，其中 0 表示当前试点尚未 reviewed，不表示“没有主题”。快照包含 56 个公共安全 TopicTag 定义、294 条 reviewed 试标投影，以及只为这些 reviewed 条目导出的 16 维量化 `pathVector`。全量 4,663 条仍在 local-only 快照；其余 4,369 条不造标签。私有 `PublicationPolicy`、高维 embedding、候选标签、confidence、rationale、family、审核备注都不属于消费者 Snapshot。
 
 ## 1. 硬边界
 
@@ -10,14 +10,15 @@
 
 ## 2. 前端快照类型
 
-当前 schema 2 字段白名单如下；运行时严格校验，拒绝额外字段：
+当前 schema 3 字段白名单如下；运行时严格校验，拒绝额外字段：
 
 ```ts
 type Snapshot = {
-  schemaVersion: 2;
+  schemaVersion: 3;
   visibility: 'public' | 'local-only';
   owner: { displayName: string; siteTitle: string; about?: string };
-  themes: Theme[];
+  themes: Theme[];           // Book Theme
+  tags: TopicTag[];          // Highlight Topic Tag，公开层保持扁平
   books: Book[];
   highlights: Highlight[];
 };
@@ -26,6 +27,12 @@ type Theme = {
   id: string;
   title: string;
   description?: string;      // Book Theme / 书架说明，不描述人格
+};
+
+type TopicTag = {
+  id: string;                // tag-NNN，改名不换 ID
+  title: string;             // 2–4 字
+  description?: string;      // 公共安全定义，不含私有边界 note
 };
 
 type Book = {
@@ -42,10 +49,12 @@ type Highlight = {
   bookId: string;
   text: string;              // 保留原始段落和标点，不改写或补全
   year?: number;             // 来自 createTime；缺失就缺失
+  tagIds: string[];          // 0–3 个，按快照 editorial order；正式全量阶段要求 1–3
+  pathVector?: number[];     // 16 维 -127..127 整数；只为 reviewed 试点导出
 };
 ```
 
-组件通过稳定 ID 索引取得出处，不复制多个可漂移版本。V3 schema 3 将在此基础上新增 `tags`、`Highlight.tagIds` 与可选 `map`，不会恢复 v1 的 `qualityScore / pinned / openingCandidate / surpriseCandidate`。
+组件通过稳定 ID 索引取得出处与标签，不复制多个可漂移版本。`pathVector` 是固定算法从本机 1024 维向量派生的低维量化导航数据，只能在公平选书之后调节书内近 / 中 / 远节奏；它不是原始 embedding、标签置信度、地图坐标或候选资格。未来 `map` 仍由 Batch 5 独立加入。
 
 `privacyRisk / hidden / reviewState / sourceBookmarkId / userVid / rawResponse` 不属于前端契约；它们只在私有审核记录里使用。公共快照不是“全部数据 + hidden 标志”。
 
@@ -85,8 +94,10 @@ Agent 可依据已明确的全书开发授权把所选真实记录记为 `local-
 
 **阻止加载 / 构建：**
 
-- schemaVersion 不是 2、额外字段、必填字段不合法。
-- 重复 ID、空白 text / title、bookId 或 themeId 悬空。
+- schemaVersion 不是 3、额外字段、必填字段不合法。
+- 重复 ID、空白 text / title、bookId、themeId 或 tagId 悬空。
+- TopicTag ID 不是 `tag-NNN`、标题不是 2–4 字、同名 / 同 ID 重复；Highlight 标签重复、超过 3 个或不按快照顺序。
+- `pathVector` 不是恰好 16 个 -127..127 整数。
 - year 非合理整数或未来年份。
 - 单本书超过 3 个主题标签（1 主 + 2 次）。
 - coverPath 不是获准本地 `covers/` 或 `local-covers/` 路径、含 `..`、URL 或查询参数。
@@ -97,6 +108,7 @@ Agent 可依据已明确的全书开发授权把所选真实记录记为 `local-
 
 - 主题书架少于 8 或多于 15 个；某书架不足 2 本书或没有书。
 - 有书没有主题书架，或有书没有任何划线。
+- Topic Tag 暂无 reviewed 划线，或试点中尚未达到未来公开小径建议的 3 本 / 5 条；未标注划线数量会明确报告。
 - 缺少短 / 中 / 长 / 原始换行样本、跨年样本。
 
 开发者不能通过放宽校验或造内容“消除”警告；记录真实覆盖缺口，向用户请求补充真实材料。
