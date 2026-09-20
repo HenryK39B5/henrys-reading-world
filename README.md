@@ -4,9 +4,9 @@
 
 ## 当前状态
 
-- 阶段：v1 Slice 0–4、V2-A～V2-E4D、Release-A、V3 Batch 0–5E 均已完成；**schema 3、56 条真实主题小径与 4,663 点阅读世界地图已进入 Local World**。用户已确认地图产品方向并授权进入 Batch 6 全量标注；全量完成后重建最终地图并共同精修。
+- 阶段：v1 Slice 0–4、V2-A～V2-E4D、Release-A、V3 Batch 0–5E 均已完成；**schema 3、56 条真实主题小径与 4,663 点阅读世界地图已进入 Local World**。Batch 6 全量候选、本机 reranker 否决与审计管线已建立，当前 assignments 为 **1,171 reviewed / 3,492 draft**；高风险项仍在复核，消费者 snapshot 暂不重建。
 - 发布审核：用户已完成两轮审核，私有清单当前为 **108 本公开 / 22 本排除 / 6 条单独排除**，`reviewComplete=true`。这些决定继续有效，但 Release-B 暂停到 V3 Gate 之后；未生成 public snapshot、未创建 GitHub repo、未 push。
-- 产品方向：`docs/19-PRODUCT-DIRECTION-V3.md`；标签 / 小径 / 地图规格：`docs/20-TAGS-PATHS-MAP-SPEC.md`；视觉：`docs/21-V3-VISUAL-DIRECTION.md`；施工：`docs/22-V3-IMPLEMENTATION-PLAN.md`；embedding 实际评测：`docs/23-EMBEDDING-EVALUATION.md`；Batch 2 标签发现：`docs/24-BATCH-2-TAG-DISCOVERY.md`；Batch 3 试标与 Studio：`docs/25-BATCH-3-TAG-STUDIO.md`；Batch 4 小径与视觉实况：`docs/26-BATCH-4-PATHS-AND-VISUAL.md`；Batch 5 世界地图实况：`docs/27-BATCH-5-WORLD-MAP.md`。
+- 产品方向：`docs/19-PRODUCT-DIRECTION-V3.md`；标签 / 小径 / 地图规格：`docs/20-TAGS-PATHS-MAP-SPEC.md`；视觉：`docs/21-V3-VISUAL-DIRECTION.md`；施工：`docs/22-V3-IMPLEMENTATION-PLAN.md`；embedding 实际评测：`docs/23-EMBEDDING-EVALUATION.md`；Batch 2 标签发现：`docs/24-BATCH-2-TAG-DISCOVERY.md`；Batch 3 试标与 Studio：`docs/25-BATCH-3-TAG-STUDIO.md`；Batch 4 小径与视觉实况：`docs/26-BATCH-4-PATHS-AND-VISUAL.md`；Batch 5 世界地图实况：`docs/27-BATCH-5-WORLD-MAP.md`；Batch 6 全量标签实况：`docs/28-BATCH-6-FULL-TAGGING.md`。
 - 硬约束：所有开发只使用 Henry 本人的真实微信读书划线，不使用 fake / demo 数据；Book Theme 属于书籍，V3 Topic Tag 属于划线，但不做人格标签、质量评分或 AI 观点总结。
 - 当前页面数据（local-only）：**4,663 条真实划线 · 130 本书 · 14 个主题书架 · 56 个 Topic Tag · 2024–2026**；当前 294 条 reviewed 试点可沿小径访问，其余 4,369 条继续通过原房间全量可达且不造标签。
 - 原始数据与快照只存在于本机 `.private/`，已被 `.gitignore` 排除，不进入前端包。
@@ -77,6 +77,11 @@ npm run tags:promote         # 56 个候选标签 → 稳定 tag-001…tag-056
 npm run tags:trial:generate  # 300 条试标候选（embedding 集成打分）
 npm run tags:trial:review    # 逐条全文复核：接受 / 依词面证据修正 / 保留 draft
 npm run tags:trial:audit     # 覆盖、多标签比例、一致性、偏薄标签与待复核清单
+npm run tags:full:generate   # baseline 外 4,363 条，固定 18 批 top-10 候选
+npm run tags:full:reranker:evaluate # 在 294 条试点上评测本机 reranker
+npm run tags:full:rerank     # 本机完整划线 × 标签定义交叉编码；可续跑
+npm run tags:full:review     # 双模型保守升级；不为覆盖率强贴标签
+npm run tags:full:audit      # 全文风险队列、标签分布与 draft 边界
 npm run tags:review-queue    # 生成 review-queue.generated.md，绝不覆盖用户填写版
 npm run tags:review-import   # 只读导入用户已填写的少量意见，不覆盖 Markdown
 npm run tags:review-apply    # 仅应用完全落在现有词表内的明确决定

@@ -2816,6 +2816,55 @@ provenance               ensemble 152 / override 128 / lexical 11 / unresolved 6
 
 立即进入 Batch 6：先建立可重复、可审计的全量候选与分批复核管线，再按 200–300 条批次推进；无法可靠归类的内容保留 draft。全量完成后重建地图并与用户共同精修最终视觉。
 
+## V3 Batch 6A：全量候选、双模型否决与审计管线（2026-09-20）
+
+```text
+日期 / 执行者：2026-09-20 / 实现 Agent
+范围：4,663 条真实划线的分批候选、本机 reranker 评测、保守 reviewed 决策与全量审计
+状态：in-progress；管线 verified，内容质量 Gate 未关闭
+数据模式：schema 3 local-only；assignments 1,171 reviewed / 3,492 draft；消费者 snapshot 仍为 294 reviewed 试点
+代码基线：3beaacc（Batch 5E）
+```
+
+### 完成范围
+
+- 建立 18 个可续跑批次，每批最多 250 条；baseline 外 4,363 条均有 top-10 候选，既有 300 条试标独立保存且不被覆盖。
+- embedding ensemble 使用稳定词表种子、294 条 reviewed 示例、跨书近邻与词面证据；不按覆盖率强制升级低信心项。
+- 下载并固定本机 `Xenova/bge-reranker-base@280bcc2-q8`；划线文本只在本机推理，没有发送到远程 provider。
+- reranker 独立 top-1 仅 52.0%，因此明确否决“用 reranker 替代分类器”；只在 embedding high primary 位于 reranker 前二时作为第二模型支持。
+- 回滚一次错误的自训练 refinement：全文抽样发现政治史文本被泛化为「改革 / 宣传控制」，该轮结果未保留在当前 assignments。
+- 当前保守结果为 1,171 reviewed / 3,492 draft；自动生成 reviewed 只保留一个强支持标签，多标签候选继续留在 draft。
+- 新增全量审计：风险排序、逐标签全文样本、draft 边界、单书集中、过宽 / 过薄标签和 provenance 分布。
+
+### 实际命令与结果
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run tags:full:generate -- --force` | 4,363 条 / 18 批；high / medium / low = 1,243 / 2,162 / 958；top-10 全实际标签召回 88.1% |
+| `npm run tags:full:reranker:evaluate` | 294 条试点；独立 top-1 52.0%，不合格；embedding high + reranker 前二的 primary 命中 94.4% |
+| `npm run tags:full:rerank` | 4,363 条 top-10 候选完成本机交叉编码，私有缓存可续跑 |
+| `npm run tags:full:review` | 4,663 assignments；1,171 reviewed / 3,492 draft |
+| `npm run tags:full:audit` | 风险 `>=5` 自动 reviewed 117 条；thin 0 / broad 0 / 单书集中 3 |
+| `npm run check:local` | typecheck、lint、**300 单测 / 32 文件**、现有 local snapshot 校验通过 |
+| `git diff --check` | 待本阶段提交前执行 |
+
+### 设计判断与偏差
+
+- 试点 calibration 复用训练示例，不是 held-out；94.4% 只能作为保守阈值诊断，不能替代全文抽样。
+- 当前 1,171 reviewed 仍包含待复核风险项；消费者 snapshot 没有重建，地图仍只命名原 294 条试点点位。
+- 「精力」「亲密关系」「货币」出现单书集中，来源书本身分别以这些主题为核心，不自动判为错误，但必须抽样检查。
+- 高风险全文队列已发现少量明显误配，因此本阶段只确认管线，不关闭 Batch 6 内容 Gate。
+
+### 未验证项与下一步
+
+- 复核 117 条高风险自动 reviewed；误配降回 draft 或写入明确 override。
+- 按 56 个标签继续检查代表性全文、隐喻、顺带提及和近义边界；不再使用自动 reviewed 自训练传播。
+- assignments 质量 Gate 通过后再重建 local snapshot、路径投影和地图布局。
+- Tag Studio、真实数据 smoke、消费者 E2E、最终地图截图尚未针对 Batch 6 新 assignments 执行。
+- public export、push 与部署仍未开始。
+
+完整实况见 `docs/28-BATCH-6-FULL-TAGGING.md`。
+
 ## 公开发布前待处理事项（发布阻断项，不阻断本机开发）
 
 | 编号 | 事项 | 依据 |
