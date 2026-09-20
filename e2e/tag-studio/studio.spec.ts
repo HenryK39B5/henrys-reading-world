@@ -7,7 +7,7 @@ import type { TopicTagAssignments, TopicTagVocabulary } from '../../src/domain/t
  * The Local Tag Studio (docs/22 §6.2, docs/24 §11).
  *
  * This spec talks to the real private snapshot and a *copy* of the real vocabulary and trial, so it checks
- * the properties that matter for content production: the screen lists the real 300-passage trial, a
+ * the properties that matter for content production: the screen lists the complete real assignment backlog, a
  * decision survives a save and a reload, the one-to-three-tag rule cannot be broken through the UI, a
  * passage can be put back to draft with flags rather than silently guessed, and only a same-origin page on
  * this port may rewrite the trial.
@@ -57,9 +57,8 @@ function orderedAssignments(): TopicTagAssignments['assignments'] {
     return [...readTestAssignments().assignments].sort((left, right) => left.highlightId.localeCompare(right.highlightId));
 }
 
-/** A clean copy of the real vocabulary and trial, so a previous run cannot affect this one. */
+/** A clean copy of the real vocabulary and assignments, without deleting the directory under the running server. */
 function resetTrial(): void {
-    rmSync(TEST_TAG_DIR, { recursive: true, force: true });
     mkdirSync(TEST_TAG_DIR, { recursive: true });
     copyFileSync(join(REAL_TAG_DIR, 'vocabulary.json'), join(TEST_TAG_DIR, 'vocabulary.json'));
     copyFileSync(join(REAL_TAG_DIR, 'assignments.json'), TEST_ASSIGNMENTS_PATH);
@@ -67,7 +66,8 @@ function resetTrial(): void {
 
 async function openStudio(page: Page): Promise<void> {
     await page.goto('/tag-studio.html');
-    await expect(page.getByTestId('tag-studio')).toBeVisible();
+    // The complete 4,663-assignment backlog is intentionally local-only and can take longer to parse/render on a cold run.
+    await expect(page.getByTestId('tag-studio')).toBeVisible({ timeout: 20_000 });
 }
 
 async function save(page: Page): Promise<void> {
@@ -100,9 +100,10 @@ test.describe('the studio lists the real trial and publishes nothing', () => {
         await expect(page.getByTestId('studio-detail')).toContainText(assignments[0]?.highlightId ?? '');
     });
 
-    test('leaves the real trial untouched: the studio writes only where it was told to', async () => {
+    test('leaves the real assignments untouched: the studio writes only where it was told to', async () => {
         const real = JSON.parse(readFileSync(join(REAL_TAG_DIR, 'assignments.json'), 'utf8')) as TopicTagAssignments;
-        expect(real.assignments).toHaveLength(300);
+        const snapshot = JSON.parse(readFileSync(SNAPSHOT_PATH, 'utf8')) as { highlights: unknown[] };
+        expect(real.assignments).toHaveLength(snapshot.highlights.length);
         expect(real.assignments.every((assignment) => assignment.status === 'draft' || assignment.status === 'reviewed')).toBe(true);
     });
 

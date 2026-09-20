@@ -2,7 +2,7 @@
 
 > 日期：2026-09-19
 >
-> 状态：V3 施工权威；Batch 0–5E 已完成，地图产品方向与功能 Gate 已通过，Batch 6 全量标签生产已获用户授权并开始；全量后重建最终地图，再进入共同视觉精修。Release-B 继续暂停。
+> 状态：V3 施工权威；Batch 0–6 已完成，最终 local snapshot、路径投影与地图已重建；当前停在最终地图体验 / 视觉 Gate，等待共同精修。Release-B 继续暂停。
 >
 > Release-B 暂停。V3 不自动授权正式 public snapshot、public covers、repo、push、workflow 或部署。
 
@@ -291,15 +291,17 @@ Batch 3 最终实况（2026-09-19）：56 / 56 标签覆盖，0 孤儿、0 过�
 
 不得为满足覆盖强行使用空泛标签；必要时回到词表 Gate。
 
-### 9.1 Batch 6A 管线实况（2026-09-20）
+### 9.1 Batch 6 管线与收口实况（2026-09-20）
 
 - baseline 外 4,363 条已按稳定 ID 分成 18 批，生成 top-10 embedding ensemble 候选；
 - 本机 `Xenova/bge-reranker-base@280bcc2-q8` 已完成 294 条试点评测与全量候选打分；独立 top-1 仅 52.0%，因此只作第二模型否决，不作分类器；
 - embedding high primary 位于 reranker 前二时，试点 top-1 为 94.4%；双模型初筛为 1,171 reviewed / 3,492 draft；
 - 一次自动 reviewed 自训练 refinement 因政治史文本系统性泛化而回滚，不进入当前结果；
-- 累计 312 条全文 override 已处理高风险确认、错误修正、多标签边界与 158 条最强 draft 晋升；当前为 1,318 reviewed / 3,345 draft；
-- 自动 high-risk 已降至 0，thin / broad 为 0 / 0，剩余 2 个单书集中标签；内容质量 Gate 尚未关闭；
-- local snapshot 仍保持 294 条 reviewed 试点，只有完成高风险与边界复核后才消费新 assignments 并重建地图。
+- 累计 688 条全文 override 已处理高风险确认、错误修正、多标签边界与多轮最强 draft 晋升；最终为 1,694 reviewed / 2,969 draft；
+- 自动 high-risk 为 0，thin / broad 为 0 / 0；低信心、否定语境、词面偶合和词表无法稳定概括的内容继续保留 draft；
+- local snapshot 已消费最终 assignments：1,694 条 reviewed 导出 16 维路径投影，其余 2,969 条只作为全量可达内容和未命名地图地形；
+- 最终地图已按固定 seed 重建：4,663 点 / 56 标签中心 / 624 条等高线段，layout hash `567534bf71bfc5f6266ceb8ecd26267c4399888d87a1d606fed784a03d9fcd9e`；
+- `check:local`、300 单测 / 32 文件、Tag Studio 10 / 10、消费者 Chromium 18 / 18、真实截图均通过；Batch 6 内容质量 Gate 已关闭。
 
 完整实况见 `docs/28-BATCH-6-FULL-TAGGING.md`。
 

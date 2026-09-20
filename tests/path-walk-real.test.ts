@@ -6,7 +6,8 @@ import { PATH_VECTOR_DIMENSIONS, type Snapshot } from '../src/domain/types.ts';
 import { validateSnapshot } from '../src/domain/validate.ts';
 
 const SNAPSHOT_PATH = resolve(process.cwd(), '.private', 'local-snapshot.json');
-const hasSnapshot = existsSync(SNAPSHOT_PATH);
+const ASSIGNMENTS_PATH = resolve(process.cwd(), '.private', 'tags', 'assignments.json');
+const hasSnapshot = existsSync(SNAPSHOT_PATH) && existsSync(ASSIGNMENTS_PATH);
 
 function seeded(seed: number): () => number {
     let state = seed >>> 0;
@@ -27,11 +28,19 @@ function localSnapshot(): Snapshot {
 }
 
 describe.skipIf(!hasSnapshot)('real Batch 4 path pilot', () => {
-    it('exports a small path vector only for the 294 reviewed trial highlights', () => {
+    it('exports a small path vector for every reviewed assignment and no draft', () => {
         const snapshot = localSnapshot();
+        const assignmentFile = JSON.parse(readFileSync(ASSIGNMENTS_PATH, 'utf8')) as {
+            assignments: Array<{ highlightId: string; status: string }>;
+        };
+        const expectedReviewedIds = new Set(
+            assignmentFile.assignments
+                .filter((assignment) => assignment.status === 'reviewed')
+                .map((assignment) => assignment.highlightId),
+        );
         const tagged = snapshot.highlights.filter((highlight) => highlight.tagIds.length > 0);
         const untagged = snapshot.highlights.filter((highlight) => highlight.tagIds.length === 0);
-        expect(tagged).toHaveLength(294);
+        expect(new Set(tagged.map((highlight) => highlight.id))).toEqual(expectedReviewedIds);
         expect(tagged.every((highlight) => highlight.pathVector?.length === PATH_VECTOR_DIMENSIONS)).toBe(true);
         expect(untagged.every((highlight) => highlight.pathVector === undefined)).toBe(true);
     });

@@ -179,3 +179,16 @@ local 校验继续诚实报告 10 个试点 warning：4,369 条尚无 reviewed T
 用户于 2026-09-20 确认地图已具备产品雏形、功能体验成立，并授权在一轮结构性精修后直接进入 Batch 6。Batch 5E 随后完成：增强地形层次、标签自动避让与纸面底、区域定义、Book Aura 状态带、多标签双环、指针中心缩放、双指缩放、缩放读数和详情 accent；`check:local` 为 295 单测 / 31 文件，local Chromium 115 / 115，视觉取证 3 / 3。
 
 下一步已进入 Batch 6 全量 4,663 条标签生产。全量完成后重建地图并与用户共同调整最终视觉。public snapshot、public covers、repo、push、workflow 与部署仍需后续独立授权。
+
+## Batch 6 后最终重建（2026-09-20）
+
+Batch 6 内容质量 Gate 关闭后，地图已使用最终 1,694 条 reviewed assignments 重建：
+
+- 全部 4,663 条仍参与全量地形；
+- 1,694 条 reviewed 点参与 56 个命名区域与主题小径；
+- 2,969 条 draft 继续只作为未命名地形，不造标签；
+- 固定 seed、96 维稀疏投影、UMAP 参数、64×40 密度网格与 624 条等高线段保持不变；
+- 新 layout version：`map-v1-52bf307f447c-2777f32e274f`；
+- 新 layout hash：`567534bf71bfc5f6266ceb8ecd26267c4399888d87a1d606fed784a03d9fcd9e`。
+
+最终 local snapshot、地图 / 小径 / 隐私 / 键盘 E2E 与 1440 / 390 / 320 截图均已验证。当前停在最终地图体验 / 视觉 Gate，等待与用户共同精修；尚未进入 public export。

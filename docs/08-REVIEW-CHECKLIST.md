@@ -4,7 +4,7 @@
 
 | 项目 | 状态 | 说明 |
 | --- | --- | --- |
-| 产品基线 | V3 Batch 5E 已完成，Batch 6 已获授权 | 产品 / 施工以 `docs/19–22` 为准，Batch 1–5 实况见 `docs/23–27`；地图方向与功能 Gate 已通过，正在进入全量标注 |
+| 产品基线 | V3 Batch 0–6 已完成 | 产品 / 施工以 `docs/19–22` 为准，Batch 1–6 实况见 `docs/23–28`；最终 local 地图已重建，等待体验 / 视觉 Gate |
 | 开发文档 | 已准备 | 用户追加“只用真实数据”已纳入 |
 | Codex skill 移植 | 完成 | 项目 `.agents/skills/weread-skills/`，原安装未改 |
 | skill 版本 | 1.0.4 | 官方更新包已审查，项目约束已重新应用 |
@@ -12,9 +12,9 @@
 | 微信读书连接 | 已验证 | notebooks / shelf / bookmarklist 均实际调用成功 |
 | 已取数据 | 已全量抓取 | 笔记本全部分页：132 本有笔记；已抓 130 本划线约 4,700 行 |
 | 私密状态 | 已获开发授权 | 323 个书架条目均 secret=1；用户已授权全部书籍用于开发 |
-| 真实划线原文 | 已获取并全量入库 | 候选池与 schema 3 local-only 快照均为 4,663 条（8–400 字去重后）；294 条 reviewed 试点带 Topic Tag，其余不造标签 |
+| 真实划线原文 | 已获取并全量入库 | 候选池与 schema 3 local-only 快照均为 4,663 条（8–400 字去重后）；1,694 条 reviewed 带 Topic Tag，2,969 条 draft 不造标签 |
 | 全部书籍开发授权 | 已批准 | 包括私密阅读；取消 6 本限制 |
-| 本机开发快照 | 已生成 | `.private/local-snapshot.json`：4,663 条 / 130 本 / 14 个书籍主题书架 / 56 个 Topic Tag，visibility=local-only；294 条 reviewed 小径试点带 16 维路径投影；全部 4,663 条带独立地图点位 |
+| 本机开发快照 | 已生成 | `.private/local-snapshot.json`：4,663 条 / 130 本 / 14 个书籍主题书架 / 56 个 Topic Tag，visibility=local-only；1,694 条 reviewed 带 16 维路径投影；全部 4,663 条带最终独立地图点位 |
 | 前端工程骨架 | 已完成（Slice 0） | React 19 + TS 6 + Vite 8；严格数据校验、仅本机隔离 |
 | 文字舞台（Slice 1） | 已完成 | 真实句子为视觉中心；三档排版；导航（3 项待开放）；160/280ms 转场 |
 | 换句交互（Slice 1） | 已完成 | 状态机 + 快速连点防重入 + reduced-motion 即时切换 + 单一 aria-live |
@@ -49,7 +49,8 @@
 | V3 Batch 2 标签发现 | 已完成并获用户批准 | 全量 4,663 条 embedding、300 条按书公平样本、53 个私有候选标签、35 组边界、159 条人工种子；用户已批准完整词表进入 Batch 3 |
 | V3 Batch 3 稳定词表与试标 | 已收口 | 56 个稳定标签；14 条用户意见全部处置（3 条直接应用、11 条 Agent 判定、待决 0）；300 条试标 294 reviewed / 6 draft；0 孤儿、0 过宽，唯一偏薄「运气」有全语料 64 条 / 23 本证据 |
 | V3 Batch 4 schema 3、小径与视觉 | 已完成，用户体验 Gate 已通过 | 294 条 reviewed 投影为 56 条真实小径；公平有限轮、可关闭语义节奏、岔路保持当前句、Back 恢复、全部标签分享及 1440 / 390 / 320 视觉基础完成；详见 `docs/26` |
-| V3 Batch 5 世界地图 | 已完成，用户 Gate 已通过 | 4,663 点独立固定 seed 地图、56 个主题区域、Canvas、详情、Book Aura、语义列表与恢复完成；5E 增强地形、标签避让、指针 / 双指缩放和状态层，用户已授权进入 Batch 6；详见 `docs/27` |
+| V3 Batch 5 世界地图 | 已完成方向 / 功能 Gate，等待最终视觉 Gate | 4,663 点固定 seed 地图、56 个主题区域、Canvas、详情、Book Aura、语义列表与恢复完成；Batch 6 后最终布局已重建；详见 `docs/27` |
+| V3 Batch 6 全量标签 | 已完成 | 1,694 reviewed / 2,969 draft；688 条全文 override；自动 high-risk 0；snapshot、路径投影与最终地图已重建；详见 `docs/28` |
 | 真实访客 Gate | 未进行 | 用户本人体验反馈非常积极（V2-E4D 就是其反馈驱动的收尾），但尚无首次访客结果，不冒充产品 Gate 通过 |
 
 原始返回、更新包、候选池、快照与截图全部留在 `.private/`，已被 `.gitignore` 排除，未进入前端包。
@@ -2867,6 +2868,55 @@ provenance               ensemble 152 / override 128 / lexical 11 / unresolved 6
 - public export、push 与部署仍未开始。
 
 完整实况见 `docs/28-BATCH-6-FULL-TAGGING.md`。
+
+## V3 Batch 6B–D：全文边界收口、消费者重建与最终地图 Gate（2026-09-20）
+
+```text
+日期 / 执行者：2026-09-20 / 实现 Agent
+范围：多轮逐标签全文复核、停止线判断、final assignments、snapshot / path / map 重建、浏览器证据
+状态：verified；Batch 6 内容质量 Gate 已关闭，等待最终地图体验 / 视觉 Gate
+数据模式：schema 3 local-only；1,694 reviewed / 2,969 draft；4,663 最终地图点
+代码基线：2fb35e7（Batch 6C）
+```
+
+### 完成范围
+
+- 继续完成三轮逐标签最强 draft 全文复核与一轮停止线抽查；候选仅用于定位，最终按中心主题重判。
+- 累计 688 条全文 override；最终 1,694 reviewed / 2,969 draft，coverage 36.3%。
+- provenance：ensemble 875 / lexical 11 / override 805 / human 3 / unresolved 2,969。
+- reviewed 标签数：单标签 1,020 / 双标签 434 / 三标签 240，平均 1.54；自动 high-risk 0，thin / broad 0 / 0。
+- 停止线以下已稳定出现否定语境、词面偶合和词表无法概括的内容；这些条目诚实保持 draft，不再追求覆盖率。
+- 重建 local snapshot：1,694 条 reviewed 带 16 维路径投影；2,969 条 draft 保持空 `tagIds`。
+- 重建最终地图：4,663 点 / 56 标签中心 / 624 条等高线段；layout hash `567534bf71bfc5f6266ceb8ecd26267c4399888d87a1d606fed784a03d9fcd9e`。
+- Tag Studio 测试从历史硬编码 300 条改为完整 assignment backlog，并消除运行中删除测试目录造成的服务读取竞态。
+- 真实路径测试改为核对 snapshot tagged ID 与 reviewed assignments 完全一致，不再硬编码 294 条试点。
+
+### 实际命令与结果
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run tags:full:override` | 688 条决定；1,694 reviewed / 2,969 draft |
+| `npm run tags:full:audit` | high-risk 0；thin 0 / broad 0 / 单书集中 3 |
+| `npm run snapshot:local` → `npm run map:layout` → `npm run snapshot:local` | 最终 snapshot、路径投影和地图成功重建 |
+| `npm run check:local` | typecheck、lint、300 单测 / 32 文件、最终 local snapshot 校验通过 |
+| `npm run smoke:local` | 6 / 6 |
+| `npm run test:tags`（连续两次） | 10 / 10；完整 4,663 条 backlog 冷启动稳定 |
+| `npx playwright test e2e/map.spec.ts e2e/paths.spec.ts e2e/privacy.spec.ts e2e/keyboard.spec.ts --project=chromium` | 18 / 18 |
+| `npm run build` | public 空快照生产构建通过 |
+| `npm run isolation:public` | public 产物无真实书名、原文、私有标签字段、模型缓存或凭证探针 |
+| `git diff --check` | 通过 |
+
+### 浏览器证据
+
+- Chromium：1440×1000、390×844、320×720；世界、最大区域「交易」与三标签详情均成功渲染。
+- 证据：`.private/review/v3-batch6/world-1440.png`、`world-390.png`、`world-320.png`、`region-*`、`detail-390.png`。
+- 世界总览保持单 Canvas；语义区域列表完整；移动详情无横向溢出；public / private 隔离通过。
+
+### 未验证项与下一步
+
+- Safari、真机触摸 / 双指缩放、低性能设备和真实首次访客仍未验证。
+- 当前停在最终地图体验 / 视觉 Gate：重点讨论全量标签后的区域密度、标签层级、移动详情节奏和超长区域语义列表。
+- public export、public covers、repo、push、workflow 与部署仍未开始。
 
 ## 公开发布前待处理事项（发布阻断项，不阻断本机开发）
 

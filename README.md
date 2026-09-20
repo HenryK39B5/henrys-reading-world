@@ -4,11 +4,11 @@
 
 ## 当前状态
 
-- 阶段：v1 Slice 0–4、V2-A～V2-E4D、Release-A、V3 Batch 0–5E 均已完成；**schema 3、56 条真实主题小径与 4,663 点阅读世界地图已进入 Local World**。Batch 6 全量候选、本机 reranker 否决与审计管线已建立，当前 assignments 为 **1,318 reviewed / 3,345 draft**；累计 312 条全文 override 已应用，自动 reviewed 高风险队列已关闭，首轮逐标签边界与最强 draft 已复核；消费者 snapshot 暂不重建。
+- 阶段：v1 Slice 0–4、V2-A～V2-E4D、Release-A、V3 Batch 0–6 均已完成；**schema 3、56 条真实主题小径与 4,663 点阅读世界地图已进入 Local World**。Batch 6 最终 assignments 为 **1,694 reviewed / 2,969 draft**；累计 688 条全文 override 已应用，自动 reviewed 高风险为 0。消费者 snapshot、路径投影和最终地图均已重建，当前停在最终地图体验 / 视觉 Gate。
 - 发布审核：用户已完成两轮审核，私有清单当前为 **108 本公开 / 22 本排除 / 6 条单独排除**，`reviewComplete=true`。这些决定继续有效，但 Release-B 暂停到 V3 Gate 之后；未生成 public snapshot、未创建 GitHub repo、未 push。
 - 产品方向：`docs/19-PRODUCT-DIRECTION-V3.md`；标签 / 小径 / 地图规格：`docs/20-TAGS-PATHS-MAP-SPEC.md`；视觉：`docs/21-V3-VISUAL-DIRECTION.md`；施工：`docs/22-V3-IMPLEMENTATION-PLAN.md`；embedding 实际评测：`docs/23-EMBEDDING-EVALUATION.md`；Batch 2 标签发现：`docs/24-BATCH-2-TAG-DISCOVERY.md`；Batch 3 试标与 Studio：`docs/25-BATCH-3-TAG-STUDIO.md`；Batch 4 小径与视觉实况：`docs/26-BATCH-4-PATHS-AND-VISUAL.md`；Batch 5 世界地图实况：`docs/27-BATCH-5-WORLD-MAP.md`；Batch 6 全量标签实况：`docs/28-BATCH-6-FULL-TAGGING.md`。
 - 硬约束：所有开发只使用 Henry 本人的真实微信读书划线，不使用 fake / demo 数据；Book Theme 属于书籍，V3 Topic Tag 属于划线，但不做人格标签、质量评分或 AI 观点总结。
-- 当前页面数据（local-only）：**4,663 条真实划线 · 130 本书 · 14 个主题书架 · 56 个 Topic Tag · 2024–2026**；当前 294 条 reviewed 试点可沿小径访问，其余 4,369 条继续通过原房间全量可达且不造标签。
+- 当前页面数据（local-only）：**4,663 条真实划线 · 130 本书 · 14 个主题书架 · 56 个 Topic Tag · 2024–2026**；1,694 条 reviewed 划线可沿小径与命名地图区域访问，其余 2,969 条继续通过原房间全量可达并只形成未命名地形。
 - 原始数据与快照只存在于本机 `.private/`，已被 `.gitignore` 排除，不进入前端包。
 - 公开快照 `src/data/public-snapshot.json` 仍为空 → 当前页面在本机显示真实内容；新增标签、地图与视觉 Gate 完成前不正式导出。
 
@@ -205,7 +205,7 @@ npm run test:publication       # 审核器的浏览器验收（用临时目录�
 
 - 笔记本概览全部分页：132 本有笔记的书；已抓取 130 本划线，共约 4,700 行（`.private/weread/highlights/`）。
 - 候选池：4,663 条（去重、长度 8–400 字）；其中短 1,054 / 中 2,626 / 长 983。
-- schema 3 快照：**4,663 条划线 · 130 本书 · 14 个主题书架 · 56 个 Topic Tag**；294 条 reviewed 划线带 1–3 个标签与 16 维量化路径投影，4,369 条未标注内容不造标签；地图为全部 4,663 条提供独立 0–10,000 二维点位、64×40 密度网格与三层等高线。
+- schema 3 快照：**4,663 条划线 · 130 本书 · 14 个主题书架 · 56 个 Topic Tag**；1,694 条 reviewed 划线带 1–3 个标签与 16 维量化路径投影，2,969 条 draft 内容不造标签；地图为全部 4,663 条提供独立 0–10,000 二维点位、64×40 密度网格与三层等高线。
 - 每本书的 1–3 个 Book Theme 由 Agent 依据书名、作者与等距样本生成（`.private/curation/book-themes.json`）；V3 将在不替代 Book Theme 的前提下新增逐条 Topic Tag，并使用私有 embedding 辅助内容生产。
 - **已知数据缺口（真实情况，未用假数据补齐）**：Henry 的真实划线中没有带原始换行的样本；年份只跨 2024–2026，无法呈现"来自 4 年前"这类更长的时间纵深。校验器会持续报告前者。
 
