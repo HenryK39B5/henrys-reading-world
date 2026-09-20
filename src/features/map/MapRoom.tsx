@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { coverUrl, useCoverAccent } from '../../app/covers.ts';
 import { DEFAULT_ACCENT } from '../../domain/accent.ts';
 import { fitMapPoints, mapPointsForBook, mapPointsForTag, summarizeMapLabels } from '../../domain/map.ts';
@@ -7,6 +7,8 @@ import type { Book, Highlight } from '../../domain/types.ts';
 import { TopicClues } from '../paths/TopicClues.tsx';
 import { MapCanvas } from './MapCanvas.tsx';
 import { useMapView } from './useMapView.ts';
+
+const INITIAL_MAP_LIST_ITEMS = 12;
 
 export type MapRoomProps = {
     index: SnapshotIndex;
@@ -101,6 +103,24 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
     const labelSummaries = useMemo(() => summarizeMapLabels(index), [index]);
     const regionHighlights = effectiveTagId === null ? [] : (index.highlightsByTag.get(effectiveTagId) ?? []);
     const relatedTagIds = bookTagIds(index, book);
+    const primaryRelatedTagIds = relatedTagIds.slice(0, 6);
+    const remainingRelatedTagIds = relatedTagIds.slice(6);
+    const [expandedLists, setExpandedLists] = useState<Set<string>>(() => new Set());
+    const listKey = effectiveTagId === null ? 'regions' : `tag:${effectiveTagId}`;
+    const listExpanded = expandedLists.has(listKey);
+    const visibleLabelSummaries = listExpanded ? labelSummaries : labelSummaries.slice(0, INITIAL_MAP_LIST_ITEMS);
+    const visibleRegionHighlights = listExpanded ? regionHighlights : regionHighlights.slice(0, INITIAL_MAP_LIST_ITEMS);
+    const listTotal = effectiveTagId === null ? labelSummaries.length : regionHighlights.length;
+    const listShown = effectiveTagId === null ? visibleLabelSummaries.length : visibleRegionHighlights.length;
+    const canToggleList = listTotal > INITIAL_MAP_LIST_ITEMS;
+    const toggleList = (): void => {
+        setExpandedLists((current) => {
+            const next = new Set(current);
+            if (next.has(listKey)) next.delete(listKey);
+            else next.add(listKey);
+            return next;
+        });
+    };
     const unknownSelection =
         (tagId !== null && tag === undefined) ||
         (bookId !== null && book === undefined) ||
@@ -153,17 +173,28 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                     <button type="button" className="map-icon-button" aria-label="复位地图" title="复位" onClick={view.reset}>↺</button>
                     <output className="map-zoom-readout" aria-label="当前地图缩放比例">{String(Math.round(view.view.zoom * 100))}%</output>
                 </div>
-                <label className="map-book-picker">
-                    <span>点亮一本书</span>
-                    <select
-                        value={effectiveBookId ?? ''}
-                        onChange={(event) => {
-                            onNavigate(mapHref({ tagId: effectiveTagId, bookId: event.target.value || null }));
-                        }}
-                    >
-                        <option value="">不点亮</option>
-                        {index.booksInUse.map((entry) => <option key={entry.id} value={entry.id}>{entry.title}</option>)}
-                    </select>
+                <label
+                    className={`map-book-picker${book === undefined ? '' : ' is-lit'}`}
+                    style={{ '--map-book-aura': bookAccent || DEFAULT_ACCENT } as React.CSSProperties}
+                >
+                    <span className="map-book-picker-label">
+                        <strong>点亮一本书</strong>
+                        <small>看看它散落在世界里的位置</small>
+                    </span>
+                    <span className="map-book-select-wrap">
+                        <span className="map-book-picker-orbit" aria-hidden="true" />
+                        <select
+                            aria-label="点亮一本书"
+                            value={effectiveBookId ?? ''}
+                            onChange={(event) => {
+                                onNavigate(mapHref({ tagId: effectiveTagId, bookId: event.target.value || null }));
+                            }}
+                        >
+                            <option value="">浏览整个世界</option>
+                            {index.booksInUse.map((entry) => <option key={entry.id} value={entry.id}>{entry.title}</option>)}
+                        </select>
+                        <span className="map-book-picker-chevron" aria-hidden="true">⌄</span>
+                    </span>
                 </label>
             </div>
 
@@ -174,14 +205,33 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                         <strong>《{book.title}》</strong>
                         <span>{String(selectedBookPoints.length)} 个点散落在地图中</span>
                     </p>
-                    <p className="map-book-paths">
-                        {relatedTagIds.length === 0 ? '这本书的试点划线尚无 reviewed 小径。' : relatedTagIds.map((relatedTagId) => {
-                            const relatedTag = index.tagsById.get(relatedTagId);
-                            return relatedTag === undefined ? null : (
-                                <a key={relatedTag.id} href={mapHref({ tagId: relatedTag.id, bookId: book.id })}>#{relatedTag.title}</a>
-                            );
-                        })}
-                    </p>
+                    <div className="map-book-paths">
+                        {relatedTagIds.length === 0 ? <p>这本书的划线尚无 reviewed 小径。</p> : (
+                            <>
+                                <p>
+                                    {primaryRelatedTagIds.map((relatedTagId) => {
+                                        const relatedTag = index.tagsById.get(relatedTagId);
+                                        return relatedTag === undefined ? null : (
+                                            <a key={relatedTag.id} href={mapHref({ tagId: relatedTag.id, bookId: book.id })}>#{relatedTag.title}</a>
+                                        );
+                                    })}
+                                </p>
+                                {remainingRelatedTagIds.length === 0 ? null : (
+                                    <details>
+                                        <summary>展开全部 {String(relatedTagIds.length)} 条相关小径</summary>
+                                        <p>
+                                            {remainingRelatedTagIds.map((relatedTagId) => {
+                                                const relatedTag = index.tagsById.get(relatedTagId);
+                                                return relatedTag === undefined ? null : (
+                                                    <a key={relatedTag.id} href={mapHref({ tagId: relatedTag.id, bookId: book.id })}>#{relatedTag.title}</a>
+                                                );
+                                            })}
+                                        </p>
+                                    </details>
+                                )}
+                            </>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -220,8 +270,8 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
             {tag === undefined ? (
                 <section className="map-alternative" aria-labelledby="map-regions-heading">
                     <h2 id="map-regions-heading">主题区域</h2>
-                    <ol className="map-region-list">
-                        {labelSummaries.map((summary) => (
+                    <ol id="map-region-list" className="map-region-list">
+                        {visibleLabelSummaries.map((summary) => (
                             <li key={summary.tagId}>
                                 <a href={mapHref({ tagId: summary.tagId, bookId: effectiveBookId })}>
                                     <strong>{summary.title}</strong>
@@ -230,6 +280,21 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                             </li>
                         ))}
                     </ol>
+                    {canToggleList ? (
+                        <div className="map-list-disclosure">
+                            <button
+                                type="button"
+                                className="link-button"
+                                aria-controls="map-region-list"
+                                aria-expanded={listExpanded}
+                                data-testid="map-regions-toggle"
+                                onClick={toggleList}
+                            >
+                                {listExpanded ? '收起主题区域' : `展开全部 ${String(listTotal)} 个主题区域`}
+                            </button>
+                            <span className="batch-label">显示 {String(listShown)} / {String(listTotal)}</span>
+                        </div>
+                    ) : null}
                 </section>
             ) : (
                 <section className="map-alternative" aria-labelledby="map-points-heading">
@@ -243,8 +308,8 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                             回到这片区域
                         </button>
                     </div>
-                    <ol className="map-point-list">
-                        {regionHighlights.map((entry) => {
+                    <ol id="map-point-list" className="map-point-list">
+                        {visibleRegionHighlights.map((entry) => {
                             const entryBook = index.booksById.get(entry.bookId);
                             return (
                                 <li key={entry.id}>
@@ -256,6 +321,21 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                             );
                         })}
                     </ol>
+                    {canToggleList ? (
+                        <div className="map-list-disclosure">
+                            <button
+                                type="button"
+                                className="link-button"
+                                aria-controls="map-point-list"
+                                aria-expanded={listExpanded}
+                                data-testid="map-points-toggle"
+                                onClick={toggleList}
+                            >
+                                {listExpanded ? '收起这片区域' : `展开全部 ${String(listTotal)} 处划线`}
+                            </button>
+                            <span className="batch-label">显示 {String(listShown)} / {String(listTotal)}</span>
+                        </div>
+                    ) : null}
                 </section>
             )}
 

@@ -2,7 +2,7 @@
 
 > 日期：2026-09-19
 >
-> 状态：V3 施工权威；Batch 0–6 已完成，最终 local snapshot、路径投影与地图已重建；当前停在最终地图体验 / 视觉 Gate，等待共同精修。Release-B 继续暂停。
+> 状态：V3 施工权威；Batch 0–6 与最终地图精修已完成，local snapshot、路径投影、独立地图入口、移动端布局和滚轮交互均已验证；当前等待用户最终体验 / 视觉 Gate。Release-B 继续暂停。
 >
 > Release-B 暂停。V3 不自动授权正式 public snapshot、public covers、repo、push、workflow 或部署。
 

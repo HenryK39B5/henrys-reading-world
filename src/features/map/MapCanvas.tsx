@@ -99,6 +99,8 @@ export function MapCanvas({
     const gestureMoved = useRef(false);
     const [size, setSize] = useState<Size>({ width: 1, height: 1 });
     const [hoverText, setHoverText] = useState('');
+    const wheelState = useRef({ view, onViewChange, size });
+    wheelState.current = { view, onViewChange, size };
     const layout = index.snapshot.map;
     const labels = useMemo(() => summarizeMapLabels(index), [index]);
     const tagPoints = useMemo(
@@ -122,6 +124,23 @@ export function MapCanvas({
         });
         observer.observe(canvas);
         return () => observer.disconnect();
+    }, []);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (canvas === null) return;
+        const handleWheel = (event: WheelEvent): void => {
+            const current = wheelState.current;
+            const rect = canvas.getBoundingClientRect();
+            const anchor = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+            const factor = event.deltaY < 0 ? 1.18 : 1 / 1.18;
+            const next = zoomMapViewAt(current.view, factor, anchor, current.size.width, current.size.height);
+            if (next.zoom === current.view.zoom) return;
+            event.preventDefault();
+            current.onViewChange(next);
+        };
+        canvas.addEventListener('wheel', handleWheel, { passive: false });
+        return () => canvas.removeEventListener('wheel', handleWheel);
     }, []);
 
     useEffect(() => {
@@ -264,7 +283,7 @@ export function MapCanvas({
             if (right.tagId === activeTagId) return 1;
             return right.highlightCount - left.highlightCount;
         });
-        const maximumLabels = size.width < 520 ? 10 : view.zoom > 2 ? 16 : 22;
+        const maximumLabels = size.width < 520 ? (view.zoom > 1.7 ? 12 : 8) : view.zoom > 2 ? 26 : 18;
         for (const summary of ordered) {
             if (visibleLabels.length >= maximumLabels && summary.tagId !== activeTagId) break;
             if (activeLabel !== undefined && view.zoom > 1.4 && summary.tagId !== activeTagId) {
@@ -324,9 +343,7 @@ export function MapCanvas({
         labelHits.current = visibleLabels;
     }, [activeBookId, activeHighlightId, activeTagId, bookAccent, bookPointIds, bookPoints, index, labels, layout, size, tagPointIds, tagPoints, view]);
 
-    const pointerPosition = (
-        event: React.PointerEvent<HTMLCanvasElement> | React.WheelEvent<HTMLCanvasElement>,
-    ): { x: number; y: number } => {
+    const pointerPosition = (event: React.PointerEvent<HTMLCanvasElement>): { x: number; y: number } => {
         const rect = event.currentTarget.getBoundingClientRect();
         return { x: event.clientX - rect.left, y: event.clientY - rect.top };
     };
@@ -460,11 +477,6 @@ export function MapCanvas({
                 onPointerLeave={(event) => {
                     if (drag.current === null) setHoverText('');
                     event.currentTarget.style.cursor = 'grab';
-                }}
-                onWheel={(event) => {
-                    event.preventDefault();
-                    const factor = event.deltaY < 0 ? 1.18 : 1 / 1.18;
-                    onViewChange(zoomMapViewAt(view, factor, pointerPosition(event), size.width, size.height));
                 }}
                 onKeyDown={(event) => {
                     const step = 500 / view.zoom;

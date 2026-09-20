@@ -11,7 +11,11 @@ test.describe('V3 reading world map', () => {
         await expect(page.getByTestId('room-heading')).toHaveText('阅读世界地图');
         await expect(page.getByTestId('map-summary')).toContainText(`${data.highlights.length} 个真实点`);
         await expect(page.getByTestId('map-summary')).toContainText(`${data.highlights.filter((entry) => entry.tagIds.length > 0).length} 个已命名点`);
+        await expect(page.locator('.map-region-list > li')).toHaveCount(Math.min(12, data.tags.length));
+        await expect(page.getByTestId('map-regions-toggle')).toHaveAttribute('aria-expanded', 'false');
+        await page.getByTestId('map-regions-toggle').click();
         await expect(page.locator('.map-region-list > li')).toHaveCount(data.tags.length);
+        await expect(page.getByTestId('map-regions-toggle')).toHaveAttribute('aria-expanded', 'true');
         await expect(page.getByTestId('map-canvas')).toBeVisible();
 
         const canvasEvidence = await page.getByTestId('map-canvas').evaluate((canvas) => {
@@ -50,7 +54,11 @@ test.describe('V3 reading world map', () => {
 
         await page.goto(`/map?tag=${tag.id}`);
         await expect(page.getByTestId('room-heading')).toHaveText(tag.title);
-        await expect(page.locator('.map-point-list > li')).toHaveCount(members.length);
+        await expect(page.locator('.map-point-list > li')).toHaveCount(Math.min(12, members.length));
+        if (members.length > 12) {
+            await page.getByTestId('map-points-toggle').click();
+            await expect(page.locator('.map-point-list > li')).toHaveCount(members.length);
+        }
         await page.getByRole('button', { name: '放大地图' }).click();
         await page.getByRole('button', { name: '放大地图' }).click();
         const zoom = await page.getByTestId('map-canvas').getAttribute('data-map-zoom');
@@ -78,6 +86,15 @@ test.describe('V3 reading world map', () => {
         await page.getByTestId('book-map-link').click();
         await expect(page).toHaveURL(new RegExp(`/map\\?book=${first.id}`));
         await expect(page.locator('.map-book-light strong')).toContainText(first.title);
+        await expect(page.getByRole('combobox', { name: '点亮一本书' })).toHaveValue(first.id);
+        const relatedTagCount = new Set(
+            data.highlights.filter((highlight) => highlight.bookId === first.id).flatMap((highlight) => highlight.tagIds),
+        ).size;
+        await expect(page.locator('.map-book-paths > p a')).toHaveCount(Math.min(6, relatedTagCount));
+        if (relatedTagCount > 6) {
+            await page.locator('.map-book-paths details summary').click();
+            await expect(page.locator('.map-book-paths a')).toHaveCount(relatedTagCount);
+        }
 
         const colours = new Set<string>();
         for (const book of covered) {
@@ -112,6 +129,10 @@ test.describe('V3 reading world map', () => {
         await page.setViewportSize({ width: 1200, height: 900 });
         await page.goto('/map');
         const canvas = page.getByTestId('map-canvas');
+        await expect(canvas).toBeVisible();
+        await expect(page.getByTestId('map-regions-toggle')).toBeVisible();
+        await page.evaluate(() => window.scrollTo(0, 180));
+        await expect.poll(async () => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
         const box = await canvas.boundingBox();
         expect(box).not.toBeNull();
         if (box === null) return;
@@ -130,12 +151,24 @@ test.describe('V3 reading world map', () => {
         };
         const before = mapAtAnchor(await readView());
         await page.mouse.move(anchor.x, anchor.y);
+        const pageScrollBefore = await page.evaluate(() => window.scrollY);
         await page.mouse.wheel(0, -240);
         await expect(canvas).not.toHaveAttribute('data-map-zoom', '1.000');
-        const after = mapAtAnchor(await readView());
+        await expect.poll(async () => page.evaluate(() => window.scrollY)).toBe(pageScrollBefore);
+        const afterZoomIn = await readView();
+        const after = mapAtAnchor(afterZoomIn);
         expect(after.x).toBeCloseTo(before.x, -1);
         expect(after.y).toBeCloseTo(before.y, -1);
         await expect(page.locator('.map-zoom-readout')).not.toHaveText('100%');
+        await page.mouse.wheel(0, 180);
+        await expect.poll(async () => page.evaluate(() => window.scrollY)).toBe(pageScrollBefore);
+        await expect.poll(async () => (await readView()).zoom).toBeLessThan(afterZoomIn.zoom);
+    });
+
+    test('offers the world map as its own primary navigation destination', async ({ page }) => {
+        await page.goto('/map');
+        await expect(page.getByTestId('nav-map')).toHaveAttribute('aria-current', 'page');
+        await expect(page.getByTestId('nav-paths')).not.toHaveAttribute('aria-current', 'page');
     });
 
     test('supports keyboard pan and zoom while keeping the semantic lists operable', async ({ page }) => {

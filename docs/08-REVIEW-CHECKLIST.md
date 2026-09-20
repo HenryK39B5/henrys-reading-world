@@ -2918,6 +2918,49 @@ provenance               ensemble 152 / override 128 / lexical 11 / unresolved 6
 - 当前停在最终地图体验 / 视觉 Gate：重点讨论全量标签后的区域密度、标签层级、移动详情节奏和超长区域语义列表。
 - public export、public covers、repo、push、workflow 与部署仍未开始。
 
+## V3 最终地图视觉与交互精修（2026-09-20）
+
+```text
+日期 / 执行者：2026-09-20 / 实现 Agent
+范围：渐进列表、独立地图导航、移动端布局、滚轮隔离、书籍选择器与 Book Aura 信息收束
+状态：verified；等待用户最终地图体验 / 视觉 Gate
+数据模式：schema 3 local-only；1,694 reviewed / 2,969 draft；地图布局未改写
+代码基线：31dc6dd（Batch 6D）
+```
+
+### 完成范围
+
+- 世界区域与区域划线默认显示 12 项，提供展开全部、收起和显示进度；完整语义替代仍可达。
+- 顶部导航增加独立「世界地图」入口；地图 URL 的 active nav 不再落在主题小径。
+- 移动端导航换行为两行，无横向溢出；地图高度提升为 72svh，工具栏和点亮书籍控件分层。
+- 小屏世界总览优先显示 8 个主标签，放大后显示 12 个；桌面总览 18 个，深层放大最多 26 个。
+- 修复滚轮同时缩放地图和滚动页面：实际缩放时使用 `{ passive: false }` 原生监听并 `preventDefault`，缩放边界则允许页面继续滚动。
+- “点亮一本书”保留原生 select，重绘为 Book Aura 控件；选中后色彩、轨道点、书名状态一致。
+- 选中书籍的相关小径先展示 6 条，其余通过 disclosure 展开，避免移动端标签墙。
+
+### 实际命令与结果
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run check:local` | typecheck、lint、300 单测 / 32 文件、最终 local snapshot 校验通过 |
+| `npm run test:e2e` | 完整 local Chromium 116 / 116 |
+| `npm run test:tags` | 10 / 10 |
+| `npm run build` | public 空快照生产构建通过 |
+| `npm run isolation:public` | public 产物隔离 gate clean |
+| `git diff --check` | 通过 |
+
+### 浏览器与视觉证据
+
+- 1440×1000、390×844、320×720：世界总览、最大区域「交易」、三标签详情和点亮书籍均重新截图。
+- 证据：`.private/review/v3-batch6/world-*`、`region-*`、`detail-390.png`、`book-picker-lit-390.png`。
+- 200% zoom 与 320 / 360 / 390 / 768 / 1440 响应矩阵通过；无页面横向溢出。
+- 滚轮测试在页面已滚动的状态下同时验证放大与缩小，页面 `scrollY` 保持不变。
+
+### 未验证项
+
+- Safari、真机触摸 / 双指缩放、低性能设备和真实首次访客仍未验证。
+- public export、public covers、repo、push、workflow 与部署仍未开始。
+
 ## 公开发布前待处理事项（发布阻断项，不阻断本机开发）
 
 | 编号 | 事项 | 依据 |

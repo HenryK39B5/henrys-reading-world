@@ -84,20 +84,85 @@
 .map-book-picker {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     color: var(--ink-soft);
     font-size: 12px;
 }
 
+.map-book-picker-label {
+    display: grid;
+    gap: 2px;
+    text-align: right;
+}
+
+.map-book-picker-label strong {
+    color: var(--ink-soft);
+    font-weight: 600;
+}
+
+.map-book-picker-label small {
+    color: var(--ink-faint);
+    font-size: 10px;
+}
+
+.map-book-select-wrap {
+    position: relative;
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) 18px;
+    align-items: center;
+    width: min(38vw, 340px);
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--rule-strong);
+    border-radius: 999px;
+    background:
+        linear-gradient(105deg, color-mix(in srgb, var(--map-book-aura) 5%, transparent), transparent 55%),
+        color-mix(in srgb, var(--paper) 92%, transparent);
+    box-shadow: 0 5px 18px rgba(32, 35, 31, 0.045);
+    transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.map-book-picker:hover .map-book-select-wrap,
+.map-book-picker:focus-within .map-book-select-wrap {
+    border-color: color-mix(in srgb, var(--map-book-aura) 56%, var(--rule-strong));
+    box-shadow: 0 7px 22px rgba(32, 35, 31, 0.075);
+}
+
+.map-book-picker.is-lit .map-book-select-wrap {
+    border-color: color-mix(in srgb, var(--map-book-aura) 48%, var(--rule));
+    background:
+        linear-gradient(105deg, color-mix(in srgb, var(--map-book-aura) 12%, transparent), transparent 62%),
+        color-mix(in srgb, var(--paper) 94%, transparent);
+}
+
+.map-book-picker-orbit {
+    width: 9px;
+    height: 9px;
+    border: 1px solid color-mix(in srgb, var(--map-book-aura) 74%, var(--ink-faint));
+    border-radius: 50%;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--map-book-aura) 9%, transparent);
+}
+
 .map-book-picker select {
-    width: min(34vw, 280px);
-    min-height: 40px;
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    padding: 0 8px;
     border: 0;
-    border-bottom: 1px solid var(--rule-strong);
-    border-radius: 0;
+    outline: 0;
+    appearance: none;
     background: transparent;
     color: var(--ink);
     font: inherit;
+    cursor: pointer;
+    text-overflow: ellipsis;
+}
+
+.map-book-picker-chevron {
+    color: var(--ink-faint);
+    font-size: 16px;
+    line-height: 1;
+    pointer-events: none;
 }
 
 .map-book-light {
@@ -133,12 +198,36 @@
     font-weight: 600;
 }
 
+.map-book-paths {
+    min-width: 0;
+}
+
+.map-book-paths p {
+    justify-content: flex-end;
+}
+
 .map-book-paths a {
     min-height: 32px;
     color: var(--ink-soft);
     text-decoration: underline;
     text-decoration-color: var(--rule-strong);
     text-underline-offset: 0.3em;
+}
+
+.map-book-paths details {
+    margin-top: 4px;
+    text-align: right;
+}
+
+.map-book-paths summary {
+    min-height: 36px;
+    color: var(--ink-faint);
+    cursor: pointer;
+    list-style-position: inside;
+}
+
+.map-book-paths details[open] summary {
+    color: var(--map-book-aura);
 }
 
 .map-stage {
@@ -295,6 +384,16 @@
     padding-top: 44px;
 }
 
+.map-list-disclosure {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 62px;
+    padding-top: 10px;
+    border-bottom: 1px solid var(--rule);
+}
+
 .map-alternative h2 {
     margin: 0;
     font-family: var(--stage-font);
@@ -392,19 +491,39 @@
     }
 
     .map-toolbar {
-        align-items: flex-start;
+        align-items: stretch;
         flex-direction: column;
-        gap: 8px;
-        padding: 8px 0 10px;
+        gap: 10px;
+        padding: 10px 0 12px;
+    }
+
+    .map-zoom-controls {
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .map-zoom-readout {
+        margin-left: auto;
     }
 
     .map-book-picker {
+        align-items: stretch;
+        flex-direction: column;
         width: 100%;
-        justify-content: space-between;
+        gap: 7px;
     }
 
-    .map-book-picker select {
-        width: min(68vw, 260px);
+    .map-book-picker-label {
+        grid-template-columns: auto 1fr;
+        align-items: baseline;
+        gap: 8px;
+        text-align: left;
+    }
+
+    .map-book-select-wrap {
+        width: 100%;
+        min-height: 48px;
+        border-radius: 8px;
     }
 
     .map-book-light {
@@ -412,13 +531,22 @@
         flex-direction: column;
     }
 
+    .map-book-paths p {
+        justify-content: flex-start;
+    }
+
+    .map-book-paths details {
+        text-align: left;
+    }
+
     .map-stage,
     .map-canvas-wrap {
-        min-height: 500px;
+        min-height: 520px;
     }
 
     .map-canvas-wrap {
-        height: 64svh;
+        height: 72svh;
+        max-height: 680px;
     }
 
     .map-stage-status {
@@ -465,9 +593,20 @@
         padding-left: 0;
     }
 
+    .map-alternative {
+        padding-top: 34px;
+    }
+
     .map-alternative-head {
         align-items: flex-start;
         flex-direction: column;
+    }
+
+    .map-list-disclosure {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 2px;
+        padding: 14px 0;
     }
 }
 
@@ -476,28 +615,20 @@
         flex-direction: column;
     }
 
-    .map-book-picker {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-
-    .map-book-picker select {
-        width: 100%;
-    }
-
     .map-stage,
     .map-canvas-wrap {
-        min-height: 460px;
+        min-height: 500px;
     }
 
     .map-canvas-wrap {
-        height: 60svh;
+        height: 72svh;
     }
 }
 
 
 @media (prefers-reduced-motion: reduce) {
     .map-icon-button,
+    .map-book-select-wrap,
     .map-detail,
     .map-canvas {
         scroll-behavior: auto;
