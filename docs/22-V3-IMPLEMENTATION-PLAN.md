@@ -295,9 +295,10 @@ Batch 3 最终实况（2026-09-19）：56 / 56 标签覆盖，0 孤儿、0 过�
 
 - baseline 外 4,363 条已按稳定 ID 分成 18 批，生成 top-10 embedding ensemble 候选；
 - 本机 `Xenova/bge-reranker-base@280bcc2-q8` 已完成 294 条试点评测与全量候选打分；独立 top-1 仅 52.0%，因此只作第二模型否决，不作分类器；
-- embedding high primary 位于 reranker 前二时，试点 top-1 为 94.4%；双模型初筛为 1,171 reviewed / 3,492 draft；首批 20 条全文 override 后为 1,166 reviewed / 3,497 draft；
+- embedding high primary 位于 reranker 前二时，试点 top-1 为 94.4%；双模型初筛为 1,171 reviewed / 3,492 draft；
 - 一次自动 reviewed 自训练 refinement 因政治史文本系统性泛化而回滚，不进入当前结果；
-- 全量审计初次输出 117 条高风险自动 reviewed；首批 override 后剩余 105 条，并保留逐标签全文样本和 3 个单书集中标签；内容质量 Gate 尚未关闭；
+- 累计 312 条全文 override 已处理高风险确认、错误修正、多标签边界与 158 条最强 draft 晋升；当前为 1,318 reviewed / 3,345 draft；
+- 自动 high-risk 已降至 0，thin / broad 为 0 / 0，剩余 2 个单书集中标签；内容质量 Gate 尚未关闭；
 - local snapshot 仍保持 294 条 reviewed 试点，只有完成高风险与边界复核后才消费新 assignments 并重建地图。
 
 完整实况见 `docs/28-BATCH-6-FULL-TAGGING.md`。

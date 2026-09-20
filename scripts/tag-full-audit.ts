@@ -82,7 +82,12 @@ async function main(): Promise<void> {
 
     const risks: RiskRow[] = [];
     for (const assignment of assignments) {
-        if (assignment.status !== 'reviewed' || baselineIds.has(assignment.highlightId)) continue;
+        if (
+            assignment.status !== 'reviewed' ||
+            baselineIds.has(assignment.highlightId) ||
+            assignment.provenance === 'override' ||
+            assignment.provenance === 'human'
+        ) continue;
         const acceptedTagId = assignment.tagIds[0];
         const highlight = highlightById.get(assignment.highlightId);
         const scores = [...(reranker.scores[assignment.highlightId] ?? [])]

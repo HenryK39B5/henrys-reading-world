@@ -39,20 +39,21 @@ Batch 6 为全部真实划线生成可续跑、可审计的标签建议。无法
 当前 `.private/tags/assignments.json`：
 
 - 总计：4,663；
-- reviewed：1,166；
-- draft：3,497；
+- reviewed：1,318；
+- draft：3,345；
 - preserved baseline：300；
-- 自动新增 reviewed：872；
-- provenance：ensemble 1,009 / lexical 11 / override 143 / human 3 / unresolved 3,497；
-- 首批全文审计 override：20 条，其中 15 条修正为更可靠标签、5 条降回 draft。
+- provenance：ensemble 875 / lexical 11 / override 429 / human 3 / unresolved 3,345；
+- 全文审计 override：累计 312 条决定，覆盖高风险确认、错误修正、多标签边界收缩和 158 条最强 draft 晋升；
+- reviewed 标签数分布：单标签 980 / 双标签 244 / 三标签 94，平均 1.33 个。
 
 全量审计发现：
 
-- 首批 override 后，自动 reviewed 中风险分 `>= 5`：105 条，已进入下一轮全文复核队列；
+- 自动 reviewed 风险分 `>= 5`：0；已全文确认的项目改为 `override` provenance，不再反复进入自动风险队列；
 - thin tag：0；
 - broad tag：0；
-- 单书集中标签：3 个（「精力」「亲密关系」「货币」），集中来源与书名主题一致，但仍需边界抽查；
-- 高风险队列已经发现少量明显误配，证明当前 1,171 reviewed 仍是中间状态，不得直接重建最终地图或宣称 Batch 6 完成。
+- 单书集中标签：2 个（「精力」「货币」），集中来源与书名主题一致，但最终分布仍需复核；
+- 逐标签强 / 中 / 弱代表样本发现并修正了顺带关键词、否定表述、文学描写和多标签过度扩张；
+- 最强 draft 边界逐条阅读全文后晋升 158 条，其余低信心内容继续保留 draft；当前仍是中间状态，不得直接宣称 Batch 6 完成。
 
 私有证据：
 
@@ -64,15 +65,15 @@ Batch 6 为全部真实划线生成可续跑、可审计的标签建议。无法
 ## 5. 验证
 
 - `npm run check:local`：typecheck、lint、300 单测 / 32 文件、现有 local snapshot 校验通过；
-- `npm run tags:full:override`：20 条全文决定原子应用，结果为 1,166 reviewed / 3,497 draft；
-- `npm run tags:full:audit`：风险和标签边界报告成功重建；
+- `npm run tags:full:override`：累计 312 条全文决定原子应用，结果为 1,318 reviewed / 3,345 draft；
+- `npm run tags:full:audit`：自动 high-risk 0；thin 0 / broad 0 / 单书集中 2；
 - 当前 local snapshot 仍保持 Batch 3 的 294 reviewed 试点，因此校验中的 4,369 条未标注 warning 是预期状态，不代表 Batch 6 assignments 已消费。
 
 ## 6. 下一步
 
-1. 复核 117 条高风险自动 reviewed，错误项降回 draft 或写入明确 override；
-2. 按标签检查代表性全文、单书集中和隐喻 / 顺带提及造成的误标；
-3. 对 draft 使用保守的规则与分组复核，不再使用自动 reviewed 自训练传播；
+1. 继续按标签和书籍检查剩余 draft 边界，优先处理跨书可验证且不依赖词面偶合的条目；
+2. 复核「精力」「货币」单书集中和低计数标签的跨书代表性；
+3. 不再使用自动 reviewed 自训练传播；无法可靠确认的内容继续保留 draft；
 4. 完成 assignment validator、Tag Studio 与真实数据 smoke；
 5. 只有质量 Gate 通过后才重建 local snapshot、路径投影和最终地图布局。
 
