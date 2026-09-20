@@ -13,7 +13,7 @@
 ## 执行规则
 
 - 先检查目录、现有实现及 Git 状态；保护既有工作，不因为本交接写着“无代码”就覆盖后续代码。
-- 当前 Slice 0–4、V2-A～V2-E4D、**Release-A（A1～A4）与 V3 Batch 0–5E** 均已完成；Batch 6 已建立全量候选、本机 reranker 否决与审计管线，当前 assignments 为 1,171 reviewed / 3,492 draft，消费者 snapshot 仍保持 294 条 reviewed 试点。高风险自动 reviewed 仍在复核，不能视为 Batch 6 完成；低信心内容继续允许保留 draft，不为覆盖率强贴标签。质量 Gate 后才重建并精修最终地图，再与用户共同调整。正式导出 public snapshot、复制 public covers、创建 repo、push 或部署仍需单独 Gate。
+- 当前 Slice 0–4、V2-A～V2-E4D、**Release-A（A1～A4）与 V3 Batch 0–5E** 均已完成；Batch 6 已建立全量候选、本机 reranker 否决与审计管线，当前 assignments 为 1,166 reviewed / 3,497 draft，首批 20 条全文 override 已应用，消费者 snapshot 仍保持 294 条 reviewed 试点。高风险自动 reviewed 仍在复核，不能视为 Batch 6 完成；低信心内容继续允许保留 draft，不为覆盖率强贴标签。质量 Gate 后才重建并精修最终地图，再与用户共同调整。正式导出 public snapshot、复制 public covers、创建 repo、push 或部署仍需单独 Gate。
 - 使用 Windows 原生 Node/npm/Git 与 PowerShell。不要混用 WSL 路径。
 - 不在非空项目根目录直接运行可能覆盖文档的脚手架；优先逐文件建立 Vite 配置。
 - 版本首次安装时选择彼此兼容的稳定版本并提交 npm 锁文件，不凭空声称某版本是最新。

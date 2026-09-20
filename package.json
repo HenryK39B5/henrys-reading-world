@@ -59,6 +59,7 @@
     "tags:full:reranker:evaluate": "node scripts/tag-reranker-evaluate.ts",
     "tags:full:rerank": "node scripts/tag-full-rerank.ts",
     "tags:full:review": "node scripts/tag-full-review.ts",
+    "tags:full:override": "node scripts/tag-full-override.ts",
     "tags:full:audit": "node scripts/tag-full-audit.ts",
     "tags:review-queue": "node scripts/tag-review-queue.ts",
     "tags:review-import": "node scripts/tag-review-import.ts",

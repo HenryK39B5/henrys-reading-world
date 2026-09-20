@@ -39,15 +39,16 @@ Batch 6 为全部真实划线生成可续跑、可审计的标签建议。无法
 当前 `.private/tags/assignments.json`：
 
 - 总计：4,663；
-- reviewed：1,171；
-- draft：3,492；
+- reviewed：1,166；
+- draft：3,497；
 - preserved baseline：300；
-- 自动新增 reviewed：877；
-- provenance：ensemble 1,029 / lexical 11 / override 128 / human 3 / unresolved 3,492。
+- 自动新增 reviewed：872；
+- provenance：ensemble 1,009 / lexical 11 / override 143 / human 3 / unresolved 3,497；
+- 首批全文审计 override：20 条，其中 15 条修正为更可靠标签、5 条降回 draft。
 
 全量审计发现：
 
-- 自动 reviewed 中风险分 `>= 5`：117 条，已进入全文复核队列；
+- 首批 override 后，自动 reviewed 中风险分 `>= 5`：105 条，已进入下一轮全文复核队列；
 - thin tag：0；
 - broad tag：0；
 - 单书集中标签：3 个（「精力」「亲密关系」「货币」），集中来源与书名主题一致，但仍需边界抽查；
@@ -63,7 +64,8 @@ Batch 6 为全部真实划线生成可续跑、可审计的标签建议。无法
 ## 5. 验证
 
 - `npm run check:local`：typecheck、lint、300 单测 / 32 文件、现有 local snapshot 校验通过；
-- `npm run tags:full:audit`：1,171 reviewed / 3,492 draft，风险和标签边界报告成功生成；
+- `npm run tags:full:override`：20 条全文决定原子应用，结果为 1,166 reviewed / 3,497 draft；
+- `npm run tags:full:audit`：风险和标签边界报告成功重建；
 - 当前 local snapshot 仍保持 Batch 3 的 294 reviewed 试点，因此校验中的 4,369 条未标注 warning 是预期状态，不代表 Batch 6 assignments 已消费。
 
 ## 6. 下一步
