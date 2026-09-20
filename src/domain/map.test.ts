@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampMapView, fitMapPoints, mapToScreen, nearestPoint, screenToMap } from './map.ts';
+import { clampMapView, fitMapPoints, mapToScreen, nearestPoint, screenToMap, zoomMapViewAt } from './map.ts';
 import { MAP_COORDINATE_MAX, type MapPoint } from './types.ts';
 
 const points: MapPoint[] = [
@@ -22,6 +22,17 @@ describe('map viewport geometry', () => {
         const restored = screenToMap(screen, view, 1000, 700);
         expect(restored.x).toBeCloseTo(6200);
         expect(restored.y).toBeCloseTo(4300);
+    });
+
+    it('keeps the coordinate under the pointer fixed while zooming', () => {
+        const view = { centerX: 5000, centerY: 5000, zoom: 1.5 };
+        const anchor = { x: 730, y: 180 };
+        const before = screenToMap(anchor, view, 1000, 700);
+        const zoomed = zoomMapViewAt(view, 1.8, anchor, 1000, 700);
+        const after = screenToMap(anchor, zoomed, 1000, 700);
+        expect(zoomed.zoom).toBeCloseTo(2.7);
+        expect(after.x).toBeCloseTo(before.x);
+        expect(after.y).toBeCloseTo(before.y);
     });
 
     it('finds only points within the requested hit radius', () => {

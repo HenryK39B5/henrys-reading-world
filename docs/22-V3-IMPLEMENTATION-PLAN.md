@@ -2,7 +2,7 @@
 
 > 日期：2026-09-19
 >
-> 状态：V3 施工权威；Batch 0–5 已完成，Batch 4 用户体验 Gate 已通过，Batch 5 世界地图正在等待用户体验 Gate；Release-B 继续暂停。
+> 状态：V3 施工权威；Batch 0–5E 已完成，地图产品方向与功能 Gate 已通过，Batch 6 全量标签生产已获用户授权并开始；全量后重建最终地图，再进入共同视觉精修。Release-B 继续暂停。
 >
 > Release-B 暂停。V3 不自动授权正式 public snapshot、public covers、repo、push、workflow 或部署。
 
@@ -259,6 +259,15 @@ Batch 3 最终实况（2026-09-19）：56 / 56 标签覆盖，0 孤儿、0 过�
 - public snapshot 继续为空且不含 map；没有 public export、public covers、repo、push、workflow 或部署。
 
 完整实况见 `docs/27-BATCH-5-WORLD-MAP.md`。
+
+### 8.6 Batch 5E 结构性精修与用户 Gate（2026-09-20）
+
+- 用户确认地图已具备雏形、功能体验成立，要求继续打磨到更接近产品级，并授权随后直接进入 Batch 6；
+- 增强真实密度、等高线、全量点与标签的视觉层次，标签增加自动避让、轻量引线和纸面底；
+- 区域标题加入正式标签定义，多标签点增加克制双环，Book Aura 增加光晕与书籍状态带；
+- 滚轮缩放改为围绕指针位置，新增双指缩放，缩放比例与世界 / 区域状态清晰显示；
+- 地图详情获得书籍 accent 顶线与克制进入动效，移动端减少首屏控制占高；
+- `check:local` 为 295 单测 / 31 文件，local Chromium 115 / 115，视觉取证 3 / 3；用户授权进入 Batch 6。
 
 ## 9. Batch 6 — 全量 4,663 条标签生产
 

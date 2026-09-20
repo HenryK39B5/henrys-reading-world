@@ -13,7 +13,7 @@
 ## 执行规则
 
 - 先检查目录、现有实现及 Git 状态；保护既有工作，不因为本交接写着“无代码”就覆盖后续代码。
-- 当前 Slice 0–4、V2-A～V2-E4D、**Release-A（A1～A4）与 V3 Batch 0–5** 均已完成；用户已于 2026-09-19 通过 Batch 4 体验 Gate并授权进入 Batch 5，当前等待 Batch 5 世界地图体验 Gate。地图使用独立全量 4,663 点布局，294 条 reviewed 试点继续形成 56 条可命名主题区域与小径；6 条 draft 与其余未标注内容只作为未命名地形点，不造标签。正式导出 public snapshot、复制 public covers、创建 repo、push 或部署仍需单独 Gate。
+- 当前 Slice 0–4、V2-A～V2-E4D、**Release-A（A1～A4）与 V3 Batch 0–5E** 均已完成；用户确认地图已具备产品雏形、功能体验成立，并授权完成一轮结构性精修后直接进入 Batch 6。地图使用独立全量 4,663 点布局；Batch 6 将把当前 294 条 reviewed 试点扩至全量，6 条既有 draft 与新低信心内容继续允许保留 draft，不为覆盖率强贴标签。全量完成后重建并精修最终地图，再与用户共同调整。正式导出 public snapshot、复制 public covers、创建 repo、push 或部署仍需单独 Gate。
 - 使用 Windows 原生 Node/npm/Git 与 PowerShell。不要混用 WSL 路径。
 - 不在非空项目根目录直接运行可能覆盖文档的脚手架；优先逐文件建立 Vite 配置。
 - 版本首次安装时选择彼此兼容的稳定版本并提交 npm 锁文件，不凭空声称某版本是最新。

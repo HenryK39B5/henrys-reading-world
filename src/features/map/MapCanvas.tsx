@@ -7,6 +7,7 @@ import {
     nearestPoint,
     screenToMap,
     summarizeMapLabels,
+    zoomMapViewAt,
     type MapLabelSummary,
     type MapViewport,
 } from '../../domain/map.ts';
@@ -26,7 +27,17 @@ export type MapCanvasProps = {
 };
 
 type Size = { width: number; height: number };
-type LabelHit = { summary: MapLabelSummary; left: number; top: number; right: number; bottom: number };
+type LabelHit = {
+    summary: MapLabelSummary;
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+    x: number;
+    y: number;
+    anchorX: number;
+    anchorY: number;
+};
 
 type DragState = {
     pointerId: number;
@@ -35,6 +46,30 @@ type DragState = {
     view: MapViewport;
     moved: boolean;
 };
+
+type PinchState = {
+    startDistance: number;
+    startView: MapViewport;
+    anchorMap: { x: number; y: number };
+};
+
+const LABEL_OFFSETS = [
+    { x: 0, y: 0 },
+    { x: 0, y: -22 },
+    { x: 22, y: -13 },
+    { x: -22, y: -13 },
+    { x: 24, y: 13 },
+    { x: -24, y: 13 },
+    { x: 0, y: 23 },
+];
+
+function midpoint(left: { x: number; y: number }, right: { x: number; y: number }): { x: number; y: number } {
+    return { x: (left.x + right.x) / 2, y: (left.y + right.y) / 2 };
+}
+
+function distance(left: { x: number; y: number }, right: { x: number; y: number }): number {
+    return Math.hypot(left.x - right.x, left.y - right.y);
+}
 
 function overlaps(left: LabelHit, right: LabelHit): boolean {
     return !(left.right + 8 < right.left || right.right + 8 < left.left || left.bottom + 5 < right.top || right.bottom + 5 < left.top);
@@ -59,6 +94,9 @@ export function MapCanvas({
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const labelHits = useRef<LabelHit[]>([]);
     const drag = useRef<DragState | null>(null);
+    const pointers = useRef(new Map<number, { x: number; y: number }>());
+    const pinch = useRef<PinchState | null>(null);
+    const gestureMoved = useRef(false);
     const [size, setSize] = useState<Size>({ width: 1, height: 1 });
     const [hoverText, setHoverText] = useState('');
     const layout = index.snapshot.map;
@@ -97,6 +135,35 @@ export function MapCanvas({
         ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
         ctx.clearRect(0, 0, size.width, size.height);
 
+        const wash = ctx.createRadialGradient(
+            size.width * 0.54,
+            size.height * 0.44,
+            0,
+            size.width * 0.54,
+            size.height * 0.44,
+            Math.max(size.width, size.height) * 0.72,
+        );
+        wash.addColorStop(0, 'rgba(49, 95, 75, 0.035)');
+        wash.addColorStop(0.64, 'rgba(49, 95, 75, 0.012)');
+        wash.addColorStop(1, 'rgba(49, 95, 75, 0)');
+        ctx.fillStyle = wash;
+        ctx.fillRect(0, 0, size.width, size.height);
+
+        ctx.beginPath();
+        for (let coordinate = 1000; coordinate < MAP_COORDINATE_MAX; coordinate += 1000) {
+            const verticalStart = mapToScreen({ x: coordinate, y: 0 }, view, size.width, size.height);
+            const verticalEnd = mapToScreen({ x: coordinate, y: MAP_COORDINATE_MAX }, view, size.width, size.height);
+            const horizontalStart = mapToScreen({ x: 0, y: coordinate }, view, size.width, size.height);
+            const horizontalEnd = mapToScreen({ x: MAP_COORDINATE_MAX, y: coordinate }, view, size.width, size.height);
+            ctx.moveTo(verticalStart.x, verticalStart.y);
+            ctx.lineTo(verticalEnd.x, verticalEnd.y);
+            ctx.moveTo(horizontalStart.x, horizontalStart.y);
+            ctx.lineTo(horizontalEnd.x, horizontalEnd.y);
+        }
+        ctx.strokeStyle = 'rgba(49, 95, 75, 0.045)';
+        ctx.lineWidth = 0.6;
+        ctx.stroke();
+
         const { density } = layout;
         for (let row = 0; row < density.rows; row += 1) {
             for (let column = 0; column < density.columns; column += 1) {
@@ -110,7 +177,7 @@ export function MapCanvas({
                     x: ((column + 1) / (density.columns - 1)) * MAP_COORDINATE_MAX,
                     y: ((row + 1) / (density.rows - 1)) * MAP_COORDINATE_MAX,
                 }, view, size.width, size.height);
-                ctx.fillStyle = `rgba(49, 95, 75, ${String((value / 255) * 0.065)})`;
+                ctx.fillStyle = `rgba(49, 95, 75, ${String((value / 255) * 0.095)})`;
                 ctx.fillRect(start.x, start.y, end.x - start.x + 1, end.y - start.y + 1);
             }
         }
@@ -123,8 +190,8 @@ export function MapCanvas({
                 ctx.moveTo(start.x, start.y);
                 ctx.lineTo(end.x, end.y);
             }
-            ctx.strokeStyle = contour.level >= 150 ? 'rgba(49, 95, 75, 0.22)' : 'rgba(96, 100, 93, 0.14)';
-            ctx.lineWidth = contour.level >= 150 ? 1.15 : 0.75;
+            ctx.strokeStyle = contour.level >= 150 ? 'rgba(49, 95, 75, 0.30)' : 'rgba(96, 100, 93, 0.17)';
+            ctx.lineWidth = contour.level >= 150 ? 1.2 : 0.75;
             ctx.stroke();
         }
 
@@ -135,27 +202,43 @@ export function MapCanvas({
             if (screen.x < -3 || screen.y < -3 || screen.x > size.width + 3 || screen.y > size.height + 3) continue;
             drawCircle(ctx, screen.x, screen.y, view.zoom > 2 ? 1.35 : 1.05);
         }
-        ctx.fillStyle = activeTagId === null && activeBookId === null ? 'rgba(32, 35, 31, 0.30)' : 'rgba(32, 35, 31, 0.12)';
+        ctx.fillStyle = activeTagId === null && activeBookId === null ? 'rgba(32, 35, 31, 0.37)' : 'rgba(32, 35, 31, 0.11)';
         ctx.fill();
 
         if (tagPoints.length > 0) {
             ctx.beginPath();
             for (const point of tagPoints) {
                 const screen = mapToScreen(point, view, size.width, size.height);
-                drawCircle(ctx, screen.x, screen.y, 2.35);
+                drawCircle(ctx, screen.x, screen.y, 2.45);
             }
-            ctx.fillStyle = 'rgba(32, 35, 31, 0.82)';
+            ctx.fillStyle = 'rgba(32, 35, 31, 0.86)';
             ctx.fill();
+
+            ctx.beginPath();
+            for (const point of tagPoints) {
+                const highlight = index.highlightsById.get(point.highlightId);
+                if ((highlight?.tagIds.length ?? 0) < 2) continue;
+                const screen = mapToScreen(point, view, size.width, size.height);
+                ctx.moveTo(screen.x + 4.4, screen.y);
+                ctx.arc(screen.x, screen.y, 4.4, 0, Math.PI * 2);
+            }
+            ctx.strokeStyle = 'rgba(49, 95, 75, 0.58)';
+            ctx.lineWidth = 0.9;
+            ctx.stroke();
         }
 
         if (bookPoints.length > 0) {
+            ctx.save();
             ctx.beginPath();
             for (const point of bookPoints) {
                 const screen = mapToScreen(point, view, size.width, size.height);
-                drawCircle(ctx, screen.x, screen.y, 3.1);
+                drawCircle(ctx, screen.x, screen.y, 3.25);
             }
+            ctx.shadowColor = bookAccent;
+            ctx.shadowBlur = 7;
             ctx.fillStyle = bookAccent;
             ctx.fill();
+            ctx.restore();
         }
 
         if (activeHighlightId !== null) {
@@ -189,28 +272,50 @@ export function MapCanvas({
                 const dy = summary.label.y - activeLabel.label.y;
                 if (Math.sqrt(dx * dx + dy * dy) > 2800) continue;
             }
-            const screen = mapToScreen(summary.label, view, size.width, size.height);
-            if (screen.x < 24 || screen.y < 22 || screen.x > size.width - 24 || screen.y > size.height - 22) continue;
+            const anchor = mapToScreen(summary.label, view, size.width, size.height);
             const active = summary.tagId === activeTagId;
             ctx.font = `${active ? '600 16px' : '400 13px'} system-ui, "Microsoft YaHei", sans-serif`;
             const width = ctx.measureText(summary.title).width;
-            const hit: LabelHit = {
-                summary,
-                left: screen.x - width / 2 - 7,
-                right: screen.x + width / 2 + 7,
-                top: screen.y - (active ? 15 : 12),
-                bottom: screen.y + 7,
-            };
-            if (!active && visibleLabels.some((placed) => overlaps(hit, placed))) continue;
+            let hit: LabelHit | undefined;
+            for (const offset of active ? LABEL_OFFSETS.slice(0, 1) : LABEL_OFFSETS) {
+                const x = anchor.x + offset.x;
+                const y = anchor.y + offset.y;
+                const candidate: LabelHit = {
+                    summary,
+                    left: x - width / 2 - 8,
+                    right: x + width / 2 + 8,
+                    top: y - (active ? 16 : 13),
+                    bottom: y + 9,
+                    x,
+                    y,
+                    anchorX: anchor.x,
+                    anchorY: anchor.y,
+                };
+                if (candidate.left < 8 || candidate.top < 8 || candidate.right > size.width - 8 || candidate.bottom > size.height - 8) continue;
+                if (!active && visibleLabels.some((placed) => overlaps(candidate, placed))) continue;
+                hit = candidate;
+                break;
+            }
+            if (hit === undefined) continue;
             visibleLabels.push(hit);
-            ctx.fillStyle = active ? '#20231f' : 'rgba(32, 35, 31, 0.72)';
+            if (Math.abs(hit.x - hit.anchorX) + Math.abs(hit.y - hit.anchorY) > 5) {
+                ctx.beginPath();
+                ctx.moveTo(hit.anchorX, hit.anchorY);
+                ctx.lineTo(hit.x, hit.y);
+                ctx.strokeStyle = 'rgba(49, 95, 75, 0.24)';
+                ctx.lineWidth = 0.7;
+                ctx.stroke();
+            }
+            ctx.fillStyle = active ? 'rgba(247, 245, 239, 0.94)' : 'rgba(247, 245, 239, 0.78)';
+            ctx.fillRect(hit.left + 1, hit.top + 1, hit.right - hit.left - 2, hit.bottom - hit.top - 2);
+            ctx.fillStyle = active ? '#20231f' : 'rgba(32, 35, 31, 0.78)';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(summary.title, screen.x, screen.y);
+            ctx.fillText(summary.title, hit.x, hit.y);
             if (active) {
                 ctx.beginPath();
-                ctx.moveTo(screen.x - width / 2, screen.y + 11);
-                ctx.lineTo(screen.x + width / 2, screen.y + 11);
+                ctx.moveTo(hit.x - width / 2, hit.y + 11);
+                ctx.lineTo(hit.x + width / 2, hit.y + 11);
                 ctx.strokeStyle = '#315f4b';
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
@@ -219,7 +324,9 @@ export function MapCanvas({
         labelHits.current = visibleLabels;
     }, [activeBookId, activeHighlightId, activeTagId, bookAccent, bookPointIds, bookPoints, index, labels, layout, size, tagPointIds, tagPoints, view]);
 
-    const pointerPosition = (event: React.PointerEvent<HTMLCanvasElement>): { x: number; y: number } => {
+    const pointerPosition = (
+        event: React.PointerEvent<HTMLCanvasElement> | React.WheelEvent<HTMLCanvasElement>,
+    ): { x: number; y: number } => {
         const rect = event.currentTarget.getBoundingClientRect();
         return { x: event.clientX - rect.left, y: event.clientY - rect.top };
     };
@@ -238,19 +345,55 @@ export function MapCanvas({
                 data-map-zoom={view.zoom.toFixed(3)}
                 role="img"
                 tabIndex={0}
-                aria-label="阅读世界地图。可拖动和缩放；键盘访客可使用地图下方的主题区域与划线列表。"
+                aria-label="阅读世界地图。可拖动、滚轮缩放或双指缩放；键盘访客可使用地图下方的主题区域与划线列表。"
                 onPointerDown={(event) => {
                     const position = pointerPosition(event);
                     event.currentTarget.setPointerCapture(event.pointerId);
-                    drag.current = { pointerId: event.pointerId, startX: position.x, startY: position.y, view, moved: false };
+                    pointers.current.set(event.pointerId, position);
+                    if (pointers.current.size === 1) {
+                        drag.current = { pointerId: event.pointerId, startX: position.x, startY: position.y, view, moved: false };
+                        gestureMoved.current = false;
+                    } else if (pointers.current.size === 2) {
+                        const [left, right] = [...pointers.current.values()];
+                        if (left !== undefined && right !== undefined) {
+                            const anchor = midpoint(left, right);
+                            pinch.current = {
+                                startDistance: Math.max(1, distance(left, right)),
+                                startView: view,
+                                anchorMap: screenToMap(anchor, view, size.width, size.height),
+                            };
+                            drag.current = null;
+                            gestureMoved.current = true;
+                        }
+                    }
                 }}
                 onPointerMove={(event) => {
                     const position = pointerPosition(event);
+                    if (pointers.current.has(event.pointerId)) pointers.current.set(event.pointerId, position);
+                    const currentPinch = pinch.current;
+                    if (currentPinch !== null && pointers.current.size >= 2) {
+                        const [left, right] = [...pointers.current.values()];
+                        if (left !== undefined && right !== undefined) {
+                            const anchor = midpoint(left, right);
+                            const zoom = Math.max(1, Math.min(8, currentPinch.startView.zoom * (distance(left, right) / currentPinch.startDistance)));
+                            const scale = (Math.min(size.width, size.height) / MAP_COORDINATE_MAX) * zoom;
+                            onViewChange(clampMapView({
+                                zoom,
+                                centerX: currentPinch.anchorMap.x - (anchor.x - size.width / 2) / scale,
+                                centerY: currentPinch.anchorMap.y - (anchor.y - size.height / 2) / scale,
+                            }));
+                        }
+                        event.currentTarget.style.cursor = 'grabbing';
+                        return;
+                    }
                     const currentDrag = drag.current;
                     if (currentDrag !== null && currentDrag.pointerId === event.pointerId) {
                         const dx = position.x - currentDrag.startX;
                         const dy = position.y - currentDrag.startY;
-                        if (Math.abs(dx) + Math.abs(dy) > 3) currentDrag.moved = true;
+                        if (Math.abs(dx) + Math.abs(dy) > 3) {
+                            currentDrag.moved = true;
+                            gestureMoved.current = true;
+                        }
                         const startMap = screenToMap({ x: 0, y: 0 }, currentDrag.view, size.width, size.height);
                         const movedMap = screenToMap({ x: dx, y: dy }, currentDrag.view, size.width, size.height);
                         onViewChange(clampMapView({
@@ -258,11 +401,13 @@ export function MapCanvas({
                             centerX: currentDrag.view.centerX - (movedMap.x - startMap.x),
                             centerY: currentDrag.view.centerY - (movedMap.y - startMap.y),
                         }));
+                        event.currentTarget.style.cursor = 'grabbing';
                         return;
                     }
                     const label = labelAt(position);
                     if (label !== undefined) {
-                        setHoverText(`${label.summary.title}：${String(label.summary.bookCount)} 本书，${String(label.summary.highlightCount)} 处已标注划线`);
+                        const definition = label.summary.description === undefined ? '' : `；${label.summary.description}`;
+                        setHoverText(`${label.summary.title}：${String(label.summary.bookCount)} 本书，${String(label.summary.highlightCount)} 处已标注划线${definition}`);
                         event.currentTarget.style.cursor = 'pointer';
                         return;
                     }
@@ -279,9 +424,25 @@ export function MapCanvas({
                 }}
                 onPointerUp={(event) => {
                     const position = pointerPosition(event);
-                    const currentDrag = drag.current;
+                    const moved = gestureMoved.current || drag.current?.moved === true || pinch.current !== null;
+                    pointers.current.delete(event.pointerId);
                     drag.current = null;
-                    if (currentDrag?.moved === true) return;
+                    if (pointers.current.size < 2) pinch.current = null;
+                    if (pointers.current.size === 1) {
+                        const [remaining] = pointers.current.entries();
+                        if (remaining !== undefined) {
+                            drag.current = {
+                                pointerId: remaining[0],
+                                startX: remaining[1].x,
+                                startY: remaining[1].y,
+                                view,
+                                moved: true,
+                            };
+                        }
+                        return;
+                    }
+                    gestureMoved.current = false;
+                    if (moved) return;
                     const label = labelAt(position);
                     if (label !== undefined) {
                         onSelectTag(label.summary.tagId);
@@ -290,7 +451,12 @@ export function MapCanvas({
                     const point = nearestPoint(interactivePoints, position, view, size.width, size.height, 13);
                     if (point !== undefined) onSelectHighlight(point.highlightId);
                 }}
-                onPointerCancel={() => { drag.current = null; }}
+                onPointerCancel={(event) => {
+                    pointers.current.delete(event.pointerId);
+                    drag.current = null;
+                    pinch.current = null;
+                    gestureMoved.current = false;
+                }}
                 onPointerLeave={(event) => {
                     if (drag.current === null) setHoverText('');
                     event.currentTarget.style.cursor = 'grab';
@@ -298,7 +464,7 @@ export function MapCanvas({
                 onWheel={(event) => {
                     event.preventDefault();
                     const factor = event.deltaY < 0 ? 1.18 : 1 / 1.18;
-                    onViewChange(clampMapView({ ...view, zoom: view.zoom * factor }));
+                    onViewChange(zoomMapViewAt(view, factor, pointerPosition(event), size.width, size.height));
                 }}
                 onKeyDown={(event) => {
                     const step = 500 / view.zoom;

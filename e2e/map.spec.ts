@@ -10,7 +10,7 @@ test.describe('V3 reading world map', () => {
         await page.goto('/map');
         await expect(page.getByTestId('room-heading')).toHaveText('阅读世界地图');
         await expect(page.getByTestId('map-summary')).toContainText(`${data.highlights.length} 个真实点`);
-        await expect(page.getByTestId('map-summary')).toContainText(`${data.highlights.filter((entry) => entry.tagIds.length > 0).length} 个已有线索`);
+        await expect(page.getByTestId('map-summary')).toContainText(`${data.highlights.filter((entry) => entry.tagIds.length > 0).length} 个已命名点`);
         await expect(page.locator('.map-region-list > li')).toHaveCount(data.tags.length);
         await expect(page.getByTestId('map-canvas')).toBeVisible();
 
@@ -106,6 +106,36 @@ test.describe('V3 reading world map', () => {
         await expect(page.getByTestId('map-detail').getByTestId('topic-clues').locator('a')).toHaveCount(3);
         await page.getByTestId('map-detail').getByRole('button', { name: '分享' }).click();
         await expect(page.getByTestId('share-card-tags').locator('span')).toHaveCount(3);
+    });
+
+    test('zooms around the pointer instead of pulling the chosen place away', async ({ page }) => {
+        await page.setViewportSize({ width: 1200, height: 900 });
+        await page.goto('/map');
+        const canvas = page.getByTestId('map-canvas');
+        const box = await canvas.boundingBox();
+        expect(box).not.toBeNull();
+        if (box === null) return;
+        const anchor = { x: box.x + box.width * 0.72, y: box.y + box.height * 0.31 };
+        const readView = async () => ({
+            centerX: Number(await canvas.getAttribute('data-map-center-x')),
+            centerY: Number(await canvas.getAttribute('data-map-center-y')),
+            zoom: Number(await canvas.getAttribute('data-map-zoom')),
+        });
+        const mapAtAnchor = (view: { centerX: number; centerY: number; zoom: number }) => {
+            const scale = (Math.min(box.width, box.height) / 10_000) * view.zoom;
+            return {
+                x: view.centerX + (anchor.x - box.x - box.width / 2) / scale,
+                y: view.centerY + (anchor.y - box.y - box.height / 2) / scale,
+            };
+        };
+        const before = mapAtAnchor(await readView());
+        await page.mouse.move(anchor.x, anchor.y);
+        await page.mouse.wheel(0, -240);
+        await expect(canvas).not.toHaveAttribute('data-map-zoom', '1.000');
+        const after = mapAtAnchor(await readView());
+        expect(after.x).toBeCloseTo(before.x, -1);
+        expect(after.y).toBeCloseTo(before.y, -1);
+        await expect(page.locator('.map-zoom-readout')).not.toHaveText('100%');
     });
 
     test('supports keyboard pan and zoom while keeping the semantic lists operable', async ({ page }) => {

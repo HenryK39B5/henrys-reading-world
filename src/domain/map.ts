@@ -111,6 +111,24 @@ export function screenToMap(
     };
 }
 
+/** Zoom while keeping the map coordinate beneath an on-screen anchor stationary. */
+export function zoomMapViewAt(
+    view: MapViewport,
+    factor: number,
+    anchor: { x: number; y: number },
+    width: number,
+    height: number,
+): MapViewport {
+    const mapAnchor = screenToMap(anchor, view, width, height);
+    const zoom = Math.max(1, Math.min(8, view.zoom * factor));
+    const scale = (Math.min(width, height) / MAP_COORDINATE_MAX) * zoom;
+    return clampMapView({
+        zoom,
+        centerX: mapAnchor.x - (anchor.x - width / 2) / scale,
+        centerY: mapAnchor.y - (anchor.y - height / 2) / scale,
+    });
+}
+
 export function nearestPoint(
     points: readonly MapPoint[],
     target: { x: number; y: number },

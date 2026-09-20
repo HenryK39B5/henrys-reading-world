@@ -32,17 +32,24 @@ function MapDetail({
     currentTagId,
     bookId,
     onShare,
+    accent,
 }: {
     index: SnapshotIndex;
     highlight: Highlight;
     currentTagId: string | null;
     bookId: string | null;
     onShare: (highlightId: string) => void;
+    accent: string;
 }) {
     const book = index.booksById.get(highlight.bookId);
     const tags = highlight.tagIds.map((tagId) => index.tagsById.get(tagId)).filter((tag) => tag !== undefined);
     return (
-        <article className="map-detail" aria-labelledby="map-detail-heading" data-testid="map-detail">
+        <article
+            className="map-detail"
+            aria-labelledby="map-detail-heading"
+            data-testid="map-detail"
+            style={{ '--map-detail-accent': accent } as React.CSSProperties}
+        >
             <div className="map-detail-head">
                 <p className="room-kicker">地图上的一处划线</p>
                 <a
@@ -126,8 +133,9 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                         {tag === undefined ? '阅读世界地图' : tag.title}
                     </h1>
                     <p className="map-summary" data-testid="map-summary">
-                        {String(pointCount)} 个真实点 · {String(namedCount)} 个已有线索
+                        {String(pointCount)} 个真实点 · {String(namedCount)} 个已命名点
                     </p>
+                    {tag?.description === undefined ? null : <p className="map-region-description">{tag.description}</p>}
                 </div>
                 <a className="room-exit map-list-return" href="/paths">小径列表</a>
             </header>
@@ -143,6 +151,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                     <button type="button" className="map-icon-button" aria-label="放大地图" title="放大" onClick={view.zoomIn}>+</button>
                     <button type="button" className="map-icon-button" aria-label="缩小地图" title="缩小" onClick={view.zoomOut}>−</button>
                     <button type="button" className="map-icon-button" aria-label="复位地图" title="复位" onClick={view.reset}>↺</button>
+                    <output className="map-zoom-readout" aria-label="当前地图缩放比例">{String(Math.round(view.view.zoom * 100))}%</output>
                 </div>
                 <label className="map-book-picker">
                     <span>点亮一本书</span>
@@ -161,8 +170,9 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
             {book === undefined ? null : (
                 <div className="map-book-light" style={{ '--map-book-aura': bookAccent || DEFAULT_ACCENT } as React.CSSProperties}>
                     <p>
+                        <span className="map-book-swatch" aria-hidden="true" />
                         <strong>《{book.title}》</strong>
-                        <span>{String(selectedBookPoints.length)} 个点</span>
+                        <span>{String(selectedBookPoints.length)} 个点散落在地图中</span>
                     </p>
                     <p className="map-book-paths">
                         {relatedTagIds.length === 0 ? '这本书的试点划线尚无 reviewed 小径。' : relatedTagIds.map((relatedTagId) => {
@@ -176,6 +186,10 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
             )}
 
             <div className="map-stage" data-testid="map-stage">
+                <div className="map-stage-status" aria-hidden="true">
+                    <span>{tag === undefined ? '世界总览' : `主题区域 · ${tag.title}`}</span>
+                    <span>拖动 · 滚轮 / 双指缩放</span>
+                </div>
                 <MapCanvas
                     index={index}
                     view={view.view}
@@ -198,6 +212,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                         currentTagId={effectiveTagId}
                         bookId={effectiveBookId}
                         onShare={onShare}
+                        accent={bookAccent || DEFAULT_ACCENT}
                     />
                 )}
             </div>

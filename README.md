@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-- 阶段：v1 Slice 0–4、V2-A～V2-E4D、Release-A、V3 Batch 0–5 均已完成；**schema 3、56 条真实主题小径与 4,663 点阅读世界地图已进入 Local World**。当前等待 Batch 5 地图体验 Gate，再决定是否进入 Batch 6 全量标注。
+- 阶段：v1 Slice 0–4、V2-A～V2-E4D、Release-A、V3 Batch 0–5E 均已完成；**schema 3、56 条真实主题小径与 4,663 点阅读世界地图已进入 Local World**。用户已确认地图产品方向并授权进入 Batch 6 全量标注；全量完成后重建最终地图并共同精修。
 - 发布审核：用户已完成两轮审核，私有清单当前为 **108 本公开 / 22 本排除 / 6 条单独排除**，`reviewComplete=true`。这些决定继续有效，但 Release-B 暂停到 V3 Gate 之后；未生成 public snapshot、未创建 GitHub repo、未 push。
 - 产品方向：`docs/19-PRODUCT-DIRECTION-V3.md`；标签 / 小径 / 地图规格：`docs/20-TAGS-PATHS-MAP-SPEC.md`；视觉：`docs/21-V3-VISUAL-DIRECTION.md`；施工：`docs/22-V3-IMPLEMENTATION-PLAN.md`；embedding 实际评测：`docs/23-EMBEDDING-EVALUATION.md`；Batch 2 标签发现：`docs/24-BATCH-2-TAG-DISCOVERY.md`；Batch 3 试标与 Studio：`docs/25-BATCH-3-TAG-STUDIO.md`；Batch 4 小径与视觉实况：`docs/26-BATCH-4-PATHS-AND-VISUAL.md`；Batch 5 世界地图实况：`docs/27-BATCH-5-WORLD-MAP.md`。
 - 硬约束：所有开发只使用 Henry 本人的真实微信读书划线，不使用 fake / demo 数据；Book Theme 属于书籍，V3 Topic Tag 属于划线，但不做人格标签、质量评分或 AI 观点总结。

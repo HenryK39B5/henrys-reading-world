@@ -17,6 +17,15 @@
     font-size: 12px;
 }
 
+.map-region-description {
+    max-width: 62ch;
+    margin: 10px 0 0;
+    color: var(--ink-soft);
+    font-family: var(--stage-font);
+    font-size: 14px;
+    line-height: 1.75;
+}
+
 .map-list-return {
     white-space: nowrap;
 }
@@ -38,7 +47,17 @@
 
 .map-zoom-controls {
     display: flex;
+    align-items: center;
     gap: 5px;
+}
+
+.map-zoom-readout {
+    min-width: 50px;
+    margin-left: 5px;
+    color: var(--ink-faint);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
 }
 
 .map-icon-button {
@@ -86,10 +105,20 @@
     align-items: baseline;
     justify-content: space-between;
     gap: 18px;
-    padding: 11px 0;
-    border-bottom: 1px solid color-mix(in srgb, var(--map-book-aura) 35%, var(--rule));
+    padding: 11px 10px;
+    border-bottom: 1px solid color-mix(in srgb, var(--map-book-aura) 42%, var(--rule));
+    background: linear-gradient(90deg, color-mix(in srgb, var(--map-book-aura) 8%, transparent), transparent 58%);
     color: var(--ink-soft);
     font-size: 12px;
+}
+
+.map-book-swatch {
+    width: 9px;
+    height: 9px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--map-book-aura);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--map-book-aura) 13%, transparent);
 }
 
 .map-book-light p {
@@ -115,12 +144,37 @@
 .map-stage {
     position: relative;
     min-height: 620px;
+    overflow: hidden;
+    border-top: 1px solid color-mix(in srgb, var(--accent) 20%, var(--rule));
     border-bottom: 1px solid var(--rule-strong);
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--paper) 84%, transparent), transparent 18%),
+        color-mix(in srgb, var(--surface-muted) 22%, var(--paper));
+}
+
+.map-stage-status {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 1;
+    display: flex;
+    align-items: baseline;
+    gap: 8px 16px;
+    padding: 3px 7px;
+    background: color-mix(in srgb, var(--paper) 90%, transparent);
+    color: var(--ink-faint);
+    font-size: 10px;
+    pointer-events: none;
+}
+
+.map-stage-status span:first-child {
+    color: var(--ink-soft);
+    font-weight: 600;
 }
 
 .map-canvas-wrap {
     position: relative;
-    height: min(72svh, 740px);
+    height: min(74svh, 760px);
     min-height: 620px;
 }
 
@@ -131,6 +185,8 @@
     outline: none;
     cursor: grab;
     touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .map-canvas:focus-visible {
@@ -141,10 +197,11 @@
     position: absolute;
     bottom: 10px;
     left: 10px;
+    max-width: min(72ch, calc(100% - 20px));
     min-height: 24px;
     margin: 0;
     padding: 2px 7px;
-    background: color-mix(in srgb, var(--paper) 88%, transparent);
+    background: color-mix(in srgb, var(--paper) 92%, transparent);
     color: var(--ink-soft);
     font-size: 11px;
     pointer-events: none;
@@ -155,14 +212,27 @@
     top: 22px;
     right: 18px;
     z-index: 2;
-    width: min(390px, calc(100% - 36px));
+    width: min(410px, calc(100% - 36px));
     max-height: calc(100% - 44px);
     overflow: auto;
-    padding: 22px;
+    padding: 22px 24px 24px;
     border: 1px solid var(--rule-strong);
-    border-radius: 6px;
-    background: color-mix(in srgb, var(--paper) 96%, transparent);
-    box-shadow: 0 14px 40px rgba(32, 35, 31, 0.12);
+    border-top: 3px solid var(--map-detail-accent, var(--accent));
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--paper) 97%, transparent);
+    box-shadow: 0 18px 46px rgba(32, 35, 31, 0.15);
+    animation: map-detail-arrive 220ms ease-out both;
+}
+
+@keyframes map-detail-arrive {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
 }
 
 .map-detail-head {
@@ -324,7 +394,8 @@
     .map-toolbar {
         align-items: flex-start;
         flex-direction: column;
-        padding: 10px 0;
+        gap: 8px;
+        padding: 8px 0 10px;
     }
 
     .map-book-picker {
@@ -343,11 +414,20 @@
 
     .map-stage,
     .map-canvas-wrap {
-        min-height: 520px;
+        min-height: 500px;
     }
 
     .map-canvas-wrap {
-        height: 68svh;
+        height: 64svh;
+    }
+
+    .map-stage-status {
+        top: 8px;
+        left: 8px;
+    }
+
+    .map-stage-status span:last-child {
+        display: none;
     }
 
     .map-detail {
@@ -361,6 +441,16 @@
         border-left: 0;
         border-radius: 0;
         box-shadow: none;
+        animation-name: map-detail-arrive-mobile;
+    }
+
+    @keyframes map-detail-arrive-mobile {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
     }
 
     .map-region-list {
@@ -397,9 +487,14 @@
 
     .map-stage,
     .map-canvas-wrap {
-        min-height: 480px;
+        min-height: 460px;
+    }
+
+    .map-canvas-wrap {
+        height: 60svh;
     }
 }
+
 
 @media (prefers-reduced-motion: reduce) {
     .map-icon-button,
@@ -407,5 +502,6 @@
     .map-canvas {
         scroll-behavior: auto;
         transition: none;
+        animation: none;
     }
 }

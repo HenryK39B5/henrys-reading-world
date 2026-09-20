@@ -2,7 +2,7 @@
 
 > 日期：2026-09-19
 >
-> 状态：**Batch 5 工程与视觉 Gate 已完成，等待用户地图体验 Gate。** 全部 4,663 条真实划线参与未命名语义地形，294 条 reviewed 试点及其 56 个 Topic Tag 提供命名区域、小径与详情入口。public snapshot 仍为空；Batch 6 全量标注、正式 export、push 与部署均未开始。
+> 状态：**Batch 5E 结构性精修已完成，用户已通过地图产品方向与功能 Gate，并授权进入 Batch 6。** 全部 4,663 条真实划线参与未命名语义地形，当前 294 条 reviewed 试点及其 56 个 Topic Tag 提供命名区域、小径与详情入口。全量标注后将重建地图并与用户共同完成最终视觉精修。public snapshot 仍为空；正式 export、push 与部署均未开始。
 
 ## 1. 本阶段完成什么
 
@@ -176,4 +176,6 @@ local 校验继续诚实报告 10 个试点 warning：4,369 条尚无 reviewed T
 3. Book Aura 是否清晰表达“一本书散落在世界中的位置”；
 4. 手机上地图与详情的节奏是否自然。
 
-只有用户通过地图 Gate 后才进入 Batch 6 全量 4,663 条标签生产。public snapshot、public covers、repo、push、workflow 与部署仍需后续独立授权。
+用户于 2026-09-20 确认地图已具备产品雏形、功能体验成立，并授权在一轮结构性精修后直接进入 Batch 6。Batch 5E 随后完成：增强地形层次、标签自动避让与纸面底、区域定义、Book Aura 状态带、多标签双环、指针中心缩放、双指缩放、缩放读数和详情 accent；`check:local` 为 295 单测 / 31 文件，local Chromium 115 / 115，视觉取证 3 / 3。
+
+下一步已进入 Batch 6 全量 4,663 条标签生产。全量完成后重建地图并与用户共同调整最终视觉。public snapshot、public covers、repo、push、workflow 与部署仍需后续独立授权。
