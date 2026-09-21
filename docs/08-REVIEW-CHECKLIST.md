@@ -2985,6 +2985,15 @@ provenance               ensemble 152 / override 128 / lexical 11 / unresolved 6
 - 等待 GPT-6 Astra 实际浏览本地页面并给出正式审阅；若模型可写仓库，目标文件为 `docs/30-GPT6-ASTRA-DESIGN-REVIEW.md`。
 - 审阅结论需要由用户确认优先级后，才能进入下一轮视觉施工。
 
+## 产品与艺术指导审阅交付（基于 bee0ad9）
+
+- 新增 `docs/30-GPT6-ASTRA-DESIGN-REVIEW.md`：完整审阅、三个视觉方向、推荐私人图集、逐页修改、地图十层专项、三批实施与审美 Gate；建议尚待用户批准，不是施工授权。
+- 本轮通过 PowerShell 执行 Node / Playwright Chromium 浏览：门厅换句5次、书内3次、小径继续、书架、地图滚轮缩放及键盘平移、区域列表打开详情、两本 Aura、390px地图与分享。
+- 浏览器证据与实际尺寸：`.private/review/astra-critique/`。390×844 的地图 Canvas 起点约478px；从区域列表打开详情后观察到详情可能在可视范围外，列为待专项复核。
+- 第一次 Node stdin 命令因 PowerShell 中文编码导致正则语法错误，未执行浏览；改用 ASCII selector 后完成。未修改产品代码、标签、快照或发布状态。
+- 没有重跑完整测试；仅文档变更，执行 `git diff --check`。Safari、真机、完整岔路往返、跨色域六书与真实首次访客仍未验证；本轮两本 Aura 均偏暖，不冒充全色域验证。
+- 下一步：用户确认视觉主方向与优先级后，再开始独立施工批次。
+
 ## 公开发布前待处理事项（发布阻断项，不阻断本机开发）
 
 | 编号 | 事项 | 依据 |
