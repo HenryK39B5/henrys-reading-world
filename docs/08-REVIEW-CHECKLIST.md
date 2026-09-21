@@ -2961,6 +2961,28 @@ provenance               ensemble 152 / override 128 / lexical 11 / unresolved 6
 - Safari、真机触摸 / 双指缩放、低性能设备和真实首次访客仍未验证。
 - public export、public covers、repo、push、workflow 与部署仍未开始。
 
+## GPT-6 Astra 产品审美审阅准备（2026-09-21）
+
+```text
+日期 / 执行者：2026-09-21 / 实现 Agent
+范围：为高能力模型准备整体产品与视觉设计 Critique 材料
+状态：ready；等待外部审阅结论
+代码基线：bee0ad9
+```
+
+### 已准备
+
+- 新增 `docs/29-GPT6-ASTRA-DESIGN-REVIEW-BRIEF.md`：集中说明产品命题、锁定边界、当前完成度、视觉方向、必看页面、重点问题和期望输出格式。
+- 明确要求把产品审美作为核心产品能力审阅，重点覆盖视觉身份、文字舞台、小径、地图、Book Aura、控件语言、分享卡片与移动端。
+- 要求建议落到构图、排版、色彩、空间、动效和分批 Gate，避免“增强层级”等泛泛表达。
+- 准备 `.private/review/gpt6-astra/` 最新真实截图包，共 13 张：门厅、小径、书房、所有书、地图世界 / 区域 / 详情 / Book Aura、About 和分享卡片，并附 `manifest.json`。
+- 审阅任务只要求产出指导，不授权修改代码、数据、public snapshot、push 或部署。
+
+### 未验证 / 下一步
+
+- 等待 GPT-6 Astra 实际浏览本地页面并给出正式审阅；若模型可写仓库，目标文件为 `docs/30-GPT6-ASTRA-DESIGN-REVIEW.md`。
+- 审阅结论需要由用户确认优先级后，才能进入下一轮视觉施工。
+
 ## 公开发布前待处理事项（发布阻断项，不阻断本机开发）
 
 | 编号 | 事项 | 依据 |
