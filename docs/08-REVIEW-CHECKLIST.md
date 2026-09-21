@@ -3018,6 +3018,58 @@ provenance               ensemble 152 / override 128 / lexical 11 / unresolved 6
 - 执行 `git diff --check`；未重跑产品测试。
 - 正式施工后每批独立运行local完整检查、E2E、Tag Studio、public build / isolation并保存before / after真实截图。
 
+## V3 Batch 7A：私人图集阅读版心与界面减法（2026-09-21）
+
+```text
+日期 / 执行者：2026-09-21 / 实现 Agent
+范围：全局阅读tokens、门厅、主题房间、书房、小径、About、移动导航与局部Book Aura
+状态：implemented and verified；等待用户7A视觉Gate
+数据模式：schema 3 local-only；内容、标签、算法、地图坐标与public范围未改
+代码基线：1a0884e（Batch 7A前）
+```
+
+### 完成范围
+
+- 建立shell / reading / directory / map / long-reading语义宽度与上下文间距tokens；桌面阅读面从约1050px收束至860px，长文约28个汉字宽。
+- 移动一级导航稳定为三列两行，六个入口全部显式保留；Local状态降为小色点文字，但“仅本机 · 未公开审核”仍完整可读。
+- 门厅短 / 中句起点前移，最长文独立上移；出处在移动端分成书名、作者与时间两层。
+- 书房使用96px来源边栏、正文阅读柱、真实Book Aura短线与局部光区；移动封面缩为60×87px。
+- 小径把“纯公平 / 有呼吸”移入进度旁原生disclosure，当前状态可见且键盘可切换；当前线索改为短墨线标记。
+- About先解释空间使用方式，4,663条与130本数据各只出现一次。
+- 新增 `docs/32-BATCH-7A-PRIVATE-ATLAS-READING-SURFACES.md` 记录施工、量化前后差异和未验证项。
+
+### 同一真实样本证据
+
+- 样本：`h-1076`最短、`h-443`中等、`h-231`最长、`h-013`三标签、`b-013`书房、`tag-040`小径。
+- Before：`.private/review/v3-private-atlas/before/`。
+- After：`.private/review/v3-private-atlas/after/`，另含320px与reduced-motion补充截图。
+- 桌面最短 / 中句起点分别由404 / 347px前移至284px；最长文217px→208px。
+- 移动最短 / 中 / 最长分别为441→297px、290→297px、290→261px。
+- 证据脚本：`.private/review/v3-private-atlas/capture-7a.mjs`；真实内容与截图继续只在 `.private/`。
+
+### 实际命令与结果
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run check:local` | typecheck、lint、300 / 300 Vitest（32文件）、4,663条 / 130本 / 14书架local snapshot校验通过 |
+| `npm run test:e2e` | 完整local Chromium 117 / 117 |
+| `npm run test:tags` | 10 / 10 |
+| `npm run build` | public空快照生产构建通过 |
+| `npm run isolation:public` | gate clean；真实书名、原文、封面、私有标签字段与凭证未进入public产物 |
+| `git diff --check` | 通过 |
+
+### 施工中发现与修复
+
+- 第一次完整E2E为115 / 117：小径节奏disclosure展开后在720×450和768px超出右侧。保留测试并把桌面disclosure限制为154px、移动限制在100%内后，定向zoom 2 / 2，最终完整117 / 117。
+- Aura仍来源于真实封面；颜色对比、过渡、rapid draw和reduced-motion既有测试继续通过。
+- 生产构建仍只读取空的 `src/data/public-snapshot.json`；没有改变地图layout hash或重建数据。
+
+### 未验证 / Gate
+
+- Safari、真机触摸 / 动态地址栏、macOS实际字体fallback、低性能设备和真实首次访客未验证。
+- 等待用户判断私人图集方向、860px阅读面、移动三列两行导航、书房边栏 / 小径短线与局部Aura。
+- 7A视觉Gate未通过前不进入Batch 7B；public export、repo、push、workflow和部署仍未开始。
+
 ## 公开发布前待处理事项（发布阻断项，不阻断本机开发）
 
 | 编号 | 事项 | 依据 |

@@ -197,7 +197,29 @@ test.describe('rooms and their URLs', () => {
         }
     });
 
+    test('the mobile primary navigation is an intentional three-by-two atlas index', async ({ page }) => {
+        for (const width of [390, 320]) {
+            await page.setViewportSize({ width, height: 844 });
+            await page.goto('/');
+            await roomReady(page);
+            const rows = await page.locator('.nav-link').evaluateAll((links) => {
+                const counts = new Map<number, number>();
+                for (const link of links) {
+                    const top = Math.round(link.getBoundingClientRect().top);
+                    counts.set(top, (counts.get(top) ?? 0) + 1);
+                }
+                return [...counts.values()];
+            });
+            expect(rows, `${String(width)}px nav rows`).toEqual([3, 3]);
+            expect(
+                await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth),
+                `${String(width)}px horizontal overflow`,
+            ).toBeLessThanOrEqual(1);
+        }
+    });
+
     test('about keeps real excerpts distinct from complete context or personal endorsement', async ({ page }) => {
+        const data = loadSnapshot();
         await page.goto('/about');
         await roomReady(page);
 
@@ -205,6 +227,9 @@ test.describe('rooms and their URLs', () => {
         await expect(context).toContainText('原文划线');
         await expect(context).toContainText('可能失去部分上下文');
         await expect(context).toContainText('不代表我认同作者的全部观点');
+        const roomText = await page.locator('[data-room="about"]').innerText();
+        expect(roomText.split(String(data.highlights.length)).length - 1).toBe(1);
+        expect(roomText.split(String(data.books.length)).length - 1).toBe(1);
     });
 
     test('an unknown path explains itself and offers a way out', async ({ page }) => {

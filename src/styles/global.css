@@ -11,6 +11,15 @@
     --stage-font: 'Songti SC', 'STSong', 'SimSun', serif;
     --ui-font: system-ui, 'Microsoft YaHei', sans-serif;
     --measure: 1160px;
+    --measure-shell: 1160px;
+    --measure-reading: 860px;
+    --measure-reading-long: 28em;
+    --measure-directory: 1160px;
+    --measure-map: 1160px;
+    --space-context-tight: 12px;
+    --space-context: 24px;
+    --space-section: 48px;
+    --location-mark: 34px;
 }
 
 * {

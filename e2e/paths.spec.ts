@@ -25,6 +25,13 @@ test.describe('V3 topic paths', () => {
 
         await expect(page).toHaveURL(new RegExp(`/paths/${tag.id}$`, 'u'));
         await expect(page.getByTestId('room-heading')).toHaveText(tag.title);
+        const rhythm = page.getByTestId('path-rhythm-disclosure');
+        await expect(rhythm).not.toHaveAttribute('open', '');
+        const initialRhythm = (await rhythm.locator('summary strong').innerText()).trim();
+        await rhythm.locator('summary').click();
+        const nextRhythm = initialRhythm === '纯公平' ? '有呼吸' : '纯公平';
+        await rhythm.getByRole('button', { name: nextRhythm, exact: true }).click();
+        await expect(rhythm.locator('summary strong')).toHaveText(nextRhythm);
         const passage = (await page.getByTestId('path-passage').innerText()).trim();
         expect(candidates.some((highlight) => highlight.text.trim() === passage)).toBe(true);
         await expect(page.getByTestId('path-progress')).toContainText(`/ ${String(candidates.length)} 处`);

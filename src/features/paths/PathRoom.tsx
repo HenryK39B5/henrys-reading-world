@@ -63,25 +63,8 @@ export function PathRoom({ index, tagId, nowYear, room, onOpenBook, onShare }: P
                         {tag.title}
                     </h1>
                 </div>
-                <div className="path-rhythm" role="group" aria-label="小径节奏">
-                    <button
-                        type="button"
-                        className="path-rhythm-option"
-                        aria-pressed={room.state.rhythm === 'uniform'}
-                        onClick={() => room.setRhythm('uniform')}
-                    >
-                        纯公平
-                    </button>
-                    <button
-                        type="button"
-                        className="path-rhythm-option"
-                        aria-pressed={room.state.rhythm === 'semantic'}
-                        onClick={() => room.setRhythm('semantic')}
-                    >
-                        有呼吸
-                    </button>
-                </div>
             </header>
+            <p className="sr-only" role="status" aria-live="polite">当前小径：{tag.title}</p>
             {tag.description === undefined ? null : <p className="path-definition">{tag.description}</p>}
 
             <article className="path-stage" data-band={lengthBand(current.text)} key={current.id}>
@@ -108,9 +91,35 @@ export function PathRoom({ index, tagId, nowYear, room, onOpenBook, onShare }: P
             </article>
 
             <div className="path-footer">
-                <p className="path-progress" role="status" data-testid="path-progress">
-                    这一程已遇见 {progress.seen} / {progress.total} 处
-                </p>
+                <div className="path-footer-meta">
+                    <p className="path-progress" role="status" data-testid="path-progress">
+                        这一程已遇见 {progress.seen} / {progress.total} 处
+                    </p>
+                    <details className="path-rhythm-disclosure" data-testid="path-rhythm-disclosure">
+                        <summary>
+                            <span>小径节奏</span>
+                            <strong>{room.state.rhythm === 'uniform' ? '纯公平' : '有呼吸'}</strong>
+                        </summary>
+                        <div className="path-rhythm" role="group" aria-label="小径节奏">
+                            <button
+                                type="button"
+                                className="path-rhythm-option"
+                                aria-pressed={room.state.rhythm === 'uniform'}
+                                onClick={() => room.setRhythm('uniform')}
+                            >
+                                纯公平
+                            </button>
+                            <button
+                                type="button"
+                                className="path-rhythm-option"
+                                aria-pressed={room.state.rhythm === 'semantic'}
+                                onClick={() => room.setRhythm('semantic')}
+                            >
+                                有呼吸
+                            </button>
+                        </div>
+                    </details>
+                </div>
                 <div className="path-actions">
                     {progress.complete ? (
                         <button type="button" className="next-button" data-testid="path-restart" onClick={room.restart}>

@@ -28,13 +28,12 @@
     inset: 0;
     opacity: 0;
     /*
-     * The room's accent and target come from the shell; the fallbacks keep the layer valid without them.
-     * Declaring them here would shadow the inherited per-room values.
-     *
-     * One flat tint, not a gradient: docs/12 §4.2 gives a *band* per room (4–7% hall, 8–12% book room),
-     * and a wash on top would push the strongest part of the page past it.
+     * Keep the real cover colour as an animatable background, then localise it with a mask. This makes the
+     * book feel like a source of light near the reading column instead of tinting the whole sheet.
      */
-    background: var(--aura, var(--accent));
+    background-color: var(--aura, var(--accent));
+    -webkit-mask-image: radial-gradient(ellipse at 22% 38%, #000 0%, rgba(0, 0, 0, 0.42) 36%, transparent 72%);
+    mask-image: radial-gradient(ellipse at 22% 38%, #000 0%, rgba(0, 0, 0, 0.42) 36%, transparent 72%);
     /*
      * A passage change inside a room swaps the book under the same URL, so the tint element survives and
      * the colour has to travel to the next book instead of jumping (docs/12 §5.2: 颜色变化慢于文字).
@@ -62,7 +61,7 @@
  * A room breathes in: the room fades, and its groups displace by no more than 70ms apart (docs/12 §5.1).
  */
 .room {
-    padding-top: 8px;
+    padding-top: 14px;
     animation: room-fade 320ms ease-out both;
 }
 
@@ -155,11 +154,35 @@
 }
 
 .room-heading {
-    font-family: var(--stage-font);
-    font-size: 28px;
-    font-weight: 400;
     margin: 0 0 8px;
+    font-family: var(--stage-font);
+    font-size: 27px;
+    font-weight: 400;
     letter-spacing: 0;
+}
+
+.room-hall > .room-heading {
+    margin-top: 4px;
+    color: var(--ink-faint);
+    font-family: var(--ui-font);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.room[data-room='theme'] > .room-heading {
+    position: relative;
+    padding-left: 46px;
+    font-size: 24px;
+}
+
+.room[data-room='theme'] > .room-heading::before {
+    position: absolute;
+    top: 0.72em;
+    left: 0;
+    width: var(--location-mark);
+    height: 2px;
+    background: color-mix(in srgb, var(--aura) 62%, var(--rule));
+    content: '';
 }
 
 .room-note {
@@ -172,10 +195,11 @@
 .room-exits {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px 18px;
-    margin-top: 40px;
-    padding-top: 20px;
-    border-top: 1px solid var(--rule);
+    gap: 8px 20px;
+    max-width: var(--measure-reading);
+    margin-top: var(--space-section);
+    padding-top: 16px;
+    border-top: 1px solid color-mix(in srgb, var(--rule) 74%, transparent);
 }
 
 .room-exit {
@@ -414,11 +438,20 @@
 
 /* ---- 书籍房间 ---- */
 
+.room-book {
+    display: grid;
+    grid-template-columns: 96px minmax(0, var(--measure-reading));
+    column-gap: 32px;
+    align-items: start;
+}
+
 .book-head {
-    display: flex;
-    gap: 20px;
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: 96px minmax(0, var(--measure-reading));
+    gap: 32px;
     align-items: flex-start;
-    margin-bottom: 28px;
+    margin-bottom: 10px;
 }
 
 .book-head-cover {
@@ -446,8 +479,10 @@
 
 .book-head-text {
     display: flex;
+    min-width: 0;
     flex-direction: column;
-    gap: 8px;
+    gap: 7px;
+    padding-top: 2px;
 }
 
 .book-head-meta {
@@ -462,14 +497,37 @@
 .book-head-shelves {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin: 0;
+    gap: 6px 16px;
+    margin: 2px 0 0;
+}
+
+.book-head-shelves .chip {
+    min-height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--aura) 44%, var(--rule));
+    text-underline-offset: 0.32em;
 }
 
 .book-random {
-    border-top: 1px solid var(--rule);
-    border-bottom: 1px solid var(--rule);
-    padding: 24px 0;
+    position: relative;
+    grid-column: 2;
+    width: min(100%, var(--measure-reading));
+    margin-top: 18px;
+    padding: 34px 0 0;
+    border-top: 1px solid color-mix(in srgb, var(--aura) 34%, var(--rule));
+}
+
+.book-random::before {
+    position: absolute;
+    top: -1px;
+    left: 0;
+    width: var(--location-mark);
+    height: 2px;
+    background: var(--aura);
+    content: '';
 }
 
 .book-random-passage {
@@ -477,14 +535,15 @@
 }
 
 .book-random-text {
+    max-width: min(100%, var(--measure-reading-long));
+    margin: 0;
+    overflow-wrap: anywhere;
+    color: var(--ink);
     font-family: var(--stage-font);
     font-size: 25px;
-    line-height: 1.85;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    max-width: 30em;
-    margin: 0;
+    line-height: 1.86;
     text-wrap: pretty;
+    white-space: pre-wrap;
 }
 
 .book-random-time {
@@ -512,22 +571,29 @@
     margin: 16px 0 0;
 }
 
-.about-line {
-    font-family: var(--stage-font);
-    font-size: 23px;
-    line-height: 1.8;
-    margin: 0 0 12px;
-    max-width: 34em;
+.room-book > .room-exits {
+    grid-column: 2;
 }
 
-.about-text {
-    margin: 16px 0 0;
-    max-width: 38em;
+.room-about {
+    max-width: var(--measure-reading);
+}
+
+.about-line {
+    max-width: 29em;
+    margin: 24px 0 0;
+    font-family: var(--stage-font);
+    font-size: 25px;
+    line-height: 1.78;
+}
+
+.about-detail {
+    margin-top: 22px;
 }
 
 .about-context {
-    margin: 18px 0 0;
     max-width: 46em;
+    margin: 20px 0 0;
 }
 
 @media (max-width: 640px) {
@@ -535,12 +601,62 @@
         margin-left: 0;
     }
 
+    .room[data-room='theme'] > .room-heading {
+        padding-left: 40px;
+        font-size: 22px;
+    }
+
+    .room-book {
+        display: block;
+    }
+
     .book-head {
+        display: grid;
+        grid-template-columns: 60px minmax(0, 1fr);
         gap: 14px;
+        margin-bottom: 0;
     }
 
     .book-head-cover {
-        width: 76px;
-        height: 110px;
+        width: 60px;
+        height: 87px;
+    }
+
+    .book-head-text {
+        padding-top: 0;
+    }
+
+    .book-head-text .room-heading {
+        font-size: 22px;
+        line-height: 1.55;
+    }
+
+    .book-head-meta {
+        flex-direction: column;
+        gap: 1px;
+        font-size: 13px;
+    }
+
+    .book-head-shelves {
+        gap: 2px 14px;
+    }
+
+    .room-book > .room-exits {
+        grid-column: auto;
+    }
+
+    .book-random {
+        width: 100%;
+        margin-top: 26px;
+        padding-top: 28px;
+    }
+
+    .book-random-text {
+        font-size: 22px;
+        line-height: 1.88;
+    }
+
+    .about-line {
+        font-size: 23px;
     }
 }

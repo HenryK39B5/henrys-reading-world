@@ -39,9 +39,16 @@
 }
 
 .topic-clue[aria-current='page'] {
+    gap: 7px;
     color: var(--ink);
-    text-decoration-color: var(--accent);
-    text-decoration-thickness: 2px;
+    text-decoration: none;
+}
+
+.topic-clue[aria-current='page']::before {
+    width: 14px;
+    height: 2px;
+    background: var(--accent);
+    content: '';
 }
 
 @media (hover: hover) {
@@ -59,8 +66,16 @@
     align-items: flex-end;
     justify-content: space-between;
     gap: 20px;
+}
+
+.paths-head {
     padding-bottom: 20px;
     border-bottom: 1px solid var(--rule-strong);
+}
+
+.path-head {
+    max-width: var(--measure-reading);
+    padding-bottom: 10px;
 }
 
 .paths-total {
@@ -143,16 +158,28 @@
 /* ---- One path ---- */
 
 .path-heading {
+    position: relative;
     margin: 0;
+    padding-left: 48px;
     font-family: var(--stage-font);
-    font-size: 34px;
+    font-size: 32px;
     font-weight: 400;
     letter-spacing: 0;
 }
 
+.path-heading::before {
+    position: absolute;
+    top: 0.76em;
+    left: 0;
+    width: var(--location-mark);
+    height: 2px;
+    background: var(--accent);
+    content: '';
+}
+
 .path-definition {
     max-width: 46em;
-    margin: 14px 0 0;
+    margin: 8px 0 0 48px;
     color: var(--ink-soft);
     font-size: 14px;
 }
@@ -160,9 +187,10 @@
 .path-rhythm {
     display: inline-grid;
     grid-template-columns: repeat(2, minmax(72px, 1fr));
+    margin-top: 8px;
+    overflow: hidden;
     border: 1px solid var(--rule-strong);
     border-radius: 4px;
-    overflow: hidden;
 }
 
 .path-rhythm-option {
@@ -186,8 +214,9 @@
 }
 
 .path-stage {
+    width: min(100%, var(--measure-reading));
     min-height: 50svh;
-    padding: 64px 0 36px;
+    padding: 54px 0 32px;
     animation: path-passage-arrive 260ms ease-out both;
 }
 
@@ -201,12 +230,12 @@
 }
 
 .path-text {
-    max-width: 30em;
+    max-width: min(100%, var(--measure-reading-long));
     margin: 0;
     color: var(--ink);
     font-family: var(--stage-font);
-    font-size: 31px;
-    line-height: 1.82;
+    font-size: 30px;
+    line-height: 1.8;
     overflow-wrap: anywhere;
     text-wrap: pretty;
     white-space: pre-wrap;
@@ -214,13 +243,13 @@
 
 .path-stage[data-band='short'] .path-text {
     font-size: 40px;
-    line-height: 1.7;
+    line-height: 1.64;
     text-wrap: balance;
 }
 
 .path-stage[data-band='long'] .path-text {
     font-size: 24px;
-    line-height: 1.95;
+    line-height: 1.9;
 }
 
 .path-source {
@@ -248,14 +277,59 @@
 }
 
 .path-footer {
-    padding-top: 20px;
-    border-top: 1px solid var(--rule);
+    width: min(100%, var(--measure-reading));
+    padding-top: 18px;
+    border-top: 1px solid color-mix(in srgb, var(--rule) 78%, transparent);
+}
+
+.path-footer-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px 20px;
 }
 
 .path-progress {
     margin: 0;
     color: var(--ink-soft);
     font-size: 12px;
+}
+
+.path-rhythm-disclosure {
+    width: 154px;
+    max-width: 100%;
+    color: var(--ink-soft);
+    font-size: 12px;
+    text-align: right;
+}
+
+.path-rhythm-disclosure summary {
+    display: flex;
+    min-height: 36px;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.path-rhythm-disclosure summary::-webkit-details-marker {
+    display: none;
+}
+
+.path-rhythm-disclosure summary::after {
+    color: var(--ink-faint);
+    content: '⌄';
+}
+
+.path-rhythm-disclosure[open] summary::after {
+    content: '⌃';
+}
+
+.path-rhythm-disclosure strong {
+    color: var(--ink);
+    font-weight: 500;
 }
 
 .path-actions {
@@ -280,6 +354,15 @@
         flex-direction: column;
     }
 
+    .path-heading {
+        padding-left: 40px;
+        font-size: 28px;
+    }
+
+    .path-definition {
+        margin-left: 40px;
+    }
+
     .path-list-link {
         grid-template-columns: 30px minmax(0, 1fr) 18px;
         gap: 10px;
@@ -297,17 +380,36 @@
     }
 
     .path-stage {
-        min-height: 54svh;
-        padding-top: 42px;
+        min-height: 50svh;
+        padding-top: 38px;
     }
 
     .path-text,
     .path-stage[data-band='short'] .path-text {
-        font-size: 28px;
+        font-size: 27px;
     }
 
     .path-stage[data-band='long'] .path-text {
         font-size: 21px;
+    }
+
+    .path-footer-meta {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .path-rhythm-disclosure {
+        width: min(100%, 190px);
+        text-align: left;
+    }
+
+    .path-rhythm-disclosure summary {
+        justify-content: flex-start;
+    }
+
+    .path-rhythm {
+        width: 100%;
     }
 }
 

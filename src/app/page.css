@@ -1,5 +1,5 @@
 .shell {
-    max-width: var(--measure);
+    max-width: var(--measure-shell);
     margin: 0 auto;
     padding: 28px 24px 96px;
 }
@@ -67,13 +67,22 @@
 }
 
 .local-badge {
-    display: inline-block;
-    margin: 20px 0 0;
-    font-size: 13px;
-    color: var(--ink-soft);
-    border: 1px solid var(--rule);
-    border-radius: 999px;
-    padding: 2px 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin: 14px 0 0;
+    padding: 0;
+    color: var(--ink-faint);
+    font-size: 12px;
+}
+
+.local-badge::before {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent-warm);
+    content: '';
+    opacity: 0.72;
 }
 
 .coverage-notes {
@@ -123,9 +132,19 @@
     }
 
     .nav-list {
+        display: grid;
         width: 100%;
-        flex-wrap: wrap;
-        column-gap: 16px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        column-gap: 12px;
         row-gap: 0;
+    }
+
+    .nav-link {
+        width: 100%;
+        padding-inline: 0;
+    }
+
+    .local-badge {
+        margin-top: 8px;
     }
 }

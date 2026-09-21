@@ -1,11 +1,23 @@
 .stage {
+    position: relative;
     display: flex;
+    width: min(100%, var(--measure-reading));
+    min-height: 58vh;
+    min-height: 60svh;
     flex-direction: column;
-    justify-content: center;
-    min-height: 60vh;
-    min-height: 64svh;
-    padding: 32px 0 8px;
+    justify-content: flex-start;
+    padding: clamp(76px, 13vh, 132px) 0 24px;
     --book-accent: var(--accent);
+}
+
+.stage::before {
+    position: absolute;
+    top: 46px;
+    left: 0;
+    width: var(--location-mark);
+    height: 2px;
+    background: color-mix(in srgb, var(--book-accent) 62%, var(--rule));
+    content: '';
 }
 
 .stage-live {
@@ -42,38 +54,47 @@
     /* Original line breaks and spacing belong to the source text. */
     white-space: pre-wrap;
     overflow-wrap: anywhere;
-    /* ~30 CJK characters per line, independent of the band's font size. */
-    max-width: 30em;
+    /* A private-atlas reading column: long passages stay near 28 CJK characters per line. */
+    max-width: min(100%, var(--measure-reading-long));
     margin: 0;
     /* Avoid a single trailing character on its own line: balance short blocks, keep long ones natural. */
     text-wrap: pretty;
 }
 
 .stage[data-band='short'] .stage-text {
-    font-size: 44px;
-    line-height: 1.7;
+    font-size: 42px;
+    line-height: 1.62;
     text-wrap: balance;
 }
 
 .stage[data-band='medium'] .stage-text {
-    font-size: 35px;
-    line-height: 1.8;
+    font-size: 33px;
+    line-height: 1.76;
     text-wrap: balance;
 }
 
+.stage[data-band='long'] {
+    padding-top: 54px;
+}
+
+.stage[data-band='long']::before {
+    top: 28px;
+}
+
 .stage[data-band='long'] .stage-text {
-    font-size: 27px;
-    line-height: 1.9;
+    font-size: 25px;
+    line-height: 1.88;
 }
 
 .stage-attribution {
-    margin: 20px 0 0;
-    font-size: 14px;
-    color: var(--ink-soft);
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
     gap: 0;
+    max-width: min(100%, 58em);
+    margin: 24px 0 0;
+    color: var(--ink-soft);
+    font-size: 14px;
 }
 
 .stage-attribution > .dash {
@@ -95,7 +116,7 @@
 }
 
 .stage-actions {
-    margin-top: 40px;
+    margin-top: 34px;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -177,8 +198,6 @@
 /* Source reveal: the panel opens in place, next to the sentence it belongs to. */
 .source-toggle {
     display: inline-flex;
-    /* A long title and its author wrap onto separate lines instead of being squeezed into a ragged pair
-       of columns on a phone. */
     flex-wrap: wrap;
     align-items: baseline;
     column-gap: 6px;
@@ -328,24 +347,86 @@
 
 @media (max-width: 640px) {
     .stage {
-        min-height: 62vh;
-        min-height: 66svh;
-        padding-top: 24px;
+        min-height: 56vh;
+        min-height: 58svh;
+        padding-top: clamp(48px, 8vh, 68px);
+    }
+
+    .stage::before {
+        top: 28px;
+        width: 28px;
     }
 
     .stage[data-band='short'] .stage-text {
-        font-size: 32px;
+        font-size: 30px;
+        line-height: 1.66;
     }
 
     .stage[data-band='medium'] .stage-text {
-        font-size: 27px;
+        font-size: 26px;
+        line-height: 1.76;
+    }
+
+    .stage[data-band='long'] {
+        padding-top: 32px;
+    }
+
+    .stage[data-band='long']::before {
+        top: 16px;
     }
 
     .stage[data-band='long'] .stage-text {
-        font-size: 23px;
+        font-size: 22px;
+        line-height: 1.88;
+    }
+
+    .stage-attribution {
+        display: grid;
+        grid-template-columns: 18px minmax(0, 1fr);
+        align-items: start;
+        margin-top: 22px;
+    }
+
+    .stage-attribution > .dash {
+        grid-column: 1;
+        padding-top: 4px;
+    }
+
+    .source-toggle {
+        display: grid;
+        grid-column: 2;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        column-gap: 8px;
+        text-align: left;
+    }
+
+    .stage-book,
+    .stage-author {
+        grid-column: 1;
+    }
+
+    .stage-author {
+        color: var(--ink-faint);
+        font-size: 13px;
+    }
+
+    .source-chevron {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+    }
+
+    .stage-time {
+        grid-column: 2;
+        margin-left: 0;
+        font-size: 13px;
+    }
+
+    .stage-time::before {
+        content: none;
     }
 
     .stage-actions {
-        margin-top: 32px;
+        margin-top: 28px;
     }
 }
