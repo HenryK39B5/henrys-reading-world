@@ -2,7 +2,7 @@
 
 > 日期：2026-09-19
 >
-> 状态：V3 施工权威；Batch 0–6 与最终地图精修已完成，local snapshot、路径投影、独立地图入口、移动端布局和滚轮交互均已验证；当前等待用户最终体验 / 视觉 Gate。Release-B 继续暂停。
+> 状态：V3 历史施工权威；Batch 0–6 与首轮地图精修已完成。产品与艺术指导审阅后，Batch 7 视觉施工由 `docs/31-V3-PRIVATE-ATLAS-VISUAL-OPTIMIZATION-PLAN.md` 细化为 7A–7C；当前等待计划 Gate，尚未开工。Release-B 继续暂停。
 >
 > Release-B 暂停。V3 不自动授权正式 public snapshot、public covers、repo、push、workflow 或部署。
 
@@ -306,6 +306,8 @@ Batch 3 最终实况（2026-09-19）：56 / 56 标签覆盖，0 孤儿、0 过�
 完整实况见 `docs/28-BATCH-6-FULL-TAGGING.md`。
 
 ## 10. Batch 7 — V3 全产品统一与公开标签审核
+
+> 2026-09-21 更新：`docs/30` 审阅认为当前“有阅读气质，尚无足够鲜明的世界身份”。本节的视觉统一已由 `docs/31` 细化为 7A 阅读版心与界面减法、7B 地图作品化与详情抵达、7C 目录节奏与全局收口。视觉 Gate 通过后才进入本节的正式public内容审核。
 
 ### 10.1 视觉统一
 

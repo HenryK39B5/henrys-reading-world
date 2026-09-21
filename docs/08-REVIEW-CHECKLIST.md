@@ -2994,6 +2994,30 @@ provenance               ensemble 152 / override 128 / lexical 11 / unresolved 6
 - 没有重跑完整测试；仅文档变更，执行 `git diff --check`。Safari、真机、完整岔路往返、跨色域六书与真实首次访客仍未验证；本轮两本 Aura 均偏暖，不冒充全色域验证。
 - 下一步：用户确认视觉主方向与优先级后，再开始独立施工批次。
 
+## 「可漫游的私人图集」视觉优化计划（2026-09-21）
+
+```text
+日期 / 执行者：2026-09-21 / 实现 Agent
+范围：把 docs/30 产品与艺术指导审阅转成可施工、可回滚、可逐批验收的计划
+状态：planned；等待用户确认后开工
+代码基线：94e59a3；产品代码未修改
+```
+
+### 计划结果
+
+- 新增 `docs/31-V3-PRIVATE-ATLAS-VISUAL-OPTIMIZATION-PLAN.md`，锁定不改内容、标签、算法、地图坐标和发布范围。
+- Batch 7A：固定同一真实样本做前后对照，建立阅读版心、首屏预算、三列两行移动导航、门厅 / 书房 / 小径 / About差异构图。
+- Batch 7B：先复核地图列表进入详情的focus / scroll问题，再用同坐标Current / Reduced / Terrain三套静态渲染选择方向；随后施工密度、等高线、点、标签、移动首屏、Book Aura和详情恢复。
+- Batch 7C：比较小径单列渐进、桌面双栏、渐进+完整名称索引三种目录结构，再收口主题书架、所有书、分享与全站出口。
+- 只设置三个用户Gate：7A-0私人图集方向、7B-1地图渲染方向、7C-4最终审美Gate；常规施工与测试不反复询问。
+- 明确禁止重跑UMAP求美观、移动真实点、公开私有family、引入新功能、外部字体CDN、动画 / 地图库和把视觉实验留在public bundle。
+
+### 验证
+
+- 本阶段仅文档与计划变更；未修改消费者代码、数据、private assignments或public snapshot。
+- 执行 `git diff --check`；未重跑产品测试。
+- 正式施工后每批独立运行local完整检查、E2E、Tag Studio、public build / isolation并保存before / after真实截图。
+
 ## 公开发布前待处理事项（发布阻断项，不阻断本机开发）
 
 | 编号 | 事项 | 依据 |
