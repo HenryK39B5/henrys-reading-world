@@ -2977,6 +2977,8 @@ provenance               ensemble 152 / override 128 / lexical 11 / unresolved 6
 - 要求建议落到构图、排版、色彩、空间、动效和分批 Gate，避免“增强层级”等泛泛表达。
 - 准备 `.private/review/gpt6-astra/` 最新真实截图包，共 13 张：门厅、小径、书房、所有书、地图世界 / 区域 / 详情 / Book Aura、About 和分享卡片，并附 `manifest.json`。
 - 审阅任务只要求产出指导，不授权修改代码、数据、public snapshot、push 或部署。
+- 新增 `docs/29A-GPT6-ASTRA-TEXT-ONLY-DESIGN-REVIEW-PACKET.md` 处理模型无视觉能力的边界：逐页文字转录 13 张截图，整理全局 tokens、字号、行高、栅格、Canvas 层级、响应式规则和 10 组结构性设计张力。
+- 要求无视觉模型不得假装看过截图，并在正式报告中区分 DOM / CSS 可确认事实、基于文字转录的判断和必须由视觉能力或真实访客复核的事项。
 
 ### 未验证 / 下一步
 
