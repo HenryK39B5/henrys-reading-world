@@ -3153,6 +3153,12 @@ provenance               ensemble 152 / override 128 / lexical 11 / unresolved 6
 - **命令**：`npm run check:local` 300/300，`npm run build`、`npm run isolation:public`、`npm run test:public` 1/1、`git diff --check` 通过。Studio 本阶段未重跑（前一阶段10/10），Safari、真机、读屏、长时间深色阅读未验证。
 - **产品判断**：用户肯定全深地图但认为整体冲击力仍不够；这项控件修复不等于7D视觉Gate通过。现行“地图深、其他页浅”只是局部施工隔离，不是最终全站配色定案。下一轮首选用相同真实布局试验「地形开场」，再将「从书入图」作为状态，与索引开场对照；见 `docs/37`。正式发布仍停。
 
+## Batch 7E — 地形开场的局部构图试验（2026-09-23）
+
+- **范围**：用户授权由实现者决定下一步后，先做 `docs/37` 的地形开场。仅世界总览 `/map` 及点亮书的世界层获得全幅地图；主题区域、详情与其他房间继续7D/7A的布局。改变容器和标题层级，世界顶部删除重复小径出口但主导航与底部仍可达；不改变真实布局、点、标签、默认缩放或路径算法。文件：`src/features/map/MapRoom.tsx`、`map.css`、`e2e/map.spec.ts`、`e2e/capture-7d.spec.ts`、`docs/38`和状态文档。
+- **浏览器证据**：固定真数据的前一版 `.private/review/v3-private-atlas/dark-cross-page/after/` 与本轮 `7e/` 的1440/390/320世界、亮书、详情、长文及地图滚入视口截图；两者map SHA-256一致。390px地图全屏宽、无横向溢出，原始zoom=1；320px主题区域和详情未误套世界全幅。视觉仍待用户独立判断，不把工程正确当作「惊艳」结论。
+- **实测命令与未验证**：`npm run check:local` 300/300，`npm run build`、`npm run isolation:public`、`npm run test:public` 1/1，7E截图1/1（26 PNG、12场景0横溢），地图+缩放22/22。完整 `npx playwright test --workers=1 --reporter=dot` 连续两次各123/124：第一次门厅数据加载等待超时、第二次分享弹层降级模拟遇一次滚动事件；两条单独复跑均1/1通过，**未宣称完整套件稳定全绿**。`npm run test:tags` 10/10。Safari、真机、读屏和长时间深色阅读仍待验证。下一步仅在用户看到真实样板后推进跨房间深色统一；public export / push / deploy 未授权。
+
 ## 公开发布前待处理事项（发布阻断项，不阻断本机开发）
 
 | 编号 | 事项 | 依据 |

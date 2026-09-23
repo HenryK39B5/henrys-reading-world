@@ -163,6 +163,31 @@ test.describe('V3 reading world map', () => {
         await expect(page.locator('.shell')).toHaveCSS('color-scheme', 'light');
     });
 
+    test('gives only the world opening a full-width real map without clipping the semantic route', async ({ page }) => {
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.goto('/map');
+        const stage = page.getByTestId('map-stage');
+        await expect(page.locator('.map-opening-world')).toBeVisible();
+        await expect(page.locator('.map-opening-world .map-list-return')).toHaveCount(0);
+        await expect(page.getByTestId('nav-paths')).toBeVisible();
+        await expect.poll(() => stage.evaluate((element) => {
+            const rect = element.getBoundingClientRect();
+            return Math.abs(rect.left) < 1 && Math.abs(rect.width - innerWidth) < 1;
+        })).toBe(true);
+        await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-zoom', '1.000');
+        await expect(page.locator('.map-region-list a').first()).toBeVisible();
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+
+        await page.setViewportSize({ width: 320, height: 720 });
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+        await page.goto('/map?tag=tag-035');
+        await expect(page.locator('.map-opening-world')).toHaveCount(0);
+        await expect(page.locator('.map-point-list a').first()).toBeVisible();
+        await page.goto('/map?book=b-013&h=h-231');
+        await expect(page.locator('.map-opening-world')).toHaveCount(0);
+        await expect(page.getByTestId('map-detail')).toBeVisible();
+    });
+
     test('book picker searches real books, closes on Escape and returns focus', async ({ page }) => {
         const data = loadSnapshot();
         const chosen = data.books.find((book) => book.id === 'b-013');

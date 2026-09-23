@@ -5,7 +5,7 @@ import { expect, test } from '@playwright/test';
 import { loadSnapshot } from './support/snapshot.ts';
 
 // Private real-content visual evidence, run explicitly with playwright.capture-7d.config.ts.
-const phase = process.env.CAPTURE_PHASE === 'before' ? 'before' : 'after';
+const phase = process.env.CAPTURE_PHASE === 'before' ? 'before' : process.env.CAPTURE_PHASE === '7e' ? '7e' : 'after';
 const dir = resolve(`.private/review/v3-private-atlas/dark-cross-page/${phase}`);
 
 test('fixed real map, lit book and two complete passages across three viewports', async ({ page }) => {

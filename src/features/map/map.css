@@ -853,6 +853,39 @@ body:has(.shell--dark-map) {
     }
 }
 
+/* 7E: the unchanged world coordinates get a wider viewing surface, not a new layout. */
+.shell--dark-map .map-opening-world .map-head {
+    border-bottom: 0;
+    padding-bottom: 8px;
+}
+
+.shell--dark-map .map-opening-world .room-heading {
+    font-size: 34px;
+    line-height: 1.35;
+}
+
+.shell--dark-map .map-opening-world .map-stage {
+    width: min(calc(100vw - 48px), 1360px);
+    margin-left: calc(50% - min(calc(100vw - 48px), 1360px) / 2);
+    border: 0;
+}
+
+.shell--dark-map .map-opening-world .map-canvas-wrap {
+    height: min(80svh, 800px);
+}
+
+@media (max-width: 700px) {
+    .shell--dark-map .map-opening-world .map-stage {
+        width: 100vw;
+        margin-left: calc(50% - 50vw);
+    }
+
+    .shell--dark-map .map-opening-world .map-canvas-wrap {
+        height: clamp(500px, calc(100svh - 310px), 680px);
+        min-height: 500px;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .map-icon-button,
     .map-book-trigger,

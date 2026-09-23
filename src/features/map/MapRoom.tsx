@@ -197,7 +197,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
     const selectedBookPoints = book === undefined ? [] : mapPointsForBook(index, book.id);
 
     return (
-        <section className="room room-map" aria-labelledby="map-heading" data-room="map" data-map-level={level}>
+        <section className={`room room-map${tag === undefined && highlight === undefined ? ' map-opening-world' : ''}`} aria-labelledby="map-heading" data-room="map" data-map-level={level}>
             <header className="map-head">
                 <div>
                     <p className="room-kicker">{tag === undefined ? '全部真实划线形成的地形' : '正在查看主题区域'}</p>
@@ -209,7 +209,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                     </p>
                     {tag?.description === undefined ? null : <p className="map-region-description">{tag.description}</p>}
                 </div>
-                <a className="room-exit map-list-return" href="/paths">小径列表</a>
+                {tag === undefined ? null : <a className="room-exit map-list-return" href="/paths">小径列表</a>}
             </header>
 
             {unknownSelection ? (
