@@ -46,6 +46,11 @@ test('fixed real map, lit book and two complete passages across three viewports'
                 });
                 await page.screenshot({ path: resolve(dir, `${label}-${name}-map-in-view.png`) });
             }
+            if (name === 'world' && label === 'mobile') {
+                await page.getByRole('button', { name: '点亮一本书' }).click();
+                await expect(page.getByRole('dialog', { name: '点亮一本书' })).toBeVisible();
+                await page.screenshot({ path: resolve(dir, 'mobile-book-picker.png') });
+            }
             if (id !== null) await page.getByTestId('map-detail').screenshot({ path: resolve(dir, `${label}-${name}-full-text.png`) });
             if (name === 'detail' && label === 'mobile') {
                 await page.getByTestId('map-detail').getByRole('button', { name: '分享' }).click();

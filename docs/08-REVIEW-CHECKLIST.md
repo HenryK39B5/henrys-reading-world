@@ -3146,6 +3146,13 @@ provenance               ensemble 152 / override 128 / lexical 11 / unresolved 6
 - **实际命令**：`npm run check:local` 300/300；`npm run test:e2e` 首次并行119/121（非地图房间等待真实快照超时），重跑两项2/2、完整 `npx playwright test --workers=1` 121/121；新增来源书封测试后再次完整单worker运行122/122，地图12/12；`npm run test:tags` 10/10；`npm run test:public` 1/1；`npm run build`、`npm run isolation:public`、`git diff --check`通过；capture 1/1，25张 after。多worker加载竞争仍应监控，不能称其首次全绿。
 - **未验证/判断**：Safari、真实手机/200%、读屏、长时阅读舒适度及真实首次访客未验；全站尚未深色化，手机世界首屏的工具仍偏多。**停止在独立7D视觉Gate**，请用户先看真实交互样板，未授权原7B/7C、公快照/封面导出、push或部署。
 
+## Batch 7D-3 — 亮书选择器细节与下一轮视觉方向（2026-09-23）
+
+- **范围**：把系统弹出选书列表替换为同深色语言的原生模态书目对话框；从真实 `booksInUse` 检索书名/作者，选中书保留 `book=` URL、封面 Aura 与原地图坐标。搜索为空、无匹配、关闭、Escape 和返回焦点均有真实浏览器验证。320/390px缩放与选书并排，减少控制区纵向占位，使真地图更早出现在首屏。未更改主题标签、点位、公开范围或其他房间配色。文件：`src/features/map/MapBookPicker.tsx`、`MapRoom.tsx`、`map.css`、`e2e/map.spec.ts`、`e2e/capture-7d.spec.ts`、`docs/37` 与状态文档。
+- **真实浏览器证据**：390px 实况 `.private/review/v3-private-atlas/dark-cross-page/after/mobile-book-picker.png`，并列对照同目录 `mobile-world.png` 与 `narrow-world.png`；13/13 地图测试，123/123 完整 Chromium E2E（单worker），最终手机断点调整后地图回归13/13、截图任务1/1。搜索的真实书名/作者与选中态来自本机快照；长书名换行而非截断，选择后的书名在地图工具栏允许省略，完整书名在紧接着的选中书来源行显示。独立卡片与地图点语义未动。
+- **命令**：`npm run check:local` 300/300，`npm run build`、`npm run isolation:public`、`npm run test:public` 1/1、`git diff --check` 通过。Studio 本阶段未重跑（前一阶段10/10），Safari、真机、读屏、长时间深色阅读未验证。
+- **产品判断**：用户肯定全深地图但认为整体冲击力仍不够；这项控件修复不等于7D视觉Gate通过。现行“地图深、其他页浅”只是局部施工隔离，不是最终全站配色定案。下一轮首选用相同真实布局试验「地形开场」，再将「从书入图」作为状态，与索引开场对照；见 `docs/37`。正式发布仍停。
+
 ## 公开发布前待处理事项（发布阻断项，不阻断本机开发）
 
 | 编号 | 事项 | 依据 |

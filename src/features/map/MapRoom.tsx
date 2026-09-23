@@ -6,6 +6,7 @@ import type { SnapshotIndex } from '../../domain/snapshot.ts';
 import type { Book, Highlight } from '../../domain/types.ts';
 import { TopicClues } from '../paths/TopicClues.tsx';
 import { MapCanvas } from './MapCanvas.tsx';
+import { MapBookPicker } from './MapBookPicker.tsx';
 import { useMapView } from './useMapView.ts';
 
 const INITIAL_MAP_LIST_ITEMS = 12;
@@ -224,29 +225,12 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                     <button type="button" className="map-icon-button" aria-label="复位地图" title="复位" onClick={view.reset}>↺</button>
                     <output className="map-zoom-readout" aria-label="当前地图缩放比例">{String(Math.round(view.view.zoom * 100))}%</output>
                 </div>
-                <label
-                    className={`map-book-picker${book === undefined ? '' : ' is-lit'}`}
-                    style={{ '--map-book-aura': bookAccent || DEFAULT_ACCENT } as React.CSSProperties}
-                >
-                    <span className="map-book-picker-label">
-                        <strong>点亮一本书</strong>
-                        <small>看看它散落在世界里的位置</small>
-                    </span>
-                    <span className="map-book-select-wrap">
-                        <span className="map-book-picker-orbit" aria-hidden="true" />
-                        <select
-                            aria-label="点亮一本书"
-                            value={effectiveBookId ?? ''}
-                            onChange={(event) => {
-                                onNavigate(mapHref({ tagId: effectiveTagId, bookId: event.target.value || null }));
-                            }}
-                        >
-                            <option value="">浏览整个世界</option>
-                            {index.booksInUse.map((entry) => <option key={entry.id} value={entry.id}>{entry.title}</option>)}
-                        </select>
-                        <span className="map-book-picker-chevron" aria-hidden="true">⌄</span>
-                    </span>
-                </label>
+                <MapBookPicker
+                    books={index.booksInUse}
+                    selected={book}
+                    accent={bookAccent || DEFAULT_ACCENT}
+                    onSelect={(id) => onNavigate(mapHref({ tagId: effectiveTagId, bookId: id }))}
+                />
             </div>
 
             {book === undefined ? null : (

@@ -163,6 +163,33 @@ test.describe('V3 reading world map', () => {
         await expect(page.locator('.shell')).toHaveCSS('color-scheme', 'light');
     });
 
+    test('book picker searches real books, closes on Escape and returns focus', async ({ page }) => {
+        const data = loadSnapshot();
+        const chosen = data.books.find((book) => book.id === 'b-013');
+        expect(chosen).toBeDefined();
+        if (chosen === undefined) return;
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.goto('/map');
+        const trigger = page.getByRole('button', { name: '点亮一本书' });
+        await trigger.click();
+        const dialog = page.getByRole('dialog', { name: '点亮一本书' });
+        await expect(dialog).toBeVisible();
+        const search = dialog.getByRole('searchbox', { name: '搜索书名或作者' });
+        await expect(search).toBeFocused();
+        await search.fill('no-such-real-book-999');
+        await expect(dialog.getByText('没有找到这本书。')).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(dialog).toHaveCount(0);
+        await expect(trigger).toBeFocused();
+        await trigger.click();
+        await page.getByRole('searchbox', { name: '搜索书名或作者' }).fill(chosen.title);
+        await dialog.getByRole('button', { name: `《${chosen.title}》`, exact: false }).click();
+        await expect(page).toHaveURL(/book=b-013/);
+        await expect(trigger).toBeFocused();
+        await expect(page.locator('.map-book-light strong')).toContainText(chosen.title);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    });
+
     test('enters from a book room and lights that book with its real Book Aura', async ({ page }) => {
         const data = loadSnapshot();
         const covered = data.books.filter((book) => book.coverPath !== undefined).slice(0, 6);
@@ -175,7 +202,10 @@ test.describe('V3 reading world map', () => {
         await page.getByTestId('book-map-link').click();
         await expect(page).toHaveURL(new RegExp(`/map\\?book=${first.id}`));
         await expect(page.locator('.map-book-light strong')).toContainText(first.title);
-        await expect(page.getByRole('combobox', { name: '点亮一本书' })).toHaveValue(first.id);
+        await page.getByRole('button', { name: '点亮一本书' }).click();
+        await expect(page.getByRole('dialog', { name: '点亮一本书' })).toBeVisible();
+        await expect(page.getByRole('button', { name: `《${first.title}》`, exact: false }).last()).toHaveAttribute('aria-current', 'true');
+        await page.getByRole('button', { name: '关闭选书' }).click();
         const relatedTagCount = new Set(
             data.highlights.filter((highlight) => highlight.bookId === first.id).flatMap((highlight) => highlight.tagIds),
         ).size;
@@ -187,11 +217,13 @@ test.describe('V3 reading world map', () => {
 
         const colours = new Set<string>();
         for (const book of covered) {
-            await page.locator('.map-book-picker select').selectOption(book.id);
+            await page.getByRole('button', { name: '点亮一本书' }).click();
+            await page.getByRole('searchbox', { name: '搜索书名或作者' }).fill(book.title);
+            await page.getByRole('dialog').getByRole('button', { name: `《${book.title}》`, exact: false }).click();
             await expect(page).toHaveURL(new RegExp(`book=${book.id}`));
             await expect(page.locator('.map-book-light strong')).toContainText(book.title);
             await page.waitForTimeout(700);
-            colours.add(await page.locator('.map-book-light').evaluate((element) =>
+            colours.add(await page.locator('.map-book-picker').evaluate((element) =>
                 getComputedStyle(element).getPropertyValue('--map-book-aura').trim(),
             ));
         }

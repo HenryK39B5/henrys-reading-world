@@ -2,7 +2,7 @@
 
 > 日期：2026-09-23
 >
-> 状态：7D-0 / 7D-1 工程与 Chromium 样板验证完成；**独立视觉 Gate 待用户判断**。未进入原 7B/7C、未把全站改为深色、未发布。
+> 状态：7D-0 / 7D-1 工程与 Chromium 样板验证完成；选书细节的7D-3后续改进与视觉方向见 `docs/37`。**独立视觉 Gate 待用户判断**。未进入原 7B/7C、未把全站改为深色、未发布。
 
 ## 完成范围
 
@@ -13,7 +13,7 @@
 
 ## 固定真实证据
 
-- 自动截图：`npx playwright test --config playwright.capture-7d.config.ts`；固定世界、`b-013`（531点）、`tag-035/h-013`（3标签）、`b-013/h-231`（398字），1440×900 / 390×844 / 320×720。每个视口保存世界、亮书、详情、长文第一屏与全文细节；世界/亮书另拍地图滚动入视口后的画面；390另拍分享。**25张 after PNG**：`.private/review/v3-private-atlas/dark-cross-page/after/`，指标 `metrics.json`：12个场景均无横向溢出。
+- 自动截图：`npx playwright test --config playwright.capture-7d.config.ts`；固定世界、`b-013`（531点）、`tag-035/h-013`（3标签）、`b-013/h-231`（398字），1440×900 / 390×844 / 320×720。每个视口保存世界、亮书、详情、长文第一屏与全文细节；世界/亮书另拍地图滚动入视口后的画面；390另拍分享。**26张 after PNG**（其中1张为7D-3新补的390px选书对话框）：`.private/review/v3-private-atlas/dark-cross-page/after/`，指标 `metrics.json`：12个场景均无横向溢出。
 - 地图layout version `map-v1-52bf307f447c-2777f32e274f`，序列化SHA-256 `567534bf71bfc5f6266ceb8ecd26267c4399888d87a1d606fed784a03d9fcd9e`，4,663真实坐标、56标签锚点均未变。
 - `.private/review/v3-private-atlas/dark-cross-page/before/`的18张初拍用于追溯页面结构，**不能作亮度/质感的公平对照**：拍摄时没有等候原7A页面入场fade完成，画面过淡。旧稳定地图可参考 `.private/review/v3-batch6/`，但其外壳状态不同；真正的同数据同构图配色实验仍以 `docs/34` 的30张静态图为准。不要用褪色的before截图宣称改色成功。
 
