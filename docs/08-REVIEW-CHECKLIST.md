@@ -3139,6 +3139,13 @@ provenance               ensemble 152 / override 128 / lexical 11 / unresolved 6
 - **未验证**：此阶段尚未拍摄7D样板前后图、尚未实现深色Canvas/阅读页；Canvas直接点选、关闭与桌面滚动在7D-1浏览器矩阵中继续测，Safari和真实设备依旧未测。
 - **偏差 / 下一步**：修复了会使手机读者看不到刚打开原文的真实行为故障；随后以相同真实地图做全深交互样板，单独视觉Gate前不得将色板推荐当作成品。
 
+## Batch 7D-1 / 7D-2 — 全深地图↔阅读交互样板与独立视觉 Gate（2026-09-23）
+
+- **完成范围**：仅地图房间及同页外壳改为连续的深墨绿地形＋暖深灰阅读面；桌面并页、手机缩短详情地图并把完整原文第一段带进视口；详情 Aura 随真实来源书封，531点亮书改小半透明点避免实心伪地形；其他房间继续7A浅色。修改 `src/app/ReadingWorld.tsx`、`src/features/map/{MapRoom,MapCanvas,map.css}`；新增 `e2e/capture-7d.spec.ts`、`playwright.capture-7d.config.ts`、地图E2E；文档 `docs/35`、`docs/36`、本记录及状态入口。
+- **浏览器证据**：本机真实快照 `b-013` / `h-013` / `h-231`，1440×900、390×844、320×720；after 25张PNG在 `.private/review/v3-private-atlas/dark-cross-page/after/`，12个视口×场景无横向溢出；Canvas截图、亮书滚入视口、完整长文元素和分享对照见 `docs/36`。地图序列化SHA-256未变。初拍before未等淡入结束，不能用于亮度的公平比较；此偏差不掩盖。
+- **实际命令**：`npm run check:local` 300/300；`npm run test:e2e` 首次并行119/121（非地图房间等待真实快照超时），重跑两项2/2、完整 `npx playwright test --workers=1` 121/121；新增来源书封测试后再次完整单worker运行122/122，地图12/12；`npm run test:tags` 10/10；`npm run test:public` 1/1；`npm run build`、`npm run isolation:public`、`git diff --check`通过；capture 1/1，25张 after。多worker加载竞争仍应监控，不能称其首次全绿。
+- **未验证/判断**：Safari、真实手机/200%、读屏、长时阅读舒适度及真实首次访客未验；全站尚未深色化，手机世界首屏的工具仍偏多。**停止在独立7D视觉Gate**，请用户先看真实交互样板，未授权原7B/7C、公快照/封面导出、push或部署。
+
 ## 公开发布前待处理事项（发布阻断项，不阻断本机开发）
 
 | 编号 | 事项 | 依据 |

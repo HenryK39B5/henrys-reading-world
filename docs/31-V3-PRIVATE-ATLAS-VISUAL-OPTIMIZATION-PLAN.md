@@ -2,7 +2,7 @@
 
 > 日期：2026-09-21
 >
-> 状态：Batch 7A工程完成，视觉Gate未通过；配色对照见 `docs/34`。用户之后选定全深色为跨页交互样板主方向并授权开始施工；见 `docs/35-V3-DARK-CROSS-PAGE-INTERACTIVE-PROTOTYPE.md`。原7B/7C顺序暂停，由7D局部样板及独立Gate替代；未批准全站换色或公开发布。
+> 状态：Batch 7A工程完成、视觉Gate未通过；配色对照见 `docs/34`。用户选定全深色为跨页样板主方向后，7D局部可交互样板已实现（`docs/35`计划、`docs/36`实况），**7D独立视觉Gate待用户判断**。原7B/7C顺序仍暂停；未批准全站换色或公开发布。
 >
 > 输入：`docs/30-GPT6-ASTRA-DESIGN-REVIEW.md`
 >

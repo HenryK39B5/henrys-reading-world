@@ -102,6 +102,9 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
     const effectiveBookId = book?.id ?? null;
     const view = useMapView(index, effectiveTagId);
     const bookAccent = useCoverAccent(coverUrl(book?.coverPath));
+    // The arrived-at passage has its own source even when the book picker is empty or lights another book.
+    const detailBook = highlight === undefined ? undefined : index.booksById.get(highlight.bookId);
+    const detailAccent = useCoverAccent(coverUrl(detailBook?.coverPath));
     const labelSummaries = useMemo(() => summarizeMapLabels(index), [index]);
     const regionHighlights = effectiveTagId === null ? [] : (index.highlightsByTag.get(effectiveTagId) ?? []);
     const relatedTagIds = bookTagIds(index, book);
@@ -127,8 +130,12 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                 heading?.focus({ preventScroll: true });
                 if (heading !== null) {
                     const bounds = heading.getBoundingClientRect();
-                    if (bounds.top < 24 || bounds.bottom > window.innerHeight - 24) {
-                        window.scrollBy({ top: bounds.top - 24, behavior: 'instant' });
+                    const compact = window.innerWidth < 1050;
+                    const readingTop = compact ? Math.min(168, window.innerHeight * 0.22) : 24;
+                    // A title barely peeking above the fold is not an arrival: show the first lines too.
+                    if (bounds.top < 24 || bounds.top > (compact ? window.innerHeight * 0.45 : window.innerHeight * 0.62)
+                        || bounds.bottom > window.innerHeight - 24) {
+                        window.scrollBy({ top: bounds.top - readingTop, behavior: 'instant' });
                     }
                 }
             } else {
@@ -292,6 +299,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                     activeBookId={effectiveBookId}
                     activeHighlightId={highlight?.id ?? null}
                     bookAccent={bookAccent || DEFAULT_ACCENT}
+                    highlightAccent={detailAccent || DEFAULT_ACCENT}
                     onSelectTag={(nextTagId) => {
                         onNavigate(mapHref({ tagId: nextTagId, bookId: effectiveBookId }));
                     }}
@@ -310,7 +318,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                         currentTagId={effectiveTagId}
                         bookId={effectiveBookId}
                         onShare={onShare}
-                        accent={bookAccent || DEFAULT_ACCENT}
+                        accent={detailAccent || DEFAULT_ACCENT}
                         headingRef={detailHeading}
                     />
                 )}
@@ -363,7 +371,11 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                             return (
                                 <li key={entry.id}>
                                     <a href={mapHref({ tagId: tag.id, bookId: effectiveBookId, highlightId: entry.id })}
-                                        onClick={(event) => rememberOpener(event.currentTarget)}>
+                                        onClick={(event) => {
+                                            if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
+                                                rememberOpener(event.currentTarget);
+                                            }
+                                        }}>
                                         <span>{entry.text}</span>
                                         <small>{entryBook === undefined ? '出处暂缺' : `《${entryBook.title}》${entryBook.author}`}</small>
                                     </a>

@@ -22,6 +22,7 @@ export type MapCanvasProps = {
     activeBookId: string | null;
     activeHighlightId: string | null;
     bookAccent: string;
+    highlightAccent: string;
     onSelectTag: (tagId: string) => void;
     onSelectHighlight: (highlightId: string) => void;
 };
@@ -88,6 +89,7 @@ export function MapCanvas({
     activeBookId,
     activeHighlightId,
     bookAccent,
+    highlightAccent,
     onSelectTag,
     onSelectHighlight,
 }: MapCanvasProps) {
@@ -162,9 +164,9 @@ export function MapCanvas({
             size.height * 0.44,
             Math.max(size.width, size.height) * 0.72,
         );
-        wash.addColorStop(0, 'rgba(49, 95, 75, 0.035)');
-        wash.addColorStop(0.64, 'rgba(49, 95, 75, 0.012)');
-        wash.addColorStop(1, 'rgba(49, 95, 75, 0)');
+        wash.addColorStop(0, 'rgba(135, 171, 142, 0.10)');
+        wash.addColorStop(0.64, 'rgba(135, 171, 142, 0.025)');
+        wash.addColorStop(1, 'rgba(135, 171, 142, 0)');
         ctx.fillStyle = wash;
         ctx.fillRect(0, 0, size.width, size.height);
 
@@ -179,7 +181,7 @@ export function MapCanvas({
             ctx.moveTo(horizontalStart.x, horizontalStart.y);
             ctx.lineTo(horizontalEnd.x, horizontalEnd.y);
         }
-        ctx.strokeStyle = 'rgba(49, 95, 75, 0.045)';
+        ctx.strokeStyle = 'rgba(155, 181, 153, 0.035)';
         ctx.lineWidth = 0.6;
         ctx.stroke();
 
@@ -196,7 +198,7 @@ export function MapCanvas({
                     x: ((column + 1) / (density.columns - 1)) * MAP_COORDINATE_MAX,
                     y: ((row + 1) / (density.rows - 1)) * MAP_COORDINATE_MAX,
                 }, view, size.width, size.height);
-                ctx.fillStyle = `rgba(49, 95, 75, ${String((value / 255) * 0.095)})`;
+                ctx.fillStyle = `rgba(135, 171, 142, ${String((value / 255) * 0.16)})`;
                 ctx.fillRect(start.x, start.y, end.x - start.x + 1, end.y - start.y + 1);
             }
         }
@@ -209,7 +211,7 @@ export function MapCanvas({
                 ctx.moveTo(start.x, start.y);
                 ctx.lineTo(end.x, end.y);
             }
-            ctx.strokeStyle = contour.level >= 150 ? 'rgba(49, 95, 75, 0.30)' : 'rgba(96, 100, 93, 0.17)';
+            ctx.strokeStyle = contour.level >= 150 ? 'rgba(132, 175, 143, 0.38)' : 'rgba(155, 181, 153, 0.19)';
             ctx.lineWidth = contour.level >= 150 ? 1.2 : 0.75;
             ctx.stroke();
         }
@@ -221,7 +223,7 @@ export function MapCanvas({
             if (screen.x < -3 || screen.y < -3 || screen.x > size.width + 3 || screen.y > size.height + 3) continue;
             drawCircle(ctx, screen.x, screen.y, view.zoom > 2 ? 1.35 : 1.05);
         }
-        ctx.fillStyle = activeTagId === null && activeBookId === null ? 'rgba(32, 35, 31, 0.37)' : 'rgba(32, 35, 31, 0.11)';
+        ctx.fillStyle = activeTagId === null && activeBookId === null ? 'rgba(183, 202, 177, 0.36)' : 'rgba(183, 202, 177, 0.13)';
         ctx.fill();
 
         if (tagPoints.length > 0) {
@@ -230,7 +232,7 @@ export function MapCanvas({
                 const screen = mapToScreen(point, view, size.width, size.height);
                 drawCircle(ctx, screen.x, screen.y, 2.45);
             }
-            ctx.fillStyle = 'rgba(32, 35, 31, 0.86)';
+            ctx.fillStyle = 'rgba(235, 232, 211, 0.88)';
             ctx.fill();
 
             ctx.beginPath();
@@ -241,20 +243,24 @@ export function MapCanvas({
                 ctx.moveTo(screen.x + 4.4, screen.y);
                 ctx.arc(screen.x, screen.y, 4.4, 0, Math.PI * 2);
             }
-            ctx.strokeStyle = 'rgba(49, 95, 75, 0.58)';
+            ctx.strokeStyle = 'rgba(185, 208, 171, 0.70)';
             ctx.lineWidth = 0.9;
             ctx.stroke();
         }
 
         if (bookPoints.length > 0) {
+            // Draw every real position. At world scale, 531 neighbouring opaque discs would merge into
+            // a false-looking solid territory; smaller translucent marks keep density legible instead.
+            const denseAtWorldScale = bookPoints.length > 200 && view.zoom < 1.5;
             ctx.save();
             ctx.beginPath();
             for (const point of bookPoints) {
                 const screen = mapToScreen(point, view, size.width, size.height);
-                drawCircle(ctx, screen.x, screen.y, 3.25);
+                drawCircle(ctx, screen.x, screen.y, denseAtWorldScale ? 1.55 : 3.25);
             }
             ctx.shadowColor = bookAccent;
-            ctx.shadowBlur = 7;
+            ctx.shadowBlur = denseAtWorldScale ? 0 : 3;
+            ctx.globalAlpha = denseAtWorldScale ? 0.58 : 1;
             ctx.fillStyle = bookAccent;
             ctx.fill();
             ctx.restore();
@@ -266,12 +272,12 @@ export function MapCanvas({
                 const screen = mapToScreen(active, view, size.width, size.height);
                 ctx.beginPath();
                 ctx.arc(screen.x, screen.y, 7, 0, Math.PI * 2);
-                ctx.strokeStyle = bookAccent;
+                ctx.strokeStyle = highlightAccent;
                 ctx.lineWidth = 2;
                 ctx.stroke();
                 ctx.beginPath();
                 ctx.arc(screen.x, screen.y, 2.4, 0, Math.PI * 2);
-                ctx.fillStyle = '#20231f';
+                ctx.fillStyle = '#eee8d9';
                 ctx.fill();
             }
         }
@@ -321,13 +327,13 @@ export function MapCanvas({
                 ctx.beginPath();
                 ctx.moveTo(hit.anchorX, hit.anchorY);
                 ctx.lineTo(hit.x, hit.y);
-                ctx.strokeStyle = 'rgba(49, 95, 75, 0.24)';
+                ctx.strokeStyle = 'rgba(164, 190, 157, 0.36)';
                 ctx.lineWidth = 0.7;
                 ctx.stroke();
             }
-            ctx.fillStyle = active ? 'rgba(247, 245, 239, 0.94)' : 'rgba(247, 245, 239, 0.78)';
+            ctx.fillStyle = active ? 'rgba(39, 55, 47, 0.96)' : 'rgba(28, 43, 38, 0.90)';
             ctx.fillRect(hit.left + 1, hit.top + 1, hit.right - hit.left - 2, hit.bottom - hit.top - 2);
-            ctx.fillStyle = active ? '#20231f' : 'rgba(32, 35, 31, 0.78)';
+            ctx.fillStyle = active ? '#f2ebd8' : 'rgba(224, 232, 209, 0.92)';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(summary.title, hit.x, hit.y);
@@ -335,13 +341,13 @@ export function MapCanvas({
                 ctx.beginPath();
                 ctx.moveTo(hit.x - width / 2, hit.y + 11);
                 ctx.lineTo(hit.x + width / 2, hit.y + 11);
-                ctx.strokeStyle = '#315f4b';
+                ctx.strokeStyle = '#c9ae80';
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
             }
         }
         labelHits.current = visibleLabels;
-    }, [activeBookId, activeHighlightId, activeTagId, bookAccent, bookPointIds, bookPoints, index, labels, layout, size, tagPointIds, tagPoints, view]);
+    }, [activeBookId, activeHighlightId, activeTagId, bookAccent, highlightAccent, bookPointIds, bookPoints, index, labels, layout, size, tagPointIds, tagPoints, view]);
 
     const pointerPosition = (event: React.PointerEvent<HTMLCanvasElement>): { x: number; y: number } => {
         const rect = event.currentTarget.getBoundingClientRect();

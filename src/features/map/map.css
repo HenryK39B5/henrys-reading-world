@@ -626,6 +626,164 @@
 }
 
 
+/* 7D: the map and the arrived-at text share one dark material, not a black map / white card.
+   These tokens are scoped to the map room; the other rooms stay at their reviewed 7A baseline. */
+body:has(.shell--dark-map) {
+    background: #18201f;
+}
+
+.shell--dark-map {
+    --paper: #18201f;
+    --surface-muted: #20302c;
+    --ink: #eee8d9;
+    --ink-soft: #bdc5b6;
+    --ink-faint: #9ca99d;
+    --rule: #45554d;
+    --rule-strong: #697e71;
+    --accent: #c5d4ac;
+    --accent-warm: #d7b18b;
+    color: var(--ink);
+    color-scheme: dark;
+}
+
+.shell--dark-map .map-stage {
+    border-color: #43594c;
+    background: #1d2927;
+}
+
+.shell--dark-map .map-stage-status,
+.shell--dark-map .map-hover-readout {
+    background: rgb(24 34 31 / 88%);
+    color: var(--ink-soft);
+}
+
+.shell--dark-map .map-detail {
+    border-color: var(--rule);
+    background: #272f2d;
+    box-shadow: none;
+}
+
+.shell--dark-map .share-manual {
+    /* The share card has its own palette; its manual-copy textarea must not be white-on-white. */
+    background: var(--surface-muted);
+}
+
+.shell--dark-map .map-book-light strong {
+    /* Some real covers sample nearly black: retain their hue without making the title unreadable. */
+    color: color-mix(in srgb, var(--map-book-aura) 48%, var(--ink));
+}
+
+.shell--dark-map .map-book-select-wrap {
+    background: color-mix(in srgb, var(--map-book-aura) 6%, var(--paper));
+    box-shadow: none;
+}
+
+.shell--dark-map .map-book-picker.is-lit .map-book-select-wrap {
+    background: color-mix(in srgb, var(--map-book-aura) 11%, var(--paper));
+}
+
+.shell--dark-map .map-detail-title:focus-visible {
+    outline: none;
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.35em;
+}
+
+.shell--dark-map .map-detail-passage p {
+    max-width: var(--measure-reading-long);
+    color: #e0ded2;
+    line-height: 1.88;
+}
+
+@media (min-width: 1050px) {
+    .room-map[data-map-level='detail'] .map-stage {
+        display: grid;
+        grid-template-columns: minmax(0, 1.7fr) minmax(350px, 0.95fr);
+        align-items: start;
+        overflow: visible;
+    }
+
+    .room-map[data-map-level='detail'] .map-canvas-wrap {
+        position: sticky;
+        top: 16px;
+        min-width: 0;
+    }
+
+    .room-map[data-map-level='detail'] .map-detail {
+        position: relative;
+        top: auto;
+        right: auto;
+        width: 100%;
+        min-height: 100%;
+        max-height: none;
+        overflow: visible;
+        padding: 36px clamp(24px, 3vw, 44px) 52px;
+        border: 0;
+        border-left: 1px solid color-mix(in srgb, var(--map-detail-accent) 48%, var(--rule));
+        border-radius: 0;
+        animation: none;
+    }
+}
+
+@media (max-width: 1049px) {
+    .room-map[data-map-level='detail'] .map-canvas-wrap {
+        height: 240px;
+        min-height: 240px;
+    }
+
+    .room-map[data-map-level='detail'] .map-stage {
+        min-height: 0;
+    }
+
+    .room-map[data-map-level='detail'] .map-detail {
+        position: relative;
+        top: auto;
+        right: auto;
+        width: 100%;
+        max-height: none;
+        overflow: visible;
+        margin-top: 0;
+        padding: 28px clamp(24px, 6vw, 48px) 42px;
+        border: 0;
+        border-top: 1px solid color-mix(in srgb, var(--map-detail-accent) 48%, var(--rule));
+        border-radius: 0;
+        animation: none;
+    }
+}
+
+@media (max-width: 700px) {
+    .room-map[data-map-level='detail'] .map-canvas-wrap {
+        height: 190px;
+        min-height: 190px;
+    }
+
+    .room-map[data-map-level='detail'] .map-detail {
+        padding: 24px 24px 40px;
+    }
+
+    .shell--dark-map .map-detail-passage p {
+        font-size: 20px;
+        line-height: 1.92;
+    }
+
+    .shell--dark-map .map-book-picker-label small {
+        font-size: 12px;
+    }
+
+    .shell--dark-map .map-book-paths a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+    }
+}
+
+@media (max-width: 360px) {
+    .shell--dark-map .map-detail-passage p {
+        font-size: 19px;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .map-icon-button,
     .map-book-select-wrap,

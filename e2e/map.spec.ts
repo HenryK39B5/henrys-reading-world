@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { mapToScreen } from '../src/domain/map.ts';
 import { hasSnapshot, loadSnapshot } from './support/snapshot.ts';
 
 test.describe('V3 reading world map', () => {
@@ -88,8 +89,9 @@ test.describe('V3 reading world map', () => {
         await expect(heading).toBeFocused();
         await expect.poll(() => heading.evaluate((node) => {
             const box = node.getBoundingClientRect();
-            return box.top >= 0 && box.bottom <= window.innerHeight;
+            return box.top >= 0 && box.bottom <= window.innerHeight * 0.45;
         })).toBe(true);
+        expect(await page.locator('.map-detail-passage').evaluate((node) => node.getBoundingClientRect().top < innerHeight * 0.7)).toBe(true);
         await page.goBack();
         await expect(page.getByTestId('map-detail')).toHaveCount(0);
         await expect(opener).toBeFocused();
@@ -110,8 +112,55 @@ test.describe('V3 reading world map', () => {
         await expect(page.locator('#map-detail-heading')).toBeFocused();
         await expect.poll(() => page.locator('#map-detail-heading').evaluate((node) => {
             const box = node.getBoundingClientRect();
-            return box.top >= 0 && box.bottom <= window.innerHeight;
+            return box.top >= 0 && box.bottom <= window.innerHeight * 0.45;
         })).toBe(true);
+        expect(await page.locator('.map-detail-passage').evaluate((node) => node.getBoundingClientRect().top < innerHeight * 0.7)).toBe(true);
+    });
+
+    test('arrives from a real lit-book canvas point and closes back to the canvas', async ({ page }) => {
+        const data = loadSnapshot();
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.goto('/map?book=b-013');
+        const canvas = page.getByTestId('map-canvas');
+        const bounds = await canvas.boundingBox();
+        expect(bounds).not.toBeNull();
+        if (bounds === null || data.map === undefined) return;
+        const view = {
+            centerX: Number(await canvas.getAttribute('data-map-center-x')),
+            centerY: Number(await canvas.getAttribute('data-map-center-y')),
+            zoom: Number(await canvas.getAttribute('data-map-zoom')),
+        };
+        const highlightIds = new Set(data.highlights.filter((item) => item.bookId === 'b-013').map((item) => item.id));
+        const target = data.map.points.map((point) => ({ point, screen: mapToScreen(point, view, bounds.width, bounds.height) }))
+            .find(({ point, screen }) => highlightIds.has(point.highlightId) && screen.x > 30 && screen.x < bounds.width - 30 && screen.y > bounds.height * 0.65 && screen.y < bounds.height - 35);
+        expect(target).toBeDefined();
+        if (target === undefined) return;
+        await canvas.click({ position: { x: target.screen.x, y: target.screen.y } });
+        await expect(page).toHaveURL(/\bh=h-\d+/);
+        await expect(page.locator('#map-detail-heading')).toBeFocused();
+        const id = new URL(page.url()).searchParams.get('h');
+        await expect(page.locator('.map-detail-passage')).toHaveText(data.highlights.find((item) => item.id === id)?.text ?? '');
+        await page.getByRole('link', { name: '关闭划线详情' }).click();
+        await expect(page.getByTestId('map-detail')).toHaveCount(0);
+        await expect(canvas).toBeFocused();
+        await expect(page).toHaveURL(/book=b-013/);
+    });
+
+    test('the dark map is scoped to the map, stays readable at 200% and honours reduced motion', async ({ page }) => {
+        const data = loadSnapshot();
+        const long = data.highlights.find((item) => item.id === 'h-231');
+        expect(long).toBeDefined();
+        if (long === undefined) return;
+        await page.emulateMedia({ reducedMotion: 'reduce' });
+        await page.setViewportSize({ width: 720, height: 450 });
+        await page.goto('/map?book=b-013&h=h-231');
+        await expect(page.locator('.map-detail-passage')).toHaveText(long.text);
+        await expect(page.locator('#map-detail-heading')).toBeFocused();
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+        await expect(page.locator('.shell')).toHaveCSS('color-scheme', 'dark');
+        await expect(page.getByTestId('map-detail')).toHaveCSS('animation-name', 'none');
+        await page.getByRole('link', { name: '随便看看' }).first().click();
+        await expect(page.locator('.shell')).toHaveCSS('color-scheme', 'light');
     });
 
     test('enters from a book room and lights that book with its real Book Aura', async ({ page }) => {
@@ -147,6 +196,19 @@ test.describe('V3 reading world map', () => {
             ));
         }
         expect(colours.size).toBeGreaterThanOrEqual(4);
+    });
+
+    test('the passage detail uses its own real cover, not a different book lit in the picker', async ({ page }) => {
+        const data = loadSnapshot();
+        const highlight = data.highlights.find((item) => item.id === 'h-013');
+        expect(highlight?.bookId).toBe('b-008');
+        await page.goto('/map?book=b-008&h=h-013');
+        await expect(page.getByTestId('map-detail')).toBeVisible();
+        await page.waitForTimeout(650); // wait for local cover sampling to settle
+        const ownAccent = await page.locator('.map-book-light').evaluate((node) => getComputedStyle(node).getPropertyValue('--map-book-aura').trim());
+        await page.goto('/map?book=b-013&h=h-013');
+        await expect(page.locator('.map-book-light strong')).toContainText(data.books.find((item) => item.id === 'b-013')?.title ?? '');
+        await expect(page.getByTestId('map-detail')).toHaveCSS('--map-detail-accent', ownAccent);
     });
 
     test('keeps all tags in a map detail and its share card', async ({ page }) => {
