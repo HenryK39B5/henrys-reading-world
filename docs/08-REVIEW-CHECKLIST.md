@@ -3173,7 +3173,11 @@ provenance               ensemble 152 / override 128 / lexical 11 / unresolved 6
 - **命令与偏差**：前后全量审计各1/1，最终边界补拍1/1；`npm run check:local` 300/300，完整`npx playwright test --workers=1 --reporter=dot`最终128/128，`npm run build`、`npm run isolation:public`、`npm run test:public`通过。第一次完整127/128来自非showModal弹层测试偶发把打开时的scrollY=0事件算进后续滚轮；单测5次失败1次，改为确认弹层稳定后再记录，原滚轮零事件门槛不变，10次连续通过。Studio未重跑。
 - **Gate**：工程收口完成；只有Chromium环境，Safari、真机、读屏、真实浏览器200%及长时阅读未验。视觉品质最终Gate与首次访客路径仍需独立判断；7B/7C及public export/covers/push/deploy继续暂停。
 
-## 公开发布前待处理事项（发布阻断项，不阻断本机开发）
+## Batch 7H — 真实使用验收包与本机可验证结果（2026-09-23）
+
+- **范围**：建立首次访客任务卡，覆盖首页→书→返回、地图→划线→小径→返回、分享关闭和键盘完整路径；新增`e2e/audit-7h.spec.ts`与专用配置。未新增产品功能，未修改真实数据/地图/发布范围；详见`docs/41-BATCH-7H-FIRST-VISITOR-ACCEPTANCE.md`。
+- **本机结果**：320/390/720/1440 CSS px的10条关键路线采集239个文字样本，最低对比度≥4.5且无横溢；390px首页、书库、小径、地图、详情键盘遍历无无名称焦点、不可见焦点或`aria-hidden`内焦点。亮书来源名使用浏览器Canvas颜色读回，修正了`color(srgb ...)`测量误判。Chromium探测确认`Ctrl+=`不改变视口，不能冒充浏览器菜单200%；720×450重排与CDP2×继续作为不同证据。
+- **Gate**：本机未发现可复现的产品阻塞，因此没有为了测试制造代码改动。首次访客、Safari、真机触摸、读屏、系统菜单200%、低亮度长时阅读仍待人工验收；7B/7C、公快照导出、公开封面、push与部署继续暂停。
 
 | 编号 | 事项 | 依据 |
 | --- | --- | --- |
