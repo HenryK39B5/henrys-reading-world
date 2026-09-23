@@ -211,6 +211,15 @@ export function assembleMapLayout(snapshot: Pick<Snapshot, 'tags' | 'highlights'
     };
 }
 
+export function projectFilteredMapLayout(snapshot: Pick<Snapshot, 'tags' | 'highlights'>, source: MapLayout): MapLayout {
+    const allowed = new Set(snapshot.highlights.map((highlight) => highlight.id));
+    const points = source.points.filter((point) => allowed.has(point.highlightId));
+    if (points.length !== allowed.size) {
+        throw new Error('filtered map is missing a selected highlight point');
+    }
+    return assembleMapLayout(snapshot, `${source.version}-public-filtered`, points);
+}
+
 export function mapTagHash(snapshot: Pick<Snapshot, 'tags' | 'highlights'>): string {
     const tagLines = snapshot.tags.map((tag) => `${tag.id}\0${tag.title}\0${tag.description ?? ''}`);
     const assignmentLines = snapshot.highlights.map((highlight: Highlight) => `${highlight.id}\0${highlight.tagIds.join(',')}`);

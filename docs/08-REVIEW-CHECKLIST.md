@@ -3215,6 +3215,15 @@ Slice / task IDs：
 - Public snapshot remains empty. Public export, public covers, repository creation, push, workflow, deployment, Safari, real-device touch, screen readers, system-browser 200% zoom, low-brightness long reading, and first-visitor observation remain outside this Gate.
 - Decision: local 7I stability is verified; next priority is publication-content and rights review. Batch 7B/7C remains paused. Details: `docs/42-BATCH-7I-STABILITY-AND-PUBLICATION-PREP.md`.
 
+## V3 公开投影导出前审计（2026-09-23）
+
+- 范围：复用已完成的 130 本书公开审核，不重新选书；新增只读 `publication:audit:v3`，内存中投影拟公开的书、划线、标签、路径向量与固定坐标过滤地图，只把汇总报告写到 Git 忽略的 `.private/`。没有更改 publication policy、local/public snapshot、封面或消费者 UI。
+- 修改文件：`scripts/publication-v3-audit.ts`、`scripts/embeddings/mapLayout.ts`、`tests/map-layout.test.ts`、`package.json`、`docs/43-V3-PRE-EXPORT-PROJECTION-AUDIT.md` 与本记录。纯函数测试证明过滤不会移动点、标签中心/地形按保留点重算，缺失固定点位时拒绝继续。
+- 真实结果：130 已审核，108 本/3,462 条拟公开，22 本/6 条排除；其中 reviewed 1,432 条、draft 2,030 条；56 个 Topic Tag、1,432 条 reviewed 路径投影；过滤地图 3,462 点/56 锚点，坐标原样保留。内存 schema 3 校验通过，public snapshot 仍 0 本/0 条。
+- 实际命令：`npm run publication:audit:v3` 通过；`npm run check:local` 301/301；`npm run build`、`npm run isolation:public` 通过；Chromium `npm run test:public` 1/1。浏览器证据仅为公开空态；本阶段无视觉改动，不冒充完整 local E2E 或新的截图验收。
+- 未验证/偏差：现有 `map:layout:public` 会重跑 UMAP，不能用于保持原坐标的正式导出；过滤地图目前仅内存生成，正式导出器尚未接入。Studio、Safari、真机、读屏、系统 200% 和版权个案判断未由本审计完成。
+- 下一步与 Gate：未来导出器共用过滤逻辑，对真实 public snapshot/covers/构建与跨页行为重新验收；正式 public export、public covers、repo、push、workflow、部署仍需用户明确授权。详情见 `docs/43-V3-PRE-EXPORT-PROJECTION-AUDIT.md`。
+
 ## v1 Gate 2 工程检查（历史清单；v2 迁移后按 docs/11 验收）
 
 - [ ] 30–50 条真实划线，原文与出处核对，访客展示范围由用户确认。

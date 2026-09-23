@@ -37,6 +37,7 @@
     "publication:review": "vite --mode review-private",
     "tags:studio": "vite --mode tag-studio-private",
     "publication:preview": "node scripts/publication-preview.ts",
+    "publication:audit:v3": "node scripts/publication-v3-audit.ts",
     "isolation:public": "node scripts/check-public-isolation.ts",
     "covers:fetch": "node scripts/fetch-covers.ts",
     "embeddings:prepare": "node scripts/embedding-prepare.ts",

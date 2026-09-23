@@ -9,6 +9,7 @@ import {
     buildDensity,
     buildMapLabels,
     mapTagHash,
+    projectFilteredMapLayout,
     mulberry32,
     normalizeMapPoints,
     projectForMap,
@@ -80,6 +81,20 @@ describe('map layout derivation', () => {
                 expect(segment.every((value) => value >= 0 && value <= MAP_COORDINATE_MAX)).toBe(true);
             }
         }
+    });
+
+    it('filters unpublished points without moving the survivors and rebuilds derived layers', () => {
+        const source = assembleMapLayout(snapshot, 'map-test-v1', points);
+        const selected = {
+            tags: [{ id: 'tag-001', title: '选择' }],
+            highlights: [snapshot.highlights[1]!],
+        };
+        const filtered = projectFilteredMapLayout(selected, source);
+        expect(filtered.points).toEqual([points[1]]);
+        expect(filtered.labels).toEqual([{ tagId: 'tag-001', x: 5000, y: 6000 }]);
+        expect(filtered.density.values).not.toEqual(source.density.values);
+        expect(filtered.version).toBe('map-test-v1-public-filtered');
+        expect(() => projectFilteredMapLayout(snapshot, { ...source, points: [points[0]!] })).toThrow('missing');
     });
 
     it('assembles a complete consumer layout and hashes tag changes', () => {
