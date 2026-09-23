@@ -74,6 +74,46 @@ test.describe('V3 reading world map', () => {
         await expect(page.getByTestId('map-canvas')).toHaveAttribute('data-map-zoom', zoom ?? '');
     });
 
+    test('brings a point-list arrival into view on mobile and returns to its opener on Back', async ({ page }) => {
+        const data = loadSnapshot();
+        const tag = data.tags.find((entry) => data.highlights.filter((highlight) => highlight.tagIds.includes(entry.id)).length > 12);
+        expect(tag).toBeDefined();
+        if (tag === undefined) return;
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.goto(`/map?tag=${tag.id}`);
+        const opener = page.locator('.map-point-list a').first();
+        await opener.click();
+        await expect(page.getByTestId('map-detail')).toBeVisible();
+        const heading = page.locator('#map-detail-heading');
+        await expect(heading).toBeFocused();
+        await expect.poll(() => heading.evaluate((node) => {
+            const box = node.getBoundingClientRect();
+            return box.top >= 0 && box.bottom <= window.innerHeight;
+        })).toBe(true);
+        await page.goBack();
+        await expect(page.getByTestId('map-detail')).toHaveCount(0);
+        await expect(opener).toBeFocused();
+        expect(await opener.evaluate((node) => {
+            const box = node.getBoundingClientRect();
+            return box.top < window.innerHeight && box.bottom > 0;
+        })).toBe(true);
+    });
+
+    test('opens a direct long-passage map link in view, without truncating the real text', async ({ page }) => {
+        const data = loadSnapshot();
+        const longest = data.highlights.find((entry) => entry.id === 'h-231');
+        expect(longest).toBeDefined();
+        if (longest === undefined) return;
+        await page.setViewportSize({ width: 320, height: 720 });
+        await page.goto(`/map?h=${longest.id}`);
+        await expect(page.locator('.map-detail-passage')).toHaveText(longest.text);
+        await expect(page.locator('#map-detail-heading')).toBeFocused();
+        await expect.poll(() => page.locator('#map-detail-heading').evaluate((node) => {
+            const box = node.getBoundingClientRect();
+            return box.top >= 0 && box.bottom <= window.innerHeight;
+        })).toBe(true);
+    });
+
     test('enters from a book room and lights that book with its real Book Aura', async ({ page }) => {
         const data = loadSnapshot();
         const covered = data.books.filter((book) => book.coverPath !== undefined).slice(0, 6);

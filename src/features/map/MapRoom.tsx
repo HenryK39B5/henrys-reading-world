@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { coverUrl, useCoverAccent } from '../../app/covers.ts';
 import { DEFAULT_ACCENT } from '../../domain/accent.ts';
 import { fitMapPoints, mapPointsForBook, mapPointsForTag, summarizeMapLabels } from '../../domain/map.ts';
@@ -35,6 +35,7 @@ function MapDetail({
     bookId,
     onShare,
     accent,
+    headingRef,
 }: {
     index: SnapshotIndex;
     highlight: Highlight;
@@ -42,6 +43,7 @@ function MapDetail({
     bookId: string | null;
     onShare: (highlightId: string) => void;
     accent: string;
+    headingRef: React.Ref<HTMLHeadingElement>;
 }) {
     const book = index.booksById.get(highlight.bookId);
     const tags = highlight.tagIds.map((tagId) => index.tagsById.get(tagId)).filter((tag) => tag !== undefined);
@@ -63,7 +65,7 @@ function MapDetail({
                     ×
                 </a>
             </div>
-            <h2 id="map-detail-heading" className="map-detail-title">
+            <h2 id="map-detail-heading" className="map-detail-title" tabIndex={-1} ref={headingRef}>
                 {book === undefined ? '出处暂缺' : `《${book.title}》`}
             </h2>
             <blockquote className="map-detail-passage">
@@ -106,6 +108,48 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
     const primaryRelatedTagIds = relatedTagIds.slice(0, 6);
     const remainingRelatedTagIds = relatedTagIds.slice(6);
     const [expandedLists, setExpandedLists] = useState<Set<string>>(() => new Set());
+    const detailHeading = useRef<HTMLHeadingElement>(null);
+    const returnTo = useRef<{ element: HTMLElement; scrollY: number } | null>(null);
+    const previousDetailId = useRef<string | null>(highlight?.id ?? null);
+    const selectedId = highlight?.id ?? null;
+
+    // Content-level URL changes keep the same room key: room focus/scroll memory cannot land on this detail.
+    // Defer until after the shell's room-entry focus effect on a direct URL, then restore the actual
+    // list/canvas opener on close or browser Back. Never focus a detached anchor from another region.
+    useEffect(() => {
+        const previous = previousDetailId.current;
+        previousDetailId.current = selectedId;
+        if (selectedId === null && previous === null) return;
+        // The shell's room-memory timeout can otherwise reset a direct link to the top after we scroll.
+        const timer = window.setTimeout(() => {
+            if (selectedId !== null) {
+                const heading = detailHeading.current;
+                heading?.focus({ preventScroll: true });
+                if (heading !== null) {
+                    const bounds = heading.getBoundingClientRect();
+                    if (bounds.top < 24 || bounds.bottom > window.innerHeight - 24) {
+                        window.scrollBy({ top: bounds.top - 24, behavior: 'instant' });
+                    }
+                }
+            } else {
+                const remembered = returnTo.current;
+                const fallback = document.querySelector<HTMLElement>('[data-testid="map-canvas"]');
+                const target = remembered?.element.isConnected ? remembered.element : fallback;
+                if (remembered !== null && target === remembered.element) {
+                    window.scrollTo({ top: remembered.scrollY, behavior: 'instant' });
+                } else {
+                    target?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+                }
+                target?.focus({ preventScroll: true });
+                returnTo.current = null;
+            }
+        }, 0);
+        return () => window.clearTimeout(timer);
+    }, [selectedId]);
+
+    const rememberOpener = (element: HTMLElement): void => {
+        returnTo.current = { element, scrollY: window.scrollY };
+    };
     const listKey = effectiveTagId === null ? 'regions' : `tag:${effectiveTagId}`;
     const listExpanded = expandedLists.has(listKey);
     const visibleLabelSummaries = listExpanded ? labelSummaries : labelSummaries.slice(0, INITIAL_MAP_LIST_ITEMS);
@@ -252,6 +296,10 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                         onNavigate(mapHref({ tagId: nextTagId, bookId: effectiveBookId }));
                     }}
                     onSelectHighlight={(nextHighlightId) => {
+                        const opener = document.activeElement;
+                        const canvas = document.querySelector<HTMLElement>('[data-testid="map-canvas"]');
+                        if (opener instanceof HTMLElement && opener.isConnected && opener !== document.body) rememberOpener(opener);
+                        else if (canvas !== null) rememberOpener(canvas);
                         onNavigate(mapHref({ tagId: effectiveTagId, bookId: effectiveBookId, highlightId: nextHighlightId }));
                     }}
                 />
@@ -263,6 +311,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                         bookId={effectiveBookId}
                         onShare={onShare}
                         accent={bookAccent || DEFAULT_ACCENT}
+                        headingRef={detailHeading}
                     />
                 )}
             </div>
@@ -313,7 +362,8 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                             const entryBook = index.booksById.get(entry.bookId);
                             return (
                                 <li key={entry.id}>
-                                    <a href={mapHref({ tagId: tag.id, bookId: effectiveBookId, highlightId: entry.id })}>
+                                    <a href={mapHref({ tagId: tag.id, bookId: effectiveBookId, highlightId: entry.id })}
+                                        onClick={(event) => rememberOpener(event.currentTarget)}>
                                         <span>{entry.text}</span>
                                         <small>{entryBook === undefined ? '出处暂缺' : `《${entryBook.title}》${entryBook.author}`}</small>
                                     </a>
