@@ -3224,6 +3224,16 @@ Slice / task IDs：
 - 未验证/偏差：现有 `map:layout:public` 会重跑 UMAP，不能用于保持原坐标的正式导出；过滤地图目前仅内存生成，正式导出器尚未接入。Studio、Safari、真机、读屏、系统 200% 和版权个案判断未由本审计完成。
 - 下一步与 Gate：未来导出器共用过滤逻辑，对真实 public snapshot/covers/构建与跨页行为重新验收；正式 public export、public covers、repo、push、workflow、部署仍需用户明确授权。详情见 `docs/43-V3-PRE-EXPORT-PROJECTION-AUDIT.md`。
 
+## V3 Public snapshot export and local release acceptance (2026-09-23)
+
+- User explicitly authorized local public export. `npm run publication:export` generated `src/data/public-snapshot.json` and 108 resized `public/covers/*.jpg`; no repository, push, workflow, or deployment action was performed.
+- Export uses the existing publication policy projection, filters the fixed local map coordinates without rerunning UMAP or moving points, and writes a private metadata-only report to ignored `.private/publication-export-audit.json`.
+- Exported scope: 108 books, 3,462 highlights, 13 book themes, 56 Topic Tags, 1,432 reviewed path vectors, 2,030 draft highlights without tags/vectors, 3,462 map points, 56 map labels, 108 cover derivatives; 22 books and 6 highlights remain absent.
+- `npm run validate:data`, `npm run build`, `npm run isolation:public`, `npm run check:local` (301/301), and non-empty public Chromium `npm run test:public` (6/6) passed. Full local Chromium E2E first returned 127/128 because the browser session closed during one responsive-matrix test; the isolated retry passed. This is retained as environment instability, not a product failure.
+- Isolation was updated for the non-empty release: approved public content is allowed, while private tools, credentials, raw IDs, tag-production fields, local paths, excluded items, and review metadata remain prohibited.
+- Build note: the approved snapshot makes the minified JS bundle about 1.6 MB; this is a performance follow-up, not a content/isolation failure.
+- Remaining: production-oriented review of static hosting base path, 404 fallback, bundle size, and final manual public-content review; Safari, real device, screen reader, system-browser 200%, low-brightness reading and first-visitor observation remain unverified. Deployment is still a separate explicit authorization. Details: `docs/44-V3-PUBLIC-SNAPSHOT-EXPORT-AND-ACCEPTANCE.md`.
+
 ## v1 Gate 2 工程检查（历史清单；v2 迁移后按 docs/11 验收）
 
 - [ ] 30–50 条真实划线，原文与出处核对，访客展示范围由用户确认。

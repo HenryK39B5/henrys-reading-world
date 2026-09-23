@@ -40,11 +40,13 @@ describe('loadSnapshot', () => {
         expect(result.status).toBe('error');
     });
 
-    it('reports the empty state when the public snapshot carries no material', async () => {
+    it('reports the ready state when the public snapshot carries approved material', async () => {
         const result = await loadSnapshot('public');
-        expect(result.status).toBe('empty');
-        if (result.status === 'empty') {
+        expect(result.status).toBe('ready');
+        if (result.status === 'ready') {
             expect(result.snapshot.schemaVersion).toBe(SNAPSHOT_SCHEMA_VERSION);
+            expect(result.snapshot.books.length).toBeGreaterThan(0);
+            expect(result.snapshot.highlights.length).toBeGreaterThan(0);
         }
     });
 });

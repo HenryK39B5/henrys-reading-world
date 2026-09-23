@@ -22,6 +22,7 @@ export default defineConfig({
         '**/audit-7h.spec.ts',
         '**/audit-7i.spec.ts',
         '**/empty-state.spec.ts',
+        '**/public-release.spec.ts',
         '**/publication/**',
         '**/tag-studio/**',
     ],

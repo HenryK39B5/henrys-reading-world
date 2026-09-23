@@ -1,12 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Public-mode acceptance: the normal `dev` command serves the (still empty) public snapshot, so every
- * room's honest empty state can be checked without a private file. Run with: npm run test:public
+ * Public-mode acceptance checks the approved non-empty snapshot after Release-B export.
  */
 export default defineConfig({
     testDir: './e2e',
-    testMatch: 'empty-state.spec.ts',
+    testMatch: 'public-release.spec.ts',
     fullyParallel: false,
     retries: 0,
     reporter: [['list']],
