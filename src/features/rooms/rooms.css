@@ -660,3 +660,135 @@
         font-size: 23px;
     }
 }
+
+/* Reading rooms keep the sentence central; directories use the full page as an index. */
+.shell--night .room-hall > .room-heading {
+    color: var(--ink-soft);
+}
+
+.shell--night .room-book {
+    grid-template-columns: 112px minmax(0, var(--measure-reading));
+    column-gap: 36px;
+}
+
+.shell--night .book-head {
+    grid-template-columns: 112px minmax(0, var(--measure-reading));
+    gap: 36px;
+    margin-bottom: 16px;
+}
+
+.shell--night .book-head-cover {
+    width: 112px;
+    height: 162px;
+    border: 1px solid color-mix(in srgb, var(--aura) 48%, var(--rule));
+    background: var(--surface-muted);
+}
+
+.shell--night .book-random {
+    border-top-color: color-mix(in srgb, var(--aura) 32%, var(--rule));
+}
+
+.shell--night .book-random::before {
+    background: color-mix(in srgb, var(--aura) 55%, var(--ink));
+}
+
+.shell--night .room[data-room='theme'] > .room-heading::before {
+    background: color-mix(in srgb, var(--aura) 40%, var(--ink));
+}
+
+.shell--night .book-head-shelves .chip {
+    text-decoration-color: color-mix(in srgb, var(--aura) 40%, var(--ink));
+}
+
+.shell--night .book-cover,
+.shell--night .shelf-cover {
+    background: var(--surface-muted);
+}
+
+.shell--night .room[data-room='books'] > .room-heading,
+.shell--night .room[data-room='themes'] > .room-heading {
+    font-size: 32px;
+}
+
+.shell--night .filter-row {
+    gap: 4px 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--rule);
+}
+
+.shell--night .chip {
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    padding-inline: 3px;
+}
+
+.shell--night .chip[aria-current='true'] {
+    border-bottom-color: var(--accent);
+}
+
+.shell--night .book-head-shelves .chip {
+    border-bottom: 0;
+}
+
+.shell--night .book-link,
+.shell--night .shelf-link {
+    transition: color 160ms ease-out;
+}
+
+@media (hover: hover) {
+    .shell--night .book-link:hover,
+    .shell--night .shelf-link:hover {
+        color: var(--accent);
+    }
+}
+
+@media (min-width: 800px) {
+    .shell--night .shelf-list,
+    .shell--night .book-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0 42px;
+        border-bottom: 1px solid var(--rule);
+    }
+
+    .shell--night .shelf-item {
+        min-width: 0;
+        padding: 20px 0;
+    }
+
+    .shell--night .shelf-description {
+        margin: 6px 0 0 134px;
+    }
+
+    .shell--night .shelf-covers {
+        width: 120px;
+        flex-wrap: wrap;
+    }
+
+    .shell--night .shelf-text {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .shell--night .book-item {
+        min-width: 0;
+    }
+}
+
+@media (max-width: 640px) {
+    .shell--night .room-book {
+        display: block;
+    }
+
+    .shell--night .book-head {
+        grid-template-columns: 60px minmax(0, 1fr);
+        gap: 14px;
+        margin-bottom: 0;
+    }
+
+    .shell--night .book-head-cover {
+        width: 60px;
+        height: 87px;
+    }
+}

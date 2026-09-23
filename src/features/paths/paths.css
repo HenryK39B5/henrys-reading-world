@@ -440,3 +440,60 @@
         transition: none;
     }
 }
+
+/* A path is a reading room; its index has the cadence of an open catalogue. */
+.shell--night .paths-head {
+    padding-bottom: 25px;
+}
+
+.shell--night .room-paths .room-heading {
+    font-size: 32px;
+}
+
+.shell--night .path-list-link {
+    min-height: 128px;
+}
+
+.shell--night .path-list-count {
+    font-variant-numeric: tabular-nums;
+}
+
+.shell--night .path-list-title {
+    font-size: 25px;
+}
+
+@media (min-width: 800px) {
+    .shell--night .path-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0 42px;
+        border-bottom: 1px solid var(--rule);
+    }
+
+    .shell--night .path-list-item {
+        min-width: 0;
+    }
+
+    .shell--night .path-list-link {
+        grid-template-columns: 30px minmax(0, 1fr) 18px;
+        gap: 10px;
+        align-content: center;
+        padding: 18px 0;
+    }
+
+    .shell--night .path-list-count {
+        grid-column: 2;
+        white-space: normal;
+    }
+
+    .shell--night .path-list-arrow {
+        grid-column: 3;
+        grid-row: 1 / span 2;
+    }
+}
+
+@media (max-width: 700px) {
+    .shell--night .path-list-title {
+        font-size: 23px;
+    }
+}

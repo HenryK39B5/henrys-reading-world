@@ -308,7 +308,7 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
 
     return (
         <div
-            className={route.name === 'map' ? 'shell shell--dark-map' : 'shell'}
+            className={route.name === 'map' ? 'shell shell--night shell--dark-map' : 'shell shell--night'}
             style={{ '--aura': aura, '--aura-target': auraTarget } as CSSProperties}
             data-room-aura={route.name}
         >

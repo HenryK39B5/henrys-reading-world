@@ -146,7 +146,7 @@ test.describe('V3 reading world map', () => {
         await expect(page).toHaveURL(/book=b-013/);
     });
 
-    test('the dark map is scoped to the map, stays readable at 200% and honours reduced motion', async ({ page }) => {
+    test('map and reading rooms keep distinct dark materials at 200% and honour reduced motion', async ({ page }) => {
         const data = loadSnapshot();
         const long = data.highlights.find((item) => item.id === 'h-231');
         expect(long).toBeDefined();
@@ -159,8 +159,11 @@ test.describe('V3 reading world map', () => {
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
         await expect(page.locator('.shell')).toHaveCSS('color-scheme', 'dark');
         await expect(page.getByTestId('map-detail')).toHaveCSS('animation-name', 'none');
+        const mapPaper = await page.locator('.shell').evaluate((element) => getComputedStyle(element).getPropertyValue('--paper').trim());
         await page.getByRole('link', { name: '随便看看' }).first().click();
-        await expect(page.locator('.shell')).toHaveCSS('color-scheme', 'light');
+        await expect(page.locator('.shell--night:not(.shell--dark-map)')).toHaveCSS('color-scheme', 'dark');
+        const readingPaper = await page.locator('.shell').evaluate((element) => getComputedStyle(element).getPropertyValue('--paper').trim());
+        expect(readingPaper).not.toBe(mapPaper);
     });
 
     test('gives only the world opening a full-width real map without clipping the semantic route', async ({ page }) => {

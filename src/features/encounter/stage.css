@@ -430,3 +430,13 @@
         margin-top: 28px;
     }
 }
+
+/* A very dark real cover still leaves a legible source mark on night paper. */
+.shell--night .stage::before {
+    background: color-mix(in srgb, var(--book-accent) 40%, var(--ink));
+}
+
+.shell--night .source-toggle[aria-expanded='true'] .stage-book,
+.shell--night .source-book {
+    text-decoration-color: color-mix(in srgb, var(--book-accent) 40%, var(--ink));
+}

@@ -3159,6 +3159,13 @@ provenance               ensemble 152 / override 128 / lexical 11 / unresolved 6
 - **浏览器证据**：固定真数据的前一版 `.private/review/v3-private-atlas/dark-cross-page/after/` 与本轮 `7e/` 的1440/390/320世界、亮书、详情、长文及地图滚入视口截图；两者map SHA-256一致。390px地图全屏宽、无横向溢出，原始zoom=1；320px主题区域和详情未误套世界全幅。视觉仍待用户独立判断，不把工程正确当作「惊艳」结论。
 - **实测命令与未验证**：`npm run check:local` 300/300，`npm run build`、`npm run isolation:public`、`npm run test:public` 1/1，7E截图1/1（26 PNG、12场景0横溢），地图+缩放22/22。完整 `npx playwright test --workers=1 --reporter=dot` 连续两次各123/124：第一次门厅数据加载等待超时、第二次分享弹层降级模拟遇一次滚动事件；两条单独复跑均1/1通过，**未宣称完整套件稳定全绿**。`npm run test:tags` 10/10。Safari、真机、读屏和长时间深色阅读仍待验证。下一步仅在用户看到真实样板后推进跨房间深色统一；public export / push / deploy 未授权。
 
+## Batch 7F — 跨页深色阅读系统第一版（2026-09-23）
+
+- **范围**：用户认可7E地形开场，但认为整站尚未达到商业产品的打磨程度，授权跨页艺术指导。消费页面统一 `shell--night` 暖深灰阅读材质，地图独立深墨绿；书房真实书封及Aura、小径位置标记、桌面双列平面目录、手机单列、导航/筛选/分享弹层共用层级。未改内容、标签、坐标、算法、Studio或公开边界。实现：`src/app/ReadingWorld.tsx`、`page.css`、`src/features/rooms/rooms.css`、`src/features/paths/paths.css`、`src/features/encounter/stage.css`；浏览器回归/捕获 `e2e/cross-page-dark.spec.ts`、`e2e/capture-cross-page.spec.ts`、`e2e/aura.spec.ts`、`e2e/map.spec.ts`、捕获配置及默认测试忽略。
+- **浏览器证据**：`.private/review/v3-private-atlas/cross-page-dark/{before,after}/` 同一真实内容在1440/390/320的7个房间，21场景均无横溢，同一书房/小径原文及同一地图hash；额外手机分享与320px最长划线完整截图。新页眉曾让地图晚入首屏约30px，单独收紧地图空间后390px地形起点仅比原7E晚约8px。实际Aura对比度正文约12:1、次要文字约8:1。
+- **命令与偏差**：`npm run check:local` 300/300；完整 `npx playwright test --workers=1 --reporter=dot` 最终127/127；最终页眉间距/根级color-scheme微调后地图/Aura/跨页专项24/24及截图1/1、再次`npm run check:local` 300/300，`npm run build`、`npm run isolation:public`、`npm run test:public`通过。首次完整跑126/127是旧Aura测试从根浅色变量计算新版深色纸面，修正为读取当前房间的纸面而不降低阈值；另一次60项局部跑59/60源自旧地图测试的“返回浅色”断言，已改为验证深色材料有区分。
+- **Gate**：这只是连续深色系统的第一版，不宣称达到商业成熟。真机/Safari/读屏/真实浏览器200%、长时阅读和全书目异常标题尚未验收；下一步按 `docs/39` 做跨页精细设计审阅与独立视觉Gate。原7B/7C、公快照导出、公开封面、push与部署继续暂停。
+
 ## 公开发布前待处理事项（发布阻断项，不阻断本机开发）
 
 | 编号 | 事项 | 依据 |

@@ -179,8 +179,8 @@ async function contrast(page: Page) {
             return Math.round(((Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05)) * 100) / 100;
         };
 
-        const paper = toRgb(getComputedStyle(document.documentElement).getPropertyValue('--paper') || '#faf9f6');
         const shell = document.querySelector<HTMLElement>('.shell');
+        const paper = toRgb(shell === null ? '#faf9f6' : getComputedStyle(shell).getPropertyValue('--paper'));
         const tint = document.querySelector<HTMLElement>('.room-aura-tint');
         const accent = toRgb((shell === null ? '' : getComputedStyle(shell).getPropertyValue('--aura')) || '#425a4b');
         const alpha = Number.parseFloat((tint === null ? '0' : getComputedStyle(tint).opacity) || '0');
