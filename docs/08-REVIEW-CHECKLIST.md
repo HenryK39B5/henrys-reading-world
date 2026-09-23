@@ -3101,6 +3101,36 @@ provenance               ensemble 152 / override 128 / lexical 11 / unresolved 6
 - 推荐以C的“跨页阅读关系”为结构原型，单独测试B的暗图/浅图材质变量；先由用户选择深化方向，再重写7B/7C实施计划，不自动进入产品改造。
 - public export、public covers、repo、push、workflow与部署仍未启动。
 
+## 跨页世界同版式配色对照（2026-09-23）
+
+```text
+日期 / 执行者：2026-09-23 / 实现 Agent
+范围：用户确认跨页关系后，全亮 / 全深 / 深图浅文三种单变量静态配色研究
+状态：静态对照与完整性核对完成；推荐深图浅文用于下一轮交互原型，等待用户颜色方向Gate
+数据模式：同一schema 3 local-only快照；4,663点 / 56标签锚点 / b-013 531点 / h-013及h-231 398字
+产品基线：3b127a8，产品代码和public快照未改
+```
+
+### 实际产物、命令与结果
+
+- `docs/34-V3-CROSS-PAGE-PALETTE-STUDY.md` 记录方法、三版取舍、局限与Gate。
+- 本机生成 `.private/review/v3-private-atlas/palette-study/` 的并排查看页、manifest与30张真实数据截图；桌面1440、移动390、窄屏320，包含世界/亮书/详情/最长文本。
+- `node .private/review/v3-private-atlas/explore-directions.mjs --palette-study`：产出30张PNG，map SHA-256 `567534bf71bfc5f6266ceb8ecd26267c4399888d87a1d606fed784a03d9fcd9e`，未修改真实点。
+- Node + sharp 对manifest、点数、完整PNG、标题/正文/Canvas bounding box及同一暗图像素检查通过：30/30；D全深与E深图浅文的地图在1440/390对应图里像素完全一致。
+- 静态CSS指定颜色的主文本对比仅作为方向计算；未把它当作长时间阅读或真实浏览器字体验收。
+- 用户提供的flomo认知地图、微信读书深色书摘和亮色产品参考均在 `.private/reference/` 中检视，没有复制素材或假语义山峰。
+
+### 浏览器证据与判断
+
+- Playwright Chromium截图：`.private/review/v3-private-atlas/palette-study/{c,d,e}-{world,lit,detail,long}-{desktop,mobile}.png` 及窄屏世界/长文；本地 `index.html` 可并排查看。
+- 同一跨页关系下，C全亮阅读稳定但地图弱；D全深地图有力量但长文仍需真实读者验证；E深图浅文在地图→原文的材质转换和长文承载上最有潜力。三者均非最终作品。
+- 390px Canvas顶部约195px，320px约233px，仅为此静态原型的构图测量；静态控件不可操作。
+
+### 未验证与下一步
+
+- 无真实地图交互、原生选择器、语义列表、焦点/Back、触摸、200%、reduced-motion、Safari或首次访客验证；本阶段未重跑消费者测试或生产构建，因为仅更改方向文档。
+- 用户若确认E为可交互原型主候选，再修订原7B/7C施工计划并实现测试；**不自动批准整站配色或发布**。
+
 ## 公开发布前待处理事项（发布阻断项，不阻断本机开发）
 
 | 编号 | 事项 | 依据 |
