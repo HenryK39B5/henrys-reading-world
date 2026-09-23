@@ -3206,6 +3206,15 @@ Slice / task IDs：
 下一步：
 ```
 
+## V3 Batch 7I - Stability and publication preparation (2026-09-23)
+
+- Scope: freeze the current visual baseline and audit loading failure, empty/public states, unknown routes and IDs, missing map selections, stable sharing, focus return, and public isolation. No real content, tags, map coordinates, covers, or publication scope changed.
+- Added `e2e/audit-7i.spec.ts` and `playwright.audit-7i.config.ts`; registered the audit in `playwright.config.ts`.
+- Results: 7I audit 3/3; `npm run check:local` 300/300; full Chromium E2E 128/128; `npm run build`; `npm run isolation:public`; and `npm run test:public` 1/1 all passed.
+- One initial full-E2E attempt lost the manually running Vite process after 93 tests and produced connection-refused failures. After restarting the local server, the complete run passed. This is retained as test-environment instability, not a product regression.
+- Public snapshot remains empty. Public export, public covers, repository creation, push, workflow, deployment, Safari, real-device touch, screen readers, system-browser 200% zoom, low-brightness long reading, and first-visitor observation remain outside this Gate.
+- Decision: local 7I stability is verified; next priority is publication-content and rights review. Batch 7B/7C remains paused. Details: `docs/42-BATCH-7I-STABILITY-AND-PUBLICATION-PREP.md`.
+
 ## v1 Gate 2 工程检查（历史清单；v2 迁移后按 docs/11 验收）
 
 - [ ] 30–50 条真实划线，原文与出处核对，访客展示范围由用户确认。

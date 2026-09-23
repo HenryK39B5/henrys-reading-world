@@ -20,6 +20,7 @@ export default defineConfig({
         '**/capture-cross-page.spec.ts',
         '**/audit-7g.spec.ts',
         '**/audit-7h.spec.ts',
+        '**/audit-7i.spec.ts',
         '**/empty-state.spec.ts',
         '**/publication/**',
         '**/tag-studio/**',
