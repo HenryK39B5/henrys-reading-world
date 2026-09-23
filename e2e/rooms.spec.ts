@@ -227,6 +227,10 @@ test.describe('rooms and their URLs', () => {
         await expect(context).toContainText('原文划线');
         await expect(context).toContainText('可能失去部分上下文');
         await expect(context).toContainText('不代表我认同作者的全部观点');
+        const rights = page.getByTestId('about-rights');
+        await expect(rights).toContainText('个人阅读记录中的原文摘录');
+        await expect(rights).toContainText('不代表作者、出版社或微信读书的立场');
+        await expect(rights).toContainText('书名、作者信息与书封属于各自权利人');
         const roomText = await page.locator('[data-room="about"]').innerText();
         expect(roomText.split(String(data.highlights.length)).length - 1).toBe(1);
         expect(roomText.split(String(data.books.length)).length - 1).toBe(1);
