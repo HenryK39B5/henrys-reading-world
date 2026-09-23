@@ -2,7 +2,7 @@
 
 > 日期：2026-09-21
 >
-> 状态：implemented and verified；等待用户7A视觉Gate
+> 状态：工程实现与自动验证完成；用户认为视觉仍不足以惊艳，7A视觉Gate未通过。后续方向探索见 `docs/33-V3-READING-WORLD-RADICAL-DIRECTION-STUDY.md`。
 >
 > 方向：可漫游的私人图集，以当代阅读室的可读性为约束
 >
@@ -177,7 +177,7 @@ git diff --check：通过
 - 真实首次访客；
 - 本阶段不处理的目录页和地图作品化。
 
-若用户通过7A视觉Gate，下一步进入Batch 7B：
+原计划是用户通过7A视觉Gate后再进入Batch 7B；用户已明确要求先比较颠覆性方向，以下步骤暂缓：
 
 1. 复核地图语义列表进入详情的focus / scroll / Back；
 2. 使用同一布局生成Current / Reduced / Terrain三套地图对照；

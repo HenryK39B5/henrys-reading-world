@@ -3070,6 +3070,37 @@ provenance               ensemble 152 / override 128 / lexical 11 / unresolved 6
 - 等待用户判断私人图集方向、860px阅读面、移动三列两行导航、书房边栏 / 小径短线与局部Aura。
 - 7A视觉Gate未通过前不进入Batch 7B；public export、repo、push、workflow和部署仍未开始。
 
+## 同数据颠覆性视觉方向探索（2026-09-23）
+
+```text
+日期 / 执行者：2026-09-23 / 实现 Agent
+范围：在不修改产品代码与地图布局的前提下，比较浅纸陈列、墨色世界/纸上抵达、跨页出版三种构图
+状态：第一轮静态对照完成；等待用户选择深化方向。7A视觉Gate未通过，原7B产品施工暂停
+数据模式：schema 3 local-only；4,663真实点、56标签锚点、同一亮书b-013（531点）、同一真实详情h-013
+代码基线：3b127a8；public仍为空
+```
+
+### 修改与证据
+
+- 新增 `docs/33-V3-READING-WORLD-RADICAL-DIRECTION-STUDY.md`，记录三种方向的强弱、诚实限制和下一步Gate。
+- 私有脚本 `.private/review/v3-private-atlas/explore-directions.mjs` 读取本机现有snapshot，产出18张真实数据桌面/移动世界、点亮、详情静态截图。
+- 可并排打开 `.private/review/v3-private-atlas/direction-exploration/index.html`；同目录 `manifest.json` 记录各图的中心、缩放、绘制点数及Canvas起点。
+- 序列化 map SHA-256仍为 `567534bf71bfc5f6266ceb8ecd26267c4399888d87a1d606fed784a03d9fcd9e`；没有移动点、造数据、改变标签或公开范围。
+- 静态 A 浅纸较安全却不够颠覆；B 深浅材料转换强但有“星图”风险；C 跨页让地图与一句话建立关系，但移动端与地图颗粒仍须深化。**没有宣称三套已达到最终品质**。
+
+### 实际命令与结果
+
+- `node .private/review/v3-private-atlas/explore-directions.mjs`：生成18张同样本PNG、gallery与manifest，点数4663、亮书531、map hash匹配。
+- Node manifest / PNG完整性核对：18 / 18 文件、4,663真实点、531亮书点、同中心与既有map hash匹配。首次通过PowerShell stdin传中文断言时因控制台编码把文字变为问号，**该次断言失败**；改为ASCII元数据断言后通过，未更改生成结果。
+- `git check-ignore .private/review/v3-private-atlas/direction-exploration/index.html`：被忽略，不进入public产物；`git diff --check`通过。
+- 此阶段仅写入Git可追踪的状态文档，没有修改消费者代码；没有把静态截图误记为键盘、焦点、触摸或构建通过。
+
+### 未验证 / 下一步
+
+- 静态稿没有真实控件、读屏、区域切换、Back、滚动恢复、200%与reduced-motion行为；Safari、真机与真实访客也未验证。
+- 推荐以C的“跨页阅读关系”为结构原型，单独测试B的暗图/浅图材质变量；先由用户选择深化方向，再重写7B/7C实施计划，不自动进入产品改造。
+- public export、public covers、repo、push、workflow与部署仍未启动。
+
 ## 公开发布前待处理事项（发布阻断项，不阻断本机开发）
 
 | 编号 | 事项 | 依据 |

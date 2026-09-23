@@ -2,7 +2,7 @@
 
 > 日期：2026-09-21
 >
-> 状态：Batch 7A implemented and verified；等待7A视觉Gate，Batch 7B未授权
+> 状态：Batch 7A implemented；7A视觉Gate尚未通过。用户已要求先作颠覆性方向探索；原7B/7C顺序暂停待修订，见 `docs/33-V3-READING-WORLD-RADICAL-DIRECTION-STUDY.md`。
 >
 > 输入：`docs/30-GPT6-ASTRA-DESIGN-REVIEW.md`
 >
@@ -217,7 +217,7 @@
 3. Aura是否可感但明确归属于书？
 4. 长文是否比现状更舒适，而不是只是更窄？
 
-Batch 7A代码、证据与自动验证已完成，实况见 `docs/32-BATCH-7A-PRIVATE-ATLAS-READING-SURFACES.md`。当前停在本视觉Gate；用户通过后才进入地图施工。
+Batch 7A代码、证据与自动验证已完成，实况见 `docs/32-BATCH-7A-PRIVATE-ATLAS-READING-SURFACES.md`。用户认为外观尚不惊艳、地图不足，**未通过7A视觉Gate**，并授权先探索颠覆性方向；本计划的7B地图施工不得被视为自动获批。第一轮同数据静态对照见 `docs/33-V3-READING-WORLD-RADICAL-DIRECTION-STUDY.md`，深化方向确认后再修订实施步骤。
 
 ## 4. Batch 7B — 地图作品化与详情抵达
 
