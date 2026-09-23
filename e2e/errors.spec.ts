@@ -71,7 +71,7 @@ test.describe('unreachable addresses stay honest and escapable', () => {
     });
 });
 
-test.describe('a cover that does not arrive falls back to the real title', () => {
+test.describe('a cover that does not arrive has an honest missing-cover label', () => {
     test.skip(!hasSnapshot, '需要 .private/local-snapshot.json 才能核对真实内容');
 
     test('no broken image anywhere, and the room keeps the default colour', async ({ page }) => {
@@ -88,9 +88,9 @@ test.describe('a cover that does not arrive falls back to the real title', () =>
 
         await page.goto(`/books/${encodeURIComponent(bookId)}`);
         await expect(page.getByTestId('room-heading')).toContainText(book.title);
-        // The room shows the book's own title in the cover's place…
-        await expect(page.locator('.book-head-cover .book-cover-fallback')).toHaveText(book.title);
-        // …and there is no image element left holding a failed load.
+        // The full real title remains in the heading; the cover slot does not squeeze it into a thumbnail.
+        await expect(page.locator('.book-head-cover .book-cover-fallback')).toHaveText('无封面');
+        // No image element remains after a failed load.
         await expect(page.locator('.book-head-cover img')).toHaveCount(0);
 
         // The default accent is a real colour, so the room is never tinted with a guess.

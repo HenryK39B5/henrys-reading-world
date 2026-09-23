@@ -791,4 +791,23 @@
         width: 60px;
         height: 87px;
     }
+
+    /* Long titles can continue at full width after passing the real cover. */
+    .shell--night .book-head--long-title {
+        display: flow-root;
+    }
+
+    .shell--night .book-head--long-title .book-head-cover {
+        float: left;
+        margin: 0 14px 10px 0;
+    }
+
+    .shell--night .book-head--long-title .book-head-text {
+        display: block;
+    }
+
+    .shell--night .book-head--long-title .book-head-meta {
+        clear: both;
+        padding-top: 10px;
+    }
 }

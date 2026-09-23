@@ -753,7 +753,7 @@ test.describe('the whole library stays reachable, in batches', () => {
         await expect(page.getByTestId('book-walk-progress')).toHaveText(`本轮已看 1 / ${String(wholeBook)}`);
     });
 
-    test('a book without a cover falls back to its real title, and long passages stay complete', async ({ page }) => {
+    test('a book without a cover labels the absence and keeps the real title and long passages complete', async ({ page }) => {
         const data = loadSnapshot();
         const parsed = JSON.parse(readFileSync(SNAPSHOT_PATH, 'utf8')) as {
             books: { id: string; title: string; coverPath?: string }[];
@@ -769,8 +769,9 @@ test.describe('the whole library stays reachable, in batches', () => {
 
         await page.goto(`/books/${target.id}`);
         await roomReady(page);
-        // No invented image: the real title is typeset in place of the cover.
-        await expect(page.locator('.book-head-cover .book-cover-fallback')).toHaveText(target.title);
+        // No invented image: the slot states the absence and the real title stays full-size in the heading.
+        await expect(page.getByTestId('room-heading')).toContainText(target.title);
+        await expect(page.locator('.book-head-cover .book-cover-fallback')).toHaveText('无封面');
         await expect(page.locator('.book-head-cover img')).toHaveCount(0);
         // The room still shows a real passage of that same book.
         const shown = (await page.getByTestId('book-random-text').innerText()).trim();

@@ -3166,6 +3166,13 @@ provenance               ensemble 152 / override 128 / lexical 11 / unresolved 6
 - **命令与偏差**：`npm run check:local` 300/300；完整 `npx playwright test --workers=1 --reporter=dot` 最终127/127；最终页眉间距/根级color-scheme微调后地图/Aura/跨页专项24/24及截图1/1、再次`npm run check:local` 300/300，`npm run build`、`npm run isolation:public`、`npm run test:public`通过。首次完整跑126/127是旧Aura测试从根浅色变量计算新版深色纸面，修正为读取当前房间的纸面而不降低阈值；另一次60项局部跑59/60源自旧地图测试的“返回浅色”断言，已改为验证深色材料有区分。
 - **Gate**：这只是连续深色系统的第一版，不宣称达到商业成熟。真机/Safari/读屏/真实浏览器200%、长时阅读和全书目异常标题尚未验收；下一步按 `docs/39` 做跨页精细设计审阅与独立视觉Gate。原7B/7C、公快照导出、公开封面、push与部署继续暂停。
 
+## Batch 7G — 全内容边界与跨页回程收口（2026-09-23）
+
+- **范围**：用户认可7F跨页深色方向后，逐页审计130本书、56条小径，发现硬几何问题0；仅精修320px真实长书名（完整标题顺着封面后展开）及3本无封面的诚实占位，原文/书名、Book Aura、地图坐标、发布范围均未变。代码：`src/features/rooms/BookRoom.tsx`、`BooksRoom.tsx`、`rooms.css`、`src/app/CoverImage.tsx`；测试：`e2e/audit-7g.spec.ts`、`e2e/7g-navigation.spec.ts`、`e2e/errors.spec.ts`、`e2e/rooms.spec.ts`、`e2e/scroll-lock.spec.ts`、`playwright.config.ts`及专用配置；详见`docs/40`。
+- **浏览器证据**：`.private/review/v3-private-atlas/7g/{before,after}/`；320与1440逐页全量核对0溢出/覆盖/截断；320、390、720等价200%下的15个长标题/缺封面样本0溢出，真实封面等图片解码后再拍；390px地图`h-013`→书→Back→小径→书→Back→分享→地图路径通过。最长书名`b-099`手机正文新起点约y=588，原文不缩短。未安装新依赖。
+- **命令与偏差**：前后全量审计各1/1，最终边界补拍1/1；`npm run check:local` 300/300，完整`npx playwright test --workers=1 --reporter=dot`最终128/128，`npm run build`、`npm run isolation:public`、`npm run test:public`通过。第一次完整127/128来自非showModal弹层测试偶发把打开时的scrollY=0事件算进后续滚轮；单测5次失败1次，改为确认弹层稳定后再记录，原滚轮零事件门槛不变，10次连续通过。Studio未重跑。
+- **Gate**：工程收口完成；只有Chromium环境，Safari、真机、读屏、真实浏览器200%及长时阅读未验。视觉品质最终Gate与首次访客路径仍需独立判断；7B/7C及public export/covers/push/deploy继续暂停。
+
 ## 公开发布前待处理事项（发布阻断项，不阻断本机开发）
 
 | 编号 | 事项 | 依据 |

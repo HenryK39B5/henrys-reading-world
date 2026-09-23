@@ -156,7 +156,7 @@ function BookRow({ entry }: { entry: BookEntry }) {
                         className="book-cover-image"
                         alt=""
                         loading="lazy"
-                        fallback={<span className="book-cover-fallback">{entry.book.title}</span>}
+                        fallback={<span className="book-cover-fallback">无封面</span>}
                     />
                 </span>
                 <span className="book-text">

@@ -293,6 +293,8 @@ test.describe('the share dialog holds the reader place', () => {
         const place = await readingPlace(page);
         await openDialog(page);
         await expect(page.getByTestId('share-dialog')).toHaveAttribute('data-modal', 'false');
+        // Let the fallback dialog's own opening scroll event settle before attributing events to the wheel.
+        expect(await readingPlace(page)).toEqual(place);
         await recordDocumentScroll(page);
         await wheelOverBackdrop(page);
         expect(await recordedDocumentScroll(page)).toEqual([]);

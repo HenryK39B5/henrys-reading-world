@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { coverUrl } from './covers.ts';
 
 export type CoverImageProps = {
-    /** The book's real title, shown as the room's own typographic stand-in when there is no usable cover. */
+    /** The book's real title, also used on a successfully loaded cover's image element. */
     title: string;
     coverPath: string | undefined;
     /** Class for the `<img>`; every room sizes its own cover. */
@@ -18,7 +18,7 @@ export type CoverImageProps = {
 };
 
 /**
- * A real cover, or the book's own title.
+ * A real cover, or the caller's honest missing-cover treatment.
  *
  * Two ways a cover can be missing: the snapshot never had one, or the file does not arrive. The second is
  * the one that used to leave a broken image on the page, so a failed load swaps in the same typographic

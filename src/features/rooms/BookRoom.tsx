@@ -60,17 +60,18 @@ export function BookRoom({ index, bookId, nowYear, room, onBack, onShare }: Book
             ? []
             : current.tagIds.map((tagId) => index.tagsById.get(tagId)).filter((tag) => tag !== undefined);
     const single = passages.length <= 1;
+    const longTitle = [...book.title].length > 24;
 
     return (
         <section className="room room-book" aria-labelledby="book-heading" data-room="book">
-            <div className="book-head">
+            <div className={longTitle ? 'book-head book-head--long-title' : 'book-head'}>
                 <span className="book-head-cover" aria-hidden="true">
                     <CoverImage
                         title={book.title}
                         coverPath={book.coverPath}
                         className="book-head-cover-image"
                         alt=""
-                        fallback={<span className="book-cover-fallback">{book.title}</span>}
+                        fallback={<span className="book-cover-fallback">无封面</span>}
                     />
                 </span>
                 <div className="book-head-text">
