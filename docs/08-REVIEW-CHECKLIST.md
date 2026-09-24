@@ -3272,6 +3272,12 @@ Slice / task IDs：
 - 实际验证：12 个配置 `npx playwright test --config <路径> --list` 全部发现预期测试；迁移后的 7I 审计 Chromium 3/3；`npm run capture:v2e -- --list` 发现原测试；`npm run typecheck`、`npm run lint`、`npm run build` 通过。截图捕获脚本未实跑，以免覆盖已有本机评审素材；日常回归见 M-01 阶段结果。
 - 公共面核查：85 提交历史的 437 条唯一路径中，未命中 `.private` / `.env` / 构建产物或常见凭证文件；当前跟踪内容未命中常见 GitHub token / 私钥标记。此扫描不证明文档逐行合适公开，也不推断书摘或封面的授权。无浏览器新截图，无推送或部署。
 
+## M-04 固定点位等高线对照（2026-09-24）
+
+- 范围：只增离线候选生成器 `scripts/embeddings/contourCandidate.ts`、`scripts/compare-map-contours.ts`、纯函数真实公开密度场测试、`e2e/contour-compare.spec.ts` 与独立 Pages 式测试配置；`d3-contour@4.0.2` 和 `@types/d3-contour@3.0.6` 仅作开发依赖。原 `src/data/public-snapshot.json`、坐标、密度、模型、产品地图 Canvas 及公开范围未修改。候选细节见 `docs/49-FIXED-POINT-CONTOUR-COMPARISON.md`。
+- 实际命令：`npm run map:contours:compare` 生成 194/182/202 段候选（旧 203/194/212）；`npm run test:contours:compare` 1/1，真实 1440/390 世界/区域配对截图共 8 张；`npm run check:local` 309/309，`npm run build`、`npm run isolation:public`、`npm run publication:verify` 通过。最初比较测试因新配置从自身目录启动 node 脚本而失败；显式设定仓库根 cwd 后通过。
+- 截图证据：`.private/review/maintenance/m04/{current,interpolated}-{world,region}-{1440,390}.png`。候选线更连贯，但是否取代现有视觉由 Henry 决定；比较未重新部署，不把 D3 闭合边界当成真实轮廓。
+
 ## V3 Public snapshot export and local release acceptance (2026-09-23)
 
 - User explicitly authorized local public export. `npm run publication:export` generated `src/data/public-snapshot.json` and 108 resized `public/covers/*.jpg`; no repository, push, workflow, or deployment action was performed.

@@ -18,6 +18,7 @@ export default defineConfig({
         '**/capture-v3-batch5.spec.ts',
         '**/capture-7d.spec.ts',
         '**/capture-cross-page.spec.ts',
+        '**/contour-compare.spec.ts',
         '**/audit-7g.spec.ts',
         '**/audit-7h.spec.ts',
         '**/audit-7i.spec.ts',
