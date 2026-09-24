@@ -1,5 +1,7 @@
 # 08 — 执行记录与 Prototype Review
 
+上线后的未完成任务与状态统一维护在 `docs/48-MAINTENANCE-ROADMAP.md`；本文件继续按阶段追加实际执行证据，不作为第二份待办清单。
+
 ## 当前真实状态
 
 | 项目 | 状态 | 说明 |
@@ -3246,6 +3248,12 @@ Slice / task IDs：
 - Live HTTP checks: root, design, about, map, themes, paths, approved book room, map book selection, stable share route, JSON asset and cover all returned 200; excluded book and unknown path returned 404.
 - Live headless Chromium smoke passed for hall, design, book room, path room, map, stable share and share dialog with no page errors.
 - Remaining: real Safari/iOS, screen reader, low-brightness reading, external first-visitor observation and rights decisions. No additional data or code changes were made after deployment except the workflow runtime update and this record.
+
+## 上线后维护清单建档（2026-09-24）
+
+- 新增 `docs/48-MAINTENANCE-ROADMAP.md`，按 M-01～M-05 登记地图标签稳定性、README、维护代码和仓库公开性审阅、固定点位等高线对照及独立技术文章；3D 地图暂缓。各项仍为待做，没有把讨论或检查记为产品修复。
+- 用户提供的 flomo 2D/3D 界面截图已按字节核对副本并存入 Git 忽略的 `.private/reference/visual-references/`；原桌面文件未改，本轮没有推送参考图。仓库路径与常见凭证特征的初步扫描未发现需立即重建仓库的证据，人工公开性与权利审阅仍未完成。
+- 实际检查：`git status --short` 起始为空；`git check-ignore` 确认两张新参考图被忽略；本阶段仅新增任务文档及本执行记录，没有运行产品测试或构建，也没有修改网站或地图。
 
 ## V3 Public snapshot export and local release acceptance (2026-09-23)
 
