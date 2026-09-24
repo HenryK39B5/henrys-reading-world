@@ -18,6 +18,7 @@ import { validatePublicationPolicy } from './src/domain/publication.ts';
 import { validateTopicTagAssignments, validateTopicTagVocabulary } from './src/domain/topicTags.ts';
 import type { Snapshot } from './src/domain/types.ts';
 import { validateSnapshot } from './src/domain/validate.ts';
+import { publicRoomPaths } from './scripts/public-route-entries.ts';
 
 const LOCAL_SNAPSHOT_FILE = '.private/local-snapshot.json';
 const LOCAL_COVER_DIR = '.private/covers';
@@ -313,11 +314,21 @@ export default defineConfig(({ command, mode }) => {
             react(),
             localSnapshotPlugin({ snapshot: anyLocalMode, publication: reviewMode, tags: tagStudioMode }),
             {
-                name: 'pages-room-fallback',
+                name: 'pages-room-entries',
                 apply: 'build',
                 async closeBundle() {
-                    // Pages serves 404.html at deep-link URLs; the app then parses that unchanged URL.
-                    await copyFile(resolve('dist/index.html'), resolve('dist/404.html'));
+                    const root = resolve('dist');
+                    const entry = resolve(root, 'index.html');
+                    const result = validateSnapshot(JSON.parse(await readFile(resolve('src/data/public-snapshot.json'), 'utf8')) as unknown,
+                        { expectedVisibility: 'public' });
+                    if (!result.ok) throw new Error(`public route entries require a valid public snapshot: ${result.errors.join('; ')}`);
+                    for (const path of publicRoomPaths(result.snapshot)) {
+                        const target = resolve(root, `.${path}/index.html`);
+                        await mkdir(dirname(target), { recursive: true });
+                        await copyFile(entry, target);
+                    }
+                    // Unknown routes still receive an honest 404 page with an in-app way home.
+                    await copyFile(entry, resolve(root, '404.html'));
                 },
             },
         ],

@@ -39,6 +39,7 @@
     "publication:preview": "node scripts/publication-preview.ts",
     "publication:audit:v3": "node scripts/publication-v3-audit.ts",
     "publication:export": "node scripts/publication-export.ts",
+    "publication:verify": "node scripts/public-release-verify.ts",
     "isolation:public": "node scripts/check-public-isolation.ts",
     "covers:fetch": "node scripts/fetch-covers.ts",
     "embeddings:prepare": "node scripts/embedding-prepare.ts",

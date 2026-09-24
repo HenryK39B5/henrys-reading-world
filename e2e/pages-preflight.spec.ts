@@ -9,6 +9,7 @@ const snapshot = JSON.parse(readFileSync(join(process.cwd(), 'src/data/public-sn
 const book = snapshot.books[0]!;
 const highlight = snapshot.highlights[0]!;
 const captures = join(process.cwd(), '.private/review/public-pages-preflight');
+const browserSuffix = () => test.info().project.name === 'chromium' ? '' : `-${test.info().project.name}`;
 
 test('built project-site hall, navigation, covers, and stable share address', async ({ page }) => {
     const errors: string[] = [];
@@ -23,9 +24,9 @@ test('built project-site hall, navigation, covers, and stable share address', as
     await page.goto(`${site}/`);
     await expect(page.getByTestId('stage-passage')).toBeVisible();
     await mkdir(captures, { recursive: true });
-    await page.screenshot({ path: join(captures, 'hall-desktop.png'), fullPage: true });
+    await page.screenshot({ path: join(captures, `hall-desktop${browserSuffix()}.png`), fullPage: true });
     await page.getByRole('link', { name: '所有书' }).first().click();
-    await expect(page).toHaveURL(`${site}/books`);
+    await expect(page).toHaveURL(`${site}/books/`);
     const cover = page.locator('img[src^="/henrys-reading-world/covers/"]').first();
     await expect(cover).toBeVisible();
     expect(await cover.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
@@ -39,20 +40,33 @@ test('built project-site hall, navigation, covers, and stable share address', as
     expect(errors).toEqual([]);
 });
 
-test('404 fallback retains direct book, map, and unknown URL', async ({ page }) => {
-    let response = await page.goto(`${site}/books/${encodeURIComponent(book.id)}`);
-    expect(response?.status()).toBe(404);
+test('public room documents return 200; missing rooms still use the 404 fallback', async ({ page }) => {
+    let response = await page.goto(`${site}/books/${encodeURIComponent(book.id)}/`);
+    expect(response?.status()).toBe(200);
     await expect(page.getByTestId('book-random-text')).toBeVisible();
-    await page.reload();
+    response = await page.reload();
+    expect(response?.status()).toBe(200);
     await expect(page.getByTestId('book-random-text')).toBeVisible();
-    response = await page.goto(`${site}/map`);
-    expect(response?.status()).toBe(404);
+    // An older extensionless bookmark reaches the same static room via a directory redirect.
+    response = await page.goto(`${site}/books/${encodeURIComponent(book.id)}`);
+    expect(response?.status()).toBe(200);
+    await expect(page).toHaveURL(`${site}/books/${encodeURIComponent(book.id)}/`);
+    response = await page.goto(`${site}/map/?book=${encodeURIComponent(book.id)}`);
+    expect(response?.status()).toBe(200);
     await expect(page.getByTestId('map-canvas')).toBeVisible();
-    response = await page.goto(`${site}/design`);
-    expect(response?.status()).toBe(404);
+    response = await page.goto(`${site}/design/`);
+    expect(response?.status()).toBe(200);
     await expect(page.getByTestId('room-heading')).toHaveText('这个网站怎么运作');
     await page.getByRole('link', { name: '主题书架' }).last().click();
-    await expect(page).toHaveURL(`${site}/themes`);
+    await expect(page).toHaveURL(`${site}/themes/`);
+    response = await page.goto(`${site}/themes/${encodeURIComponent(snapshot.themes[0]!.id)}/`);
+    expect(response?.status()).toBe(200);
+    response = await page.goto(`${site}/paths/${encodeURIComponent(snapshot.tags[0]!.id)}/`);
+    expect(response?.status()).toBe(200);
+    await expect(page.getByTestId('path-passage')).toBeVisible();
+    response = await page.goto(`${site}/books/b-013/`);
+    expect(response?.status()).toBe(404);
+    await expect(page.getByTestId('book-missing')).toBeVisible();
     response = await page.goto(`${site}/not-a-room`);
     expect(response?.status()).toBe(404);
     await expect(page.getByTestId('room-heading')).toBeVisible();
@@ -66,20 +80,20 @@ test('the finished design page remains readable and linked across widths', async
     await page.emulateMedia({ reducedMotion: 'reduce' });
     for (const width of [1440, 720, 390, 320]) {
         await page.setViewportSize({ width, height: 900 });
-        const response = await page.goto(`${site}/design`);
-        expect(response?.status()).toBe(404);
+        const response = await page.goto(`${site}/design/`);
+        expect(response?.status()).toBe(200);
         const article = page.locator('[data-room="design"]');
         await expect(article.getByRole('heading', { name: '地图怎样形成' })).toBeVisible();
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
         expect(overflow, `design page at ${String(width)}px`).toBeLessThanOrEqual(1);
         if (width !== 720) {
-            await page.screenshot({ path: join(folder, `design-${String(width)}.png`), fullPage: true });
+            await page.screenshot({ path: join(folder, `design-${String(width)}${browserSuffix()}.png`), fullPage: true });
         }
     }
     const pathLink = page.locator('[data-room="design"]').getByRole('link', { name: '主题小径', exact: true });
     await pathLink.focus();
     await page.keyboard.press('Enter');
-    await expect(page).toHaveURL(`${site}/paths`);
+    await expect(page).toHaveURL(`${site}/paths/`);
 });
 
 test('failed public asset stays an honest error state instead of showing invented content', async ({ page }) => {
@@ -95,10 +109,12 @@ test('mobile project-site navigation stays in the project', async ({ page }) => 
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto(`${site}/paths`);
     await expect(page.getByTestId('room-heading')).toHaveText('主题小径');
-    const target = page.locator('a[href^="/henrys-reading-world/paths/"]').first();
+    const target = page.locator('a[href^="/henrys-reading-world/paths/tag-"]').first();
+    const destination = await target.getAttribute('href');
+    expect(destination).not.toBeNull();
     await target.click();
-    await expect(page).toHaveURL(/\/henrys-reading-world\/paths\//u);
+    await expect(page).toHaveURL(`http://127.0.0.1:5198${destination ?? ''}`);
     await expect(page.getByTestId('path-passage')).toBeVisible();
     await mkdir(captures, { recursive: true });
-    await page.screenshot({ path: join(captures, 'path-mobile.png'), fullPage: true });
+    await page.screenshot({ path: join(captures, `path-mobile${browserSuffix()}.png`), fullPage: true });
 });

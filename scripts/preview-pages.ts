@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import { extname, resolve, sep } from 'node:path';
 
 /** Local-only Pages-like static probe. Never serves workspace files outside dist/. */
@@ -18,6 +18,17 @@ createServer(async (request, response) => {
     const file = relative === null ? null : resolve(root, relative || 'index.html');
     if (file !== null && file.startsWith(`${root}${sep}`)) {
         try {
+            if ((await stat(file)).isDirectory()) {
+                if (!url.pathname.endsWith('/')) {
+                    response.writeHead(308, { Location: `${url.pathname}/${url.search}` }).end();
+                    return;
+                }
+                const entry = resolve(file, 'index.html');
+                const bytes = await readFile(entry);
+                response.writeHead(200, { 'Content-Type': mime['.html'] });
+                response.end(bytes);
+                return;
+            }
             const bytes = await readFile(file);
             response.writeHead(200, { 'Content-Type': mime[extname(file)] ?? 'application/octet-stream' });
             response.end(bytes);

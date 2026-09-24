@@ -6,7 +6,10 @@ export default defineConfig({
     workers: 1,
     reporter: [['list']],
     use: { baseURL: 'http://127.0.0.1:5198', trace: 'off' },
-    projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+    projects: [
+        { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+        { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    ],
     webServer: {
         command: 'node scripts/preview-pages.ts',
         url: 'http://127.0.0.1:5198/henrys-reading-world/',

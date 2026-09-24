@@ -3232,6 +3232,13 @@ Slice / task IDs：
 - 未验证/偏差：现有 `map:layout:public` 会重跑 UMAP，不能用于保持原坐标的正式导出；过滤地图目前仅内存生成，正式导出器尚未接入。Studio、Safari、真机、读屏、系统 200% 和版权个案判断未由本审计完成。
 - 下一步与 Gate：未来导出器共用过滤逻辑，对真实 public snapshot/covers/构建与跨页行为重新验收；正式 public export、public covers、repo、push、workflow、部署仍需用户明确授权。详情见 `docs/43-V3-PRE-EXPORT-PROJECTION-AUDIT.md`。
 
+## Public release closeout: static routes and projection parity (2026-09-24)
+
+- Production build now emits 183 approved room entry documents under the project base: 108 books, 56 paths, 13 themes, plus collection roots, map, about and design. Known approved rooms return HTTP 200 in the local Pages-like server; excluded/unknown routes remain HTTP 404. Extensionless room links redirect to directory URLs.
+- Added `scripts/public-route-entries.ts` and read-only `npm run publication:verify`: actual public snapshot matches the policy projection, fixed map coordinates and generated cover bytes match, hashed production JSON matches, and route inventory contains only approved ids.
+- Commands: `npm run check:local` 305/305; `npm run build`; `npm run isolation:public`; `npm run publication:verify`; `npm run test:public` 7/7; Pages-like Chromium 5/5; Pages-like WebKit 5/5; full local Chromium 129/129. WebKit is a Playwright browser check, not real Safari/iOS.
+- Evidence and details: `docs/47-PUBLIC-RELEASE-CLOSEOUT.md`; prior Pages preflight updated in `docs/45`. Live GitHub Pages, HTTPS/cache, real device, screen reader, rights and first-visitor gates remain open. No repo, workflow, push or deployment.
+
 ## Production Pages preflight (2026-09-24)
 
 - Scoped local-only preflight: production base `/henrys-reading-world/`, route/link/cover/share prefix handling and generated `dist/404.html`; no repo, workflow, push or deployment.
