@@ -3284,6 +3284,11 @@ Slice / task IDs：
 - 浏览器证据：`.private/review/maintenance/m05/technical-{1440,390,320}.png`（Git 忽略），逐张检查长文、链接和页脚无交叠；Pages 式 720px（200% 等效）与 320/390/1440px 无横向溢出，直接访问返回 200，返回 `/design` 可用。Playwright WebKit 不代表真实 Safari/iOS；读屏、系统缩放、人工文案和内容权利仍未验收。
 - 状态与下一步：M-05 技术实现完成，入口和正文待 Henry 验收；M-04 同样待视觉选择。未推送或部署，也未采用等高线候选。
 
+## M-05 补充：说明入口收口与 M-04 等高线语义讨论（2026-09-24）
+- Henry 认可技术文章，确认全局六项主导航不增加技术入口；`/about` 同时提供“这个网站怎么运作”和“技术实现”，首页原有出口、`/design` 已认可正文、技术正文和阅读页链接关系保持不变。修改 `src/features/rooms/AboutRoom.tsx`、`rooms.css` 与对应 local/public/Pages E2E，代码提交 `2d4f4ba`。
+- 实跑：`npm run check:local` 309/309，`npm run build`、`npm run isolation:public`、`npm run publication:verify`（184 静态入口）、`npm run test:public` 8/8、相关 local Chromium 1/1、Pages 式 Chromium 7/7、WebKit 7/7。Pages 页面截图在 `.private/review/maintenance/m05/about-links-{1440,390,320}.png`（Git 忽略）；320px 链接不拆词，三种宽度无横向溢出。第一轮截图拍在淡入初段；加 reduced-motion 后，CSS 更改一度未重建 `dist` 导致旧截图，再次 build/retest 后人工复看终版。WebKit 不是实际 Safari/iOS，读屏、系统缩放与人工内容权利判断仍未验收。
+- M-04 不替换现有等高线。新增讨论稿 `docs/50-READING-WORLD-CONTOUR-SEMANTICS.md`：对照 flomo 官方认知地图说明、本机视觉参考和当前 `buildDensity` 实现，明确现有线只表达公开划线在二维投影里的局部密度，不能直接代表个人偏好、已命名主题边界或跨书关联；记录同点位的候选视觉与后续验证问题。flomo 的产品语义不是其算法规格；概念及下一轮视觉方向仍待 Henry 讨论，未动地图、UMAP、模型、公开数据，未推送或部署。
+
 ## V3 Public snapshot export and local release acceptance (2026-09-23)
 
 - User explicitly authorized local public export. `npm run publication:export` generated `src/data/public-snapshot.json` and 108 resized `public/covers/*.jpg`; no repository, push, workflow, or deployment action was performed.
