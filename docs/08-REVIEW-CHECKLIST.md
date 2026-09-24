@@ -3261,6 +3261,11 @@ Slice / task IDs：
 - 实际命令：`npm run check:local` 308/308，`npm run test:e2e -- --workers=1 --reporter=line` 130/130，`npm run build`、`npm run isolation:public`、`npm run publication:verify` 通过，`npm run test:public` 7/7，Pages 式 Chromium 5/5。并行负载下 Pages 式 WebKit 1/5，随后 `--project=webkit --workers=1 --timeout=90000` 独立复跑 5/5；初次超时仍保留在记录中。
 - 浏览器证据：`.private/review/maintenance/m01/region-{1440,390,320}-{before,after-pan,after-zoom}.png`，截图逐项检查；平移与围绕标签的滚轮缩放后仍可命中标签。工具栏放大以画布中心为锚，标签在接近边界时正常移出画面；测试未把该预期视为闪烁。真实安卓触控由 Henry 后续验收；无推送或部署。
 
+## M-02 上线仓库 README（2026-09-24）
+
+- 范围：仅完整重写 `README.md`，以在线地址、公开范围、可复现的公开版运行命令、需要本机材料的维护命令、仓库结构和 Pages 自动部署边界替代过期施工流水账。历史记录保留在 `docs/`；`/design` 未改。
+- 验证：7 个相对链接均存在；README 不再含“尚未部署”。M-01 已运行 typecheck、lint、308 单测、130 local E2E、公开构建/隔离/投影及公开/Pages 式浏览器检查；本阶段无产品代码变更、未单独重跑浏览器或截图。未推送或部署。
+
 ## V3 Public snapshot export and local release acceptance (2026-09-23)
 
 - User explicitly authorized local public export. `npm run publication:export` generated `src/data/public-snapshot.json` and 108 resized `public/covers/*.jpg`; no repository, push, workflow, or deployment action was performed.
