@@ -3,6 +3,7 @@ import { ReadingWorld } from './ReadingWorld.tsx';
 import { StatusPanel, type LoadState } from './StatusPanel.tsx';
 import { DATA_MODE, loadSnapshot } from './snapshotSource.ts';
 import { useRouter } from './router.ts';
+import { sitePath } from './sitePath.ts';
 import { Nav } from './Nav.tsx';
 import './page.css';
 import '../features/rooms/rooms.css';
@@ -37,7 +38,7 @@ export function App() {
     return (
         <div className="shell">
             <header className="site-header">
-                <a className="brand" href="/">
+                <a className="brand" href={sitePath('/')}>
                     Henry's Reading World
                 </a>
                 <Nav route={router.route} />

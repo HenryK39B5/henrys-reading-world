@@ -1,4 +1,5 @@
 import { CoverImage } from '../../app/CoverImage.tsx';
+import { sitePath } from '../../app/sitePath.ts';
 import type { SnapshotIndex } from '../../domain/snapshot.ts';
 import { BOOK_BATCH_STEP, batchLabel, hasMore } from '../../domain/reading.ts';
 import {
@@ -73,7 +74,7 @@ export function BooksRoom({ index, year, themeId, batches }: BooksRoomProps) {
                 <span className="filter-label">年份</span>
                 <a
                     className="chip"
-                    href={booksHref(null, themeId)}
+                    href={sitePath(booksHref(null, themeId))}
                     data-testid="year-all"
                     aria-current={year === null ? 'true' : undefined}
                 >
@@ -83,7 +84,7 @@ export function BooksRoom({ index, year, themeId, batches }: BooksRoomProps) {
                     <a
                         key={option}
                         className="chip"
-                        href={booksHref(option, themeId)}
+                        href={sitePath(booksHref(option, themeId))}
                         data-testid={`year-${String(option)}`}
                         aria-current={year === option ? 'true' : undefined}
                     >
@@ -95,7 +96,7 @@ export function BooksRoom({ index, year, themeId, batches }: BooksRoomProps) {
             {shelf === null ? null : (
                 <p className="room-note shelf-filter" data-testid="shelf-filter">
                     只看《{shelf.title}》书架中的书。
-                    <a className="link-button" href={booksHref(year, null)} data-testid="clear-shelf-filter">
+                    <a className="link-button" href={sitePath(booksHref(year, null))} data-testid="clear-shelf-filter">
                         看全部书
                     </a>
                 </p>
@@ -107,7 +108,7 @@ export function BooksRoom({ index, year, themeId, batches }: BooksRoomProps) {
                         ? '这里没有可展示的书。'
                         : `${String(year)} 年里没有收录任何划线。`}
                     {year === null ? null : (
-                        <a className="link-button" href={booksHref(null, themeId)}>
+                        <a className="link-button" href={sitePath(booksHref(null, themeId))}>
                             清除筛选
                         </a>
                     )}
@@ -148,7 +149,7 @@ export function BooksRoom({ index, year, themeId, batches }: BooksRoomProps) {
 function BookRow({ entry }: { entry: BookEntry }) {
     return (
         <li className="book-item">
-            <a className="book-link" href={bookHref(entry.book.id)} data-testid={`book-${entry.book.id}`}>
+            <a className="book-link" href={sitePath(bookHref(entry.book.id))} data-testid={`book-${entry.book.id}`}>
                 <span className="book-cover" aria-hidden="true">
                     <CoverImage
                         title={entry.book.title}

@@ -1,4 +1,5 @@
 import type { TopicTag } from '../../domain/types.ts';
+import { sitePath } from '../../app/sitePath.ts';
 
 export type TopicCluesProps = {
     tags: TopicTag[];
@@ -21,7 +22,7 @@ export function TopicClues({ tags, currentTagId, onBeforeNavigate, label = 'çº¿ç
                         key={tag.id}
                         className="topic-clue"
                         data-testid={`topic-clue-${tag.id}`}
-                        href={`/paths/${encodeURIComponent(tag.id)}`}
+                        href={sitePath(`/paths/${encodeURIComponent(tag.id)}`)}
                         aria-current={tag.id === currentTagId ? 'page' : undefined}
                         onClick={() => {
                             onBeforeNavigate?.(tag.id);

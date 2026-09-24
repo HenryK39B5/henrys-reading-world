@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadSnapshot } from './snapshotSource.ts';
 import { EMPTY_SNAPSHOT, SNAPSHOT_SCHEMA_VERSION, type Snapshot } from '../domain/types.ts';
+import publicSnapshot from '../data/public-snapshot.json';
 
 function localSnapshot(): Snapshot {
     return {
@@ -40,8 +41,13 @@ describe('loadSnapshot', () => {
         expect(result.status).toBe('error');
     });
 
+    it('reports an unavailable public asset without pretending the collection is empty', async () => {
+        const result = await loadSnapshot('public', fakeFetch({}, 404));
+        expect(result.status).toBe('error');
+    });
+
     it('reports the ready state when the public snapshot carries approved material', async () => {
-        const result = await loadSnapshot('public');
+        const result = await loadSnapshot('public', fakeFetch(publicSnapshot));
         expect(result.status).toBe('ready');
         if (result.status === 'ready') {
             expect(result.snapshot.schemaVersion).toBe(SNAPSHOT_SCHEMA_VERSION);

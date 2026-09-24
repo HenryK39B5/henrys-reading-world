@@ -22,6 +22,7 @@ import { useRoomMemory } from '../features/rooms/useRoomMemory.ts';
 import { ShareDialog } from '../features/share/ShareDialog.tsx';
 import { useShare } from '../features/share/useShare.ts';
 import { Nav } from './Nav.tsx';
+import { sitePath } from './sitePath.ts';
 import { coverUrl, useCoverAccent } from './covers.ts';
 import { roomPath, routeKey, routePath, type RouterApi } from './router.ts';
 import { DATA_MODE } from './snapshotSource.ts';
@@ -318,7 +319,7 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
             </div>
 
             <header className="site-header">
-                <a className="brand" href="/">
+                <a className="brand" href={sitePath('/')}>
                     Henry's Reading World
                 </a>
                 <Nav route={route} />

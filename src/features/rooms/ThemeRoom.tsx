@@ -1,4 +1,5 @@
 import type { SnapshotIndex } from '../../domain/snapshot.ts';
+import { sitePath } from '../../app/sitePath.ts';
 import { summarizeThemes } from '../../domain/world.ts';
 import { StageRoom } from './StageRoom.tsx';
 import type { StageSessionController } from '../encounter/useStageSessions.ts';
@@ -31,10 +32,10 @@ export function ThemeRoom({ index, themeId, nowYear, session, onOpenBook, onShar
                     这个主题书架不在收录范围内。
                 </p>
                 <nav className="room-exits" aria-label="去别的房间">
-                    <a className="room-exit" href="/themes" data-testid="exit-themes">
+                    <a className="room-exit" href={sitePath('/themes')} data-testid="exit-themes">
                         回到主题书架
                     </a>
-                    <a className="room-exit" href="/">
+                    <a className="room-exit" href={sitePath('/')}>
                         回到随便看看
                     </a>
                 </nav>
@@ -61,13 +62,13 @@ export function ThemeRoom({ index, themeId, nowYear, session, onOpenBook, onShar
             />
 
             <nav className="room-exits" aria-label="主题房间的出口">
-                <a className="room-exit" href={`/books?theme=${encodeURIComponent(themeId)}`} data-testid="exit-shelf-books">
+                <a className="room-exit" href={sitePath(`/books?theme=${encodeURIComponent(themeId)}`)} data-testid="exit-shelf-books">
                     看看书架里的书
                 </a>
-                <a className="room-exit" href="/themes" data-testid="exit-themes">
+                <a className="room-exit" href={sitePath('/themes')} data-testid="exit-themes">
                     换个主题
                 </a>
-                <a className="room-exit" href="/" data-testid="exit-hall">
+                <a className="room-exit" href={sitePath('/')} data-testid="exit-hall">
                     回到随便看看
                 </a>
             </nav>

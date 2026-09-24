@@ -61,8 +61,8 @@ export function shareHref(highlightId: string): string {
 }
 
 /** The same address as an absolute URL, so it can be pasted somewhere else. */
-export function shareUrl(origin: string, highlightId: string): string {
-    return `${origin.replace(/\/+$/u, '')}${shareHref(highlightId)}`;
+export function shareUrl(origin: string, highlightId: string, base = '/'): string {
+    return `${origin.replace(/\/+$/u, '')}${base.replace(/\/$/u, '')}${shareHref(highlightId)}`;
 }
 
 /**

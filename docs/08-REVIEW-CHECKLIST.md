@@ -3224,6 +3224,14 @@ Slice / task IDs：
 - 未验证/偏差：现有 `map:layout:public` 会重跑 UMAP，不能用于保持原坐标的正式导出；过滤地图目前仅内存生成，正式导出器尚未接入。Studio、Safari、真机、读屏、系统 200% 和版权个案判断未由本审计完成。
 - 下一步与 Gate：未来导出器共用过滤逻辑，对真实 public snapshot/covers/构建与跨页行为重新验收；正式 public export、public covers、repo、push、workflow、部署仍需用户明确授权。详情见 `docs/43-V3-PRE-EXPORT-PROJECTION-AUDIT.md`。
 
+## Production Pages preflight (2026-09-24)
+
+- Scoped local-only preflight: production base `/henrys-reading-world/`, route/link/cover/share prefix handling and generated `dist/404.html`; no repo, workflow, push or deployment.
+- Built output served from a loopback Pages-like static server. 4/4 Chromium built-site tests passed, including direct room refresh via HTTP 404 fallback, mobile paths, actual public cover, stable share address and public JSON failure state. Real reduced-motion screenshots in ignored `.private/review/public-pages-preflight/` were reviewed at desktop and mobile widths.
+- Public snapshot moved from application JS to independently cacheable, hashed JSON asset. JS reduced from ~1,616 kB (583 kB gzip) to ~321 kB (98 kB gzip); JSON is ~1,998 kB (518 kB gzip). First-visit transfer is not materially reduced; live network/cache behavior is unverified.
+- `npm run check:local` 304/304 unit tests, `npm run build`, `npm run isolation:public`, `npm run test:public` 6/6, built-site Chromium 4/4, full local Chromium E2E 128/128 passed. Existing coverage warnings remain unchanged.
+- 404 fallback renders room deep links but retains HTTP 404 status; live Pages and link-preview behavior remain unverified. Browser/environment and rights gates remain open; see `docs/45-PUBLIC-PAGES-PREFLIGHT.md`.
+
 ## V3 Public snapshot export and local release acceptance (2026-09-23)
 
 - User explicitly authorized local public export. `npm run publication:export` generated `src/data/public-snapshot.json` and 108 resized `public/covers/*.jpg`; no repository, push, workflow, or deployment action was performed.

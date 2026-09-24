@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { coverUrl, useCoverAccent } from '../../app/covers.ts';
+import { sitePath } from '../../app/sitePath.ts';
 import { DEFAULT_ACCENT } from '../../domain/accent.ts';
 import { fitMapPoints, mapPointsForBook, mapPointsForTag, summarizeMapLabels } from '../../domain/map.ts';
 import type { SnapshotIndex } from '../../domain/snapshot.ts';
@@ -59,7 +60,7 @@ function MapDetail({
                 <p className="room-kicker">地图上的一处划线</p>
                 <a
                     className="map-detail-close"
-                    href={mapHref({ tagId: currentTagId, bookId })}
+                    href={sitePath(mapHref({ tagId: currentTagId, bookId }))}
                     aria-label="关闭划线详情"
                     title="关闭"
                 >
@@ -75,8 +76,8 @@ function MapDetail({
             {book === undefined ? null : <p className="map-detail-source">——《{book.title}》{book.author}</p>}
             <TopicClues tags={tags} {...(currentTagId === null ? {} : { currentTagId })} />
             <div className="map-detail-actions">
-                {book === undefined ? null : <a className="room-exit" href={`/books/${encodeURIComponent(book.id)}`}>进入这本书</a>}
-                {tags[0] === undefined ? null : <a className="room-exit" href={`/paths/${encodeURIComponent(tags[0].id)}`}>沿小径继续</a>}
+                {book === undefined ? null : <a className="room-exit" href={sitePath(`/books/${encodeURIComponent(book.id)}`)}>进入这本书</a>}
+                {tags[0] === undefined ? null : <a className="room-exit" href={sitePath(`/paths/${encodeURIComponent(tags[0].id)}`)}>沿小径继续</a>}
                 <button type="button" className="share-trigger" onClick={() => onShare(highlight.id)}>分享</button>
             </div>
         </article>
@@ -184,8 +185,8 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                 <h1 id="map-heading" className="room-heading" data-testid="room-heading">阅读世界地图</h1>
                 <p className="room-note" data-testid="map-empty">当前范围还没有生成可展示的地图。</p>
                 <nav className="room-exits" aria-label="地图房间的出口">
-                    <a className="room-exit" href="/paths">回到主题小径</a>
-                    <a className="room-exit" href="/">随便看看</a>
+                    <a className="room-exit" href={sitePath('/paths')}>回到主题小径</a>
+                    <a className="room-exit" href={sitePath('/')}>随便看看</a>
                 </nav>
             </section>
         );
@@ -209,7 +210,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                     </p>
                     {tag?.description === undefined ? null : <p className="map-region-description">{tag.description}</p>}
                 </div>
-                {tag === undefined ? null : <a className="room-exit map-list-return" href="/paths">小径列表</a>}
+                {tag === undefined ? null : <a className="room-exit map-list-return" href={sitePath('/paths')}>小径列表</a>}
             </header>
 
             {unknownSelection ? (
@@ -247,7 +248,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                                     {primaryRelatedTagIds.map((relatedTagId) => {
                                         const relatedTag = index.tagsById.get(relatedTagId);
                                         return relatedTag === undefined ? null : (
-                                            <a key={relatedTag.id} href={mapHref({ tagId: relatedTag.id, bookId: book.id })}>#{relatedTag.title}</a>
+                                            <a key={relatedTag.id} href={sitePath(mapHref({ tagId: relatedTag.id, bookId: book.id }))}>#{relatedTag.title}</a>
                                         );
                                     })}
                                 </p>
@@ -258,7 +259,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                                             {remainingRelatedTagIds.map((relatedTagId) => {
                                                 const relatedTag = index.tagsById.get(relatedTagId);
                                                 return relatedTag === undefined ? null : (
-                                                    <a key={relatedTag.id} href={mapHref({ tagId: relatedTag.id, bookId: book.id })}>#{relatedTag.title}</a>
+                                                    <a key={relatedTag.id} href={sitePath(mapHref({ tagId: relatedTag.id, bookId: book.id }))}>#{relatedTag.title}</a>
                                                 );
                                             })}
                                         </p>
@@ -314,7 +315,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                     <ol id="map-region-list" className="map-region-list">
                         {visibleLabelSummaries.map((summary) => (
                             <li key={summary.tagId}>
-                                <a href={mapHref({ tagId: summary.tagId, bookId: effectiveBookId })}>
+                                <a href={sitePath(mapHref({ tagId: summary.tagId, bookId: effectiveBookId }))}>
                                     <strong>{summary.title}</strong>
                                     <span>{String(summary.bookCount)} 本书 · {String(summary.highlightCount)} 处划线</span>
                                 </a>
@@ -354,7 +355,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                             const entryBook = index.booksById.get(entry.bookId);
                             return (
                                 <li key={entry.id}>
-                                    <a href={mapHref({ tagId: tag.id, bookId: effectiveBookId, highlightId: entry.id })}
+                                    <a href={sitePath(mapHref({ tagId: tag.id, bookId: effectiveBookId, highlightId: entry.id }))}
                                         onClick={(event) => {
                                             if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
                                                 rememberOpener(event.currentTarget);
@@ -386,9 +387,9 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
             )}
 
             <nav className="room-exits" aria-label="地图房间的出口">
-                {tag === undefined ? null : <a className="room-exit" href={mapHref({ bookId: effectiveBookId })}>回到世界总览</a>}
-                <a className="room-exit" href="/paths">主题小径</a>
-                <a className="room-exit" href="/">随便看看</a>
+                {tag === undefined ? null : <a className="room-exit" href={sitePath(mapHref({ bookId: effectiveBookId }))}>回到世界总览</a>}
+                <a className="room-exit" href={sitePath('/paths')}>主题小径</a>
+                <a className="room-exit" href={sitePath('/')}>随便看看</a>
             </nav>
         </section>
     );

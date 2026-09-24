@@ -1,4 +1,5 @@
 import { pathCountText, summarizePaths } from '../../domain/paths.ts';
+import { sitePath } from '../../app/sitePath.ts';
 import type { SnapshotIndex } from '../../domain/snapshot.ts';
 
 export function PathsRoom({ index }: { index: SnapshotIndex }) {
@@ -24,7 +25,7 @@ export function PathsRoom({ index }: { index: SnapshotIndex }) {
                 <ol className="path-list" data-testid="path-list">
                     {paths.map((entry, indexNumber) => (
                         <li className="path-list-item" key={entry.tag.id}>
-                            <a className="path-list-link" href={`/paths/${encodeURIComponent(entry.tag.id)}`}>
+                            <a className="path-list-link" href={sitePath(`/paths/${encodeURIComponent(entry.tag.id)}`)}>
                                 <span className="path-list-number" aria-hidden="true">
                                     {String(indexNumber + 1).padStart(2, '0')}
                                 </span>
@@ -45,13 +46,13 @@ export function PathsRoom({ index }: { index: SnapshotIndex }) {
             )}
 
             <nav className="room-exits" aria-label="主题小径的出口">
-                <a className="room-exit" href="/map" data-testid="paths-map-link">
+                <a className="room-exit" href={sitePath('/map')} data-testid="paths-map-link">
                     打开阅读世界地图
                 </a>
-                <a className="room-exit" href="/themes">
+                <a className="room-exit" href={sitePath('/themes')}>
                     逛主题书架
                 </a>
-                <a className="room-exit" href="/">
+                <a className="room-exit" href={sitePath('/')}>
                     随便看看
                 </a>
             </nav>

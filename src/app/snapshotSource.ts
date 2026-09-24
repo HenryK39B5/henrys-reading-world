@@ -1,6 +1,7 @@
 import type { Snapshot } from '../domain/types.ts';
 import { validateSnapshot } from '../domain/validate.ts';
-import publicSnapshot from '../data/public-snapshot.json';
+// A fingerprinted static asset keeps the large approved collection out of the app's JavaScript chunk.
+import publicSnapshotUrl from '../data/public-snapshot.json?url';
 
 export type DataMode = 'public' | 'local';
 
@@ -36,7 +37,12 @@ export async function loadSnapshot(mode: DataMode, fetcher?: FetchLike): Promise
             }
             raw = await response.json();
         } else {
-            raw = publicSnapshot;
+            const doFetch = fetcher ?? (globalThis.fetch as unknown as FetchLike);
+            const response = await doFetch(publicSnapshotUrl);
+            if (!response.ok) {
+                return { status: 'error', errors: [`公开数据暂时不可用（HTTP ${String(response.status)}）。`] };
+            }
+            raw = await response.json();
         }
     } catch {
         return { status: 'error', errors: ['读取数据快照失败。'] };

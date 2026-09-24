@@ -1,4 +1,5 @@
 import type { SnapshotIndex } from '../../domain/snapshot.ts';
+import { sitePath } from '../../app/sitePath.ts';
 import { StageRoom } from './StageRoom.tsx';
 import type { StageSessionController } from '../encounter/useStageSessions.ts';
 
@@ -40,13 +41,13 @@ export function HallRoom({ index, nowYear, session, onOpenBook, onShare, unavail
             />
 
             <nav className="room-exits" aria-label="去别的房间">
-                <a className="room-exit" href="/themes" data-testid="exit-themes">
+                <a className="room-exit" href={sitePath('/themes')} data-testid="exit-themes">
                     逛主题书架
                 </a>
-                <a className="room-exit" href="/books" data-testid="exit-books">
+                <a className="room-exit" href={sitePath('/books')} data-testid="exit-books">
                     看看所有书
                 </a>
-                <a className="room-exit" href="/about" data-testid="exit-about">
+                <a className="room-exit" href={sitePath('/about')} data-testid="exit-about">
                     关于
                 </a>
             </nav>

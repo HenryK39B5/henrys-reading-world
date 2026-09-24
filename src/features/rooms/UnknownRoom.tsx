@@ -1,4 +1,5 @@
 import type { RoomRoute } from '../../app/router.ts';
+import { sitePath } from '../../app/sitePath.ts';
 
 /**
  * A path this build does not know.
@@ -15,13 +16,13 @@ export function UnknownRoom({ path }: { path: string }) {
                 {path} 不在这个阅读世界里。
             </p>
             <nav className="room-exits" aria-label="去别的房间">
-                <a className="room-exit" href="/" data-testid="exit-hall">
+                <a className="room-exit" href={sitePath('/')} data-testid="exit-hall">
                     回到随便看看
                 </a>
-                <a className="room-exit" href="/themes">
+                <a className="room-exit" href={sitePath('/themes')}>
                     逛主题书架
                 </a>
-                <a className="room-exit" href="/books">
+                <a className="room-exit" href={sitePath('/books')}>
                     看看所有书
                 </a>
             </nav>

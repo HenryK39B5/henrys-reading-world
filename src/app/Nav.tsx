@@ -1,4 +1,5 @@
 import type { RoomRoute } from './router.ts';
+import { sitePath } from './sitePath.ts';
 
 type NavEntry = {
     id: string;
@@ -51,7 +52,7 @@ export function Nav({ route }: { route: RoomRoute }) {
                     <li key={entry.id}>
                         <a
                             className="nav-link"
-                            href={entry.href}
+                            href={sitePath(entry.href)}
                             data-testid={`nav-${entry.id}`}
                             aria-current={entry.id === current ? 'page' : undefined}
                         >

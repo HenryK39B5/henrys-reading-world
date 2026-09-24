@@ -48,7 +48,7 @@ export function coverUrl(coverPath: string | undefined): string | undefined {
     if (coverPath.startsWith('local-covers/')) {
         return `/__local_cover/${coverPath.slice('local-covers/'.length)}`;
     }
-    return `/${coverPath}`;
+    return `${import.meta.env.BASE_URL}${coverPath}`;
 }
 
 /**

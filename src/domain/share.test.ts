@@ -69,6 +69,8 @@ describe('the shared address is one passage and nothing else', () => {
         expect(shareHref('h-001')).toBe('/?h=h-001');
         expect(shareUrl('http://127.0.0.1:5173', 'h-001')).toBe('http://127.0.0.1:5173/?h=h-001');
         expect(shareUrl('https://example.test/', 'h-001')).toBe('https://example.test/?h=h-001');
+        expect(shareUrl('https://example.test/', 'h-001', '/henrys-reading-world/'))
+            .toBe('https://example.test/henrys-reading-world/?h=h-001');
     });
 
     it('carries no room, filter or tracking parameter', () => {

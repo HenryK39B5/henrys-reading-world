@@ -1,4 +1,5 @@
 import { CoverImage } from '../../app/CoverImage.tsx';
+import { sitePath } from '../../app/sitePath.ts';
 import type { SnapshotIndex } from '../../domain/snapshot.ts';
 import { summarizeThemes, themeCountText } from '../../domain/world.ts';
 import type { Highlight } from '../../domain/types.ts';
@@ -78,7 +79,7 @@ export function ThemesRoom({ index }: ThemesRoomProps) {
                     <li key={entry.theme.id} className="shelf-item">
                         <a
                             className="shelf-link"
-                            href={`/themes/${entry.theme.id}`}
+                            href={sitePath(`/themes/${entry.theme.id}`)}
                             data-testid={`theme-${entry.theme.id}`}
                         >
                             <ShelfCovers index={index} leads={entry.leads} />

@@ -9,6 +9,7 @@
  * testable without a browser.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { roomLocation, sitePath } from './sitePath.ts';
 
 export type BookFilters = {
     /** Only real years reach the UI; anything else is ignored rather than invented. */
@@ -190,7 +191,7 @@ function currentPath(): string {
     if (typeof window === 'undefined') {
         return '/';
     }
-    return `${window.location.pathname}${window.location.search}`;
+    return `${roomLocation(window.location.pathname) ?? window.location.pathname}${window.location.search}`;
 }
 
 /** One place that splits a stored path into the pair `parseRoute` expects. */
@@ -258,9 +259,9 @@ export function useRouter(): RouterApi {
                 : from;
         const entry: HistoryEntryState = { path, previous };
         if (options.replace === true) {
-            window.history.replaceState(entry, '', path);
+            window.history.replaceState(entry, '', sitePath(path));
         } else {
-            window.history.pushState(entry, '', path);
+            window.history.pushState(entry, '', sitePath(path));
         }
         setState({ path, previous });
         stateRef.current = path;
@@ -293,8 +294,10 @@ export function useRouter(): RouterApi {
             if (url.origin !== window.location.origin) {
                 return;
             }
+            const room = roomLocation(url.pathname);
+            if (room === null) return;
             event.preventDefault();
-            go(`${url.pathname}${url.search}`);
+            go(`${room}${url.search}`);
         };
 
         window.addEventListener('popstate', onPopState);

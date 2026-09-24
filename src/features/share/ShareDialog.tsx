@@ -114,7 +114,7 @@ export function ShareDialog({
      * the stage or anything else that may change while the dialog is open.
      */
     const palette = sharePalette(accent);
-    const url = shareUrl(typeof window === 'undefined' ? '' : window.location.origin, highlight.id);
+    const url = shareUrl(typeof window === 'undefined' ? '' : window.location.origin, highlight.id, import.meta.env.BASE_URL);
     const linkLabel = shareLinkLabel(localOnly);
 
     /**

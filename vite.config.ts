@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile, rename } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, writeFile, rename } from 'node:fs/promises';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { dirname, resolve } from 'node:path';
 import react from '@vitejs/plugin-react';
@@ -308,7 +308,19 @@ export default defineConfig(({ command, mode }) => {
     const anyLocalMode = localMode || reviewMode || tagStudioMode;
 
     return {
-        plugins: [react(), localSnapshotPlugin({ snapshot: anyLocalMode, publication: reviewMode, tags: tagStudioMode })],
+        base: command === 'build' ? '/henrys-reading-world/' : '/',
+        plugins: [
+            react(),
+            localSnapshotPlugin({ snapshot: anyLocalMode, publication: reviewMode, tags: tagStudioMode }),
+            {
+                name: 'pages-room-fallback',
+                apply: 'build',
+                async closeBundle() {
+                    // Pages serves 404.html at deep-link URLs; the app then parses that unchanged URL.
+                    await copyFile(resolve('dist/index.html'), resolve('dist/404.html'));
+                },
+            },
+        ],
         server: {
             host: '127.0.0.1',
             strictPort: true,

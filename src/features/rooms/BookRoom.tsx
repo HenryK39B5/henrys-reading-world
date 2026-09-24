@@ -1,4 +1,5 @@
 import { CoverImage } from '../../app/CoverImage.tsx';
+import { sitePath } from '../../app/sitePath.ts';
 import { walkProgress } from '../../domain/bookWalk.ts';
 import { passagesOfBook } from '../../domain/reading.ts';
 import type { SnapshotIndex } from '../../domain/snapshot.ts';
@@ -40,10 +41,10 @@ export function BookRoom({ index, bookId, nowYear, room, onBack, onShare }: Book
                     这本书没有可展示的划线，或不在收录范围内。
                 </p>
                 <nav className="room-exits" aria-label="去别的房间">
-                    <a className="room-exit" href="/books" data-testid="exit-books">
+                    <a className="room-exit" href={sitePath('/books')} data-testid="exit-books">
                         回到所有书
                     </a>
-                    <a className="room-exit" href="/">
+                    <a className="room-exit" href={sitePath('/')}>
                         回到随便看看
                     </a>
                 </nav>
@@ -86,7 +87,7 @@ export function BookRoom({ index, bookId, nowYear, room, onBack, onShare }: Book
                     </p>
                     <p className="book-head-shelves">
                         {shelves.map((entry) => (
-                            <a key={entry.theme.id} className="chip" href={`/themes/${entry.theme.id}`}>
+                            <a key={entry.theme.id} className="chip" href={sitePath(`/themes/${entry.theme.id}`)}>
                                 {entry.theme.title}
                             </a>
                         ))}
@@ -155,13 +156,13 @@ export function BookRoom({ index, bookId, nowYear, room, onBack, onShare }: Book
                         返回上一处
                     </button>
                 )}
-                <a className="room-exit" href={`/map?book=${encodeURIComponent(book.id)}`} data-testid="book-map-link">
+                <a className="room-exit" href={sitePath(`/map?book=${encodeURIComponent(book.id)}`)} data-testid="book-map-link">
                     在地图中点亮这本书
                 </a>
-                <a className="room-exit" href="/books" data-testid="exit-books">
+                <a className="room-exit" href={sitePath('/books')} data-testid="exit-books">
                     所有书
                 </a>
-                <a className="room-exit" href="/" data-testid="exit-hall">
+                <a className="room-exit" href={sitePath('/')} data-testid="exit-hall">
                     随便看看
                 </a>
             </nav>
