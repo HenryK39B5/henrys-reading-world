@@ -12,6 +12,7 @@ export function publicRoomPaths(snapshot: Pick<Snapshot, 'books' | 'themes' | 't
         '/map',
         '/about',
         '/design',
+        '/design/technical',
     ];
     if (new Set(paths).size !== paths.length) throw new Error('duplicate public room path');
     return paths;

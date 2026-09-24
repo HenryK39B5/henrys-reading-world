@@ -33,6 +33,19 @@ test.describe('non-empty public release', () => {
         await expect(page.getByText('仅本机 · 未公开审核')).toHaveCount(0);
     });
 
+    test('the optional technical article follows the approved static design explanation', async ({ page }) => {
+        await page.goto('/design');
+        await page.getByRole('link', { name: '技术实现' }).click();
+        await expect(page).toHaveURL('/design/technical');
+        await expect(page.getByTestId('room-heading')).toHaveText('技术实现');
+        await expect(page.locator('[data-room="technical"]')).toContainText('不重新运行 UMAP 或移动剩余点');
+        await expect(page.locator('[data-room="technical"]')).toContainText('无法可靠标注的内容保留未标注状态');
+        await page.reload();
+        await expect(page.getByTestId('room-heading')).toHaveText('技术实现');
+        await page.getByRole('link', { name: '返回网站说明' }).click();
+        await expect(page).toHaveURL('/design');
+    });
+
     test('a public book room has a real passage and no private mode marker', async ({ page }) => {
         const book = snapshot.books[0];
         expect(book).toBeDefined();

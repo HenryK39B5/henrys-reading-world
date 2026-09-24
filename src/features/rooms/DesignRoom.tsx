@@ -80,6 +80,7 @@ export function DesignRoom() {
             </section>
 
             <nav className="room-exits" aria-label="继续探索">
+                <a className="room-exit" href={sitePath('/design/technical')}>技术实现</a>
                 <a className="room-exit" href={sitePath('/')}>随便看看</a>
                 <a className="room-exit" href={sitePath('/paths')}>进入主题小径</a>
                 <a className="room-exit" href={sitePath('/about')}>返回关于</a>

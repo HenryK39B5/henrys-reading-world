@@ -182,6 +182,7 @@ test.describe('rooms and their URLs', () => {
             { path: `/books/${book.id}`, heading: `《${book.title}》`, nav: 'nav-books' },
             { path: '/about', heading: '关于', nav: 'nav-about' },
             { path: '/design', heading: '这个网站怎么运作', nav: 'nav-about' },
+            { path: '/design/technical', heading: '技术实现', nav: 'nav-about' },
         ];
 
         for (const room of rooms) {

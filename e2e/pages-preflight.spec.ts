@@ -29,7 +29,8 @@ test('built project-site hall, navigation, covers, and stable share address', as
     await expect(page).toHaveURL(`${site}/books/`);
     const cover = page.locator('img[src^="/henrys-reading-world/covers/"]').first();
     await expect(cover).toBeVisible();
-    expect(await cover.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+    await expect.poll(() => cover.evaluate((img: HTMLImageElement) => img.naturalWidth), { timeout: 15000 })
+        .toBeGreaterThan(0);
     await page.goto(`${site}/?h=${encodeURIComponent(highlight.id)}`);
     await expect(page.getByTestId('stage-passage')).toHaveText(highlight.text);
     await page.getByTestId('share-open').click();
@@ -57,6 +58,11 @@ test('public room documents return 200; missing rooms still use the 404 fallback
     response = await page.goto(`${site}/design/`);
     expect(response?.status()).toBe(200);
     await expect(page.getByTestId('room-heading')).toHaveText('这个网站怎么运作');
+    response = await page.goto(`${site}/design/technical/`);
+    expect(response?.status()).toBe(200);
+    await expect(page.getByTestId('room-heading')).toHaveText('技术实现');
+    await page.getByRole('link', { name: '返回网站说明' }).click();
+    await expect(page).toHaveURL(`${site}/design/`);
     await page.getByRole('link', { name: '主题书架' }).last().click();
     await expect(page).toHaveURL(`${site}/themes/`);
     response = await page.goto(`${site}/themes/${encodeURIComponent(snapshot.themes[0]!.id)}/`);
@@ -94,6 +100,26 @@ test('the finished design page remains readable and linked across widths', async
     await pathLink.focus();
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(`${site}/paths/`);
+});
+
+test('the technical companion has a direct public entry and readable narrow layouts', async ({ page }) => {
+    const folder = join(process.cwd(), '.private/review/maintenance/m05');
+    await mkdir(folder, { recursive: true });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    for (const width of [1440, 720, 390, 320]) {
+        await page.setViewportSize({ width, height: width === 720 ? 450 : 900 });
+        const response = await page.goto(`${site}/design/technical/`);
+        expect(response?.status()).toBe(200);
+        await expect(page.getByTestId('room-heading')).toHaveText('技术实现');
+        await expect(page.getByRole('heading', { name: '点、地形与区域名称' })).toBeVisible();
+        const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+        expect(overflow, `technical article at ${String(width)}px`).toBeLessThanOrEqual(1);
+        if (width !== 720 && test.info().project.name === 'chromium') {
+            await page.screenshot({ path: join(folder, `technical-${String(width)}.png`), fullPage: true });
+        }
+    }
+    await page.getByRole('link', { name: '返回网站说明' }).click();
+    await expect(page).toHaveURL(`${site}/design/`);
 });
 
 test('failed public asset stays an honest error state instead of showing invented content', async ({ page }) => {

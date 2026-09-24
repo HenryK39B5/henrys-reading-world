@@ -34,6 +34,7 @@ function activeId(route: RoomRoute): string {
             return 'books';
         case 'about':
         case 'design':
+        case 'technical':
             return 'about';
         case 'unknown':
             return '';

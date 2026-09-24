@@ -38,6 +38,7 @@ export type RoomRoute =
     | { name: 'book'; bookId: string }
     | { name: 'about' }
     | { name: 'design' }
+    | { name: 'technical' }
     /** A path this build does not know; the page shows a quiet, escapable state. */
     | { name: 'unknown'; path: string };
 
@@ -118,6 +119,9 @@ export function parseRoute(pathname: string, search = ''): RoomRoute {
     if (head === 'design' && segments.length === 1) {
         return { name: 'design' };
     }
+    if (head === 'design' && segments.length === 2 && second === 'technical') {
+        return { name: 'technical' };
+    }
     return { name: 'unknown', path: pathname };
 }
 
@@ -146,6 +150,8 @@ export function routePath(route: RoomRoute): string {
             return '/about';
         case 'design':
             return '/design';
+        case 'technical':
+            return '/design/technical';
         case 'books': {
             const params = new URLSearchParams();
             if (route.year !== null) {
