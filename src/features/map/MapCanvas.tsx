@@ -8,11 +8,11 @@ import {
     screenToMap,
     summarizeMapLabels,
     zoomMapViewAt,
-    type MapLabelSummary,
     type MapViewport,
 } from '../../domain/map.ts';
 import { MAP_COORDINATE_MAX } from '../../domain/types.ts';
 import type { SnapshotIndex } from '../../domain/snapshot.ts';
+import { placeMapLabels, visibleMapLabels, type LabelPlacement } from './labelPlacement.ts';
 
 export type MapCanvasProps = {
     index: SnapshotIndex;
@@ -28,17 +28,6 @@ export type MapCanvasProps = {
 };
 
 type Size = { width: number; height: number };
-type LabelHit = {
-    summary: MapLabelSummary;
-    left: number;
-    top: number;
-    right: number;
-    bottom: number;
-    x: number;
-    y: number;
-    anchorX: number;
-    anchorY: number;
-};
 
 type DragState = {
     pointerId: number;
@@ -54,26 +43,12 @@ type PinchState = {
     anchorMap: { x: number; y: number };
 };
 
-const LABEL_OFFSETS = [
-    { x: 0, y: 0 },
-    { x: 0, y: -22 },
-    { x: 22, y: -13 },
-    { x: -22, y: -13 },
-    { x: 24, y: 13 },
-    { x: -24, y: 13 },
-    { x: 0, y: 23 },
-];
-
 function midpoint(left: { x: number; y: number }, right: { x: number; y: number }): { x: number; y: number } {
     return { x: (left.x + right.x) / 2, y: (left.y + right.y) / 2 };
 }
 
 function distance(left: { x: number; y: number }, right: { x: number; y: number }): number {
     return Math.hypot(left.x - right.x, left.y - right.y);
-}
-
-function overlaps(left: LabelHit, right: LabelHit): boolean {
-    return !(left.right + 8 < right.left || right.right + 8 < left.left || left.bottom + 5 < right.top || right.bottom + 5 < left.top);
 }
 
 function drawCircle(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number): void {
@@ -94,7 +69,7 @@ export function MapCanvas({
     onSelectHighlight,
 }: MapCanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const labelHits = useRef<LabelHit[]>([]);
+    const labelHits = useRef<LabelPlacement[]>([]);
     const drag = useRef<DragState | null>(null);
     const pointers = useRef(new Map<number, { x: number; y: number }>());
     const pinch = useRef<PinchState | null>(null);
@@ -282,47 +257,15 @@ export function MapCanvas({
             }
         }
 
-        const visibleLabels: LabelHit[] = [];
-        const activeLabel = labels.find((entry) => entry.tagId === activeTagId);
-        const ordered = [...labels].sort((left, right) => {
-            if (left.tagId === activeTagId) return -1;
-            if (right.tagId === activeTagId) return 1;
-            return right.highlightCount - left.highlightCount;
-        });
-        const maximumLabels = size.width < 520 ? (view.zoom > 1.7 ? 12 : 8) : view.zoom > 2 ? 26 : 18;
-        for (const summary of ordered) {
-            if (visibleLabels.length >= maximumLabels && summary.tagId !== activeTagId) break;
-            if (activeLabel !== undefined && view.zoom > 1.4 && summary.tagId !== activeTagId) {
-                const dx = summary.label.x - activeLabel.label.x;
-                const dy = summary.label.y - activeLabel.label.y;
-                if (Math.sqrt(dx * dx + dy * dy) > 2800) continue;
-            }
-            const anchor = mapToScreen(summary.label, view, size.width, size.height);
-            const active = summary.tagId === activeTagId;
+        const placedLabels = placeMapLabels(labels, activeTagId, view.zoom, size, (title, active) => {
             ctx.font = `${active ? '600 16px' : '400 13px'} system-ui, "Microsoft YaHei", sans-serif`;
-            const width = ctx.measureText(summary.title).width;
-            let hit: LabelHit | undefined;
-            for (const offset of active ? LABEL_OFFSETS.slice(0, 1) : LABEL_OFFSETS) {
-                const x = anchor.x + offset.x;
-                const y = anchor.y + offset.y;
-                const candidate: LabelHit = {
-                    summary,
-                    left: x - width / 2 - 8,
-                    right: x + width / 2 + 8,
-                    top: y - (active ? 16 : 13),
-                    bottom: y + 9,
-                    x,
-                    y,
-                    anchorX: anchor.x,
-                    anchorY: anchor.y,
-                };
-                if (candidate.left < 8 || candidate.top < 8 || candidate.right > size.width - 8 || candidate.bottom > size.height - 8) continue;
-                if (!active && visibleLabels.some((placed) => overlaps(candidate, placed))) continue;
-                hit = candidate;
-                break;
-            }
-            if (hit === undefined) continue;
-            visibleLabels.push(hit);
+            return ctx.measureText(title).width;
+        });
+        const visibleLabels = visibleMapLabels(placedLabels, view.centerX, view.centerY, view.zoom, size);
+        for (const hit of visibleLabels) {
+            const active = hit.summary.tagId === activeTagId;
+            const width = hit.right - hit.left - 16;
+            ctx.font = `${active ? '600 16px' : '400 13px'} system-ui, "Microsoft YaHei", sans-serif`;
             if (Math.abs(hit.x - hit.anchorX) + Math.abs(hit.y - hit.anchorY) > 5) {
                 ctx.beginPath();
                 ctx.moveTo(hit.anchorX, hit.anchorY);
@@ -336,7 +279,7 @@ export function MapCanvas({
             ctx.fillStyle = active ? '#f2ebd8' : 'rgba(224, 232, 209, 0.92)';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(summary.title, hit.x, hit.y);
+            ctx.fillText(hit.summary.title, hit.x, hit.y);
             if (active) {
                 ctx.beginPath();
                 ctx.moveTo(hit.x - width / 2, hit.y + 11);
@@ -354,7 +297,7 @@ export function MapCanvas({
         return { x: event.clientX - rect.left, y: event.clientY - rect.top };
     };
 
-    const labelAt = (position: { x: number; y: number }): LabelHit | undefined =>
+    const labelAt = (position: { x: number; y: number }): LabelPlacement | undefined =>
         labelHits.current.find((hit) => position.x >= hit.left && position.x <= hit.right && position.y >= hit.top && position.y <= hit.bottom);
 
     return (

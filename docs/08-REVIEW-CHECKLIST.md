@@ -3255,6 +3255,12 @@ Slice / task IDs：
 - 用户提供的 flomo 2D/3D 界面截图已按字节核对副本并存入 Git 忽略的 `.private/reference/visual-references/`；原桌面文件未改，本轮没有推送参考图。仓库路径与常见凭证特征的初步扫描未发现需立即重建仓库的证据，人工公开性与权利审阅仍未完成。
 - 实际检查：`git status --short` 起始为空；`git check-ignore` 确认两张新参考图被忽略；本阶段仅新增任务文档及本执行记录，没有运行产品测试或构建，也没有修改网站或地图。
 
+## M-01 地图标签稳定性（2026-09-24）
+
+- 范围：`src/features/map/labelPlacement.ts` 固定地图基准排位，平移只平移与裁切；选中主题优先，区域内邻近标签优先；桌面 18 / 窄屏 10 个全局候选，取消旧倍率数量阈值。`MapCanvas.tsx` 保留原绘制和命中语义。几何单测及真实手势回归见 `labelPlacement.test.ts`、`e2e/map-label-stability.spec.ts`。不改点位、模型、等高线、标签归属或公开范围。
+- 实际命令：`npm run check:local` 308/308，`npm run test:e2e -- --workers=1 --reporter=line` 130/130，`npm run build`、`npm run isolation:public`、`npm run publication:verify` 通过，`npm run test:public` 7/7，Pages 式 Chromium 5/5。并行负载下 Pages 式 WebKit 1/5，随后 `--project=webkit --workers=1 --timeout=90000` 独立复跑 5/5；初次超时仍保留在记录中。
+- 浏览器证据：`.private/review/maintenance/m01/region-{1440,390,320}-{before,after-pan,after-zoom}.png`，截图逐项检查；平移与围绕标签的滚轮缩放后仍可命中标签。工具栏放大以画布中心为锚，标签在接近边界时正常移出画面；测试未把该预期视为闪烁。真实安卓触控由 Henry 后续验收；无推送或部署。
+
 ## V3 Public snapshot export and local release acceptance (2026-09-23)
 
 - User explicitly authorized local public export. `npm run publication:export` generated `src/data/public-snapshot.json` and 108 resized `public/covers/*.jpg`; no repository, push, workflow, or deployment action was performed.
