@@ -3278,6 +3278,12 @@ Slice / task IDs：
 - 实际命令：`npm run map:contours:compare` 生成 194/182/202 段候选（旧 203/194/212）；`npm run test:contours:compare` 1/1，真实 1440/390 世界/区域配对截图共 8 张；`npm run check:local` 309/309，`npm run build`、`npm run isolation:public`、`npm run publication:verify` 通过。最初比较测试因新配置从自身目录启动 node 脚本而失败；显式设定仓库根 cwd 后通过。
 - 截图证据：`.private/review/maintenance/m04/{current,interpolated}-{world,region}-{1440,390}.png`。候选线更连贯，但是否取代现有视觉由 Henry 决定；比较未重新部署，不把 D3 闭合边界当成真实轮廓。
 
+## M-05 独立技术延伸文章（2026-09-24）
+- 范围：`/design` 现有访客文案保持原样，仅在其出口增加“技术实现”链接；新增独立 `/design/technical/`，说明真实划线的本机准备、获准公开投影、公平轮次、书籍/划线主题、小径的低维节奏与降级、固定 UMAP 点位和密度地形、静态构建及解释边界。不修改模型、地图、公开快照、审核范围或权利决定。前端路由、导航归属、Pages 静态深链及相关单测/E2E 均已接入。代码提交：`1fd5c30`。
+- 实际命令与结果：`npm run check:local`（309/309 单测，类型检查、lint、本机快照验证通过）；`npm run test:e2e -- --reporter=line`（local Chromium 130/130）；`npm run build`、`npm run isolation:public`、`npm run publication:verify`（184 个静态房间）、`npm run test:public`（8/8）通过；Pages 式 Chromium 6/6，WebKit 单独复跑 6/6。首次 Pages 合并运行因新增用例标题断言顺序失误 10/12，改正后合并运行 WebKit 两条旧测试等待快照超过默认 5 秒；单独运行时封面可见但未完成解码，已让该断言等待实际宽度，再次独立复跑全过。失败记录不作为通过结果。
+- 浏览器证据：`.private/review/maintenance/m05/technical-{1440,390,320}.png`（Git 忽略），逐张检查长文、链接和页脚无交叠；Pages 式 720px（200% 等效）与 320/390/1440px 无横向溢出，直接访问返回 200，返回 `/design` 可用。Playwright WebKit 不代表真实 Safari/iOS；读屏、系统缩放、人工文案和内容权利仍未验收。
+- 状态与下一步：M-05 技术实现完成，入口和正文待 Henry 验收；M-04 同样待视觉选择。未推送或部署，也未采用等高线候选。
+
 ## V3 Public snapshot export and local release acceptance (2026-09-23)
 
 - User explicitly authorized local public export. `npm run publication:export` generated `src/data/public-snapshot.json` and 108 resized `public/covers/*.jpg`; no repository, push, workflow, or deployment action was performed.
