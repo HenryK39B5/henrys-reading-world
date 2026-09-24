@@ -29,9 +29,9 @@
 | 评审证据工具 | 已建立 | `npm run capture:review`：截图 + 可读数字（字号 / 行数 / 对比度 / 点击目标 / 溢出 / 延迟）|
 | 封面与色彩（视觉修复） | 已完成 | 127 张真实书封下载到 `.private/covers/`；`local-covers/` 仅由 dev:local 服务；每本书主色从封面实时提取并降饱和 |
 | 连续换句录屏 | 有意不做 | 见下方“证据策略” |
-| 公开构建 | 本机已验收 | `npm run build`、非空公开版浏览器与隔离检查通过；local 模式仍禁止生产构建；尚未部署 |
+| 公开构建 | 已部署并线上验收 | `npm run build`、非空公开版浏览器、隔离检查、Pages workflow 与线上 Chromium smoke 均通过；local 模式仍禁止生产构建 |
 | 发布审核清单 | 已完成两轮审核 | 私有 policy：108 本公开 / 22 本排除 / 6 条单独排除，`reviewComplete=true`，private preview `releaseReady=true` |
-| 可公开快照 | 已获授权并在本机导出 | `src/data/public-snapshot.json`：108 本 / 3,462 条，封面 108 张；尚未创建远程仓库、push 或部署 |
+| 可公开快照 | 已导出并部署 | `src/data/public-snapshot.json`：108 本 / 3,462 条，封面 108 张；GitHub public repo 与 Pages 已上线 |
 | 数据覆盖缺口 | 已更新 | 真实划线无原始换行样本（唯一剩余警告）；年份仅 2024–2026；V2-A 后已不再限于 30–50 条样本 |
 | Product Critique #1 | 已完成方向评审 | 用户确认：不以塑造 Henry 印象为算法目标；改为全量真实划线的轻松漫游、书籍主题书架与公平两阶段抽样 |
 | v2 施工准备 | 已完成 | 最新产品决定见 `docs/10`，迁移与验收路线见 `docs/11` |
@@ -53,7 +53,7 @@
 | V3 Batch 6 全量标签 | 已完成 | 1,694 reviewed / 2,969 draft；688 条全文 override；自动 high-risk 0；snapshot、路径投影与最终地图已重建；详见 `docs/28` |
 | 真实访客 Gate | 未进行 | 用户本人体验反馈非常积极（V2-E4D 就是其反馈驱动的收尾），但尚无首次访客结果，不冒充产品 Gate 通过 |
 
-原始返回、更新包、候选池、完整本机快照与私有截图留在 `.private/`，已被 `.gitignore` 排除；获准公开的快照与封面位于 `src/data/` 和 `public/covers/`，仅在本机生成，尚未部署。
+原始返回、更新包、候选池、完整本机快照与私有截图留在 `.private/`，已被 `.gitignore` 排除；获准公开的快照与封面位于 `src/data/` 和 `public/covers/`，已部署到 GitHub Pages；后续撤回需重新导出并部署。
 
 ## 站内产品说明 `/design`（2026-09-24）
 
@@ -3237,15 +3237,15 @@ Slice / task IDs：
 - Production build now emits 183 approved room entry documents under the project base: 108 books, 56 paths, 13 themes, plus collection roots, map, about and design. Known approved rooms return HTTP 200 in the local Pages-like server; excluded/unknown routes remain HTTP 404. Extensionless room links redirect to directory URLs.
 - Added `scripts/public-route-entries.ts` and read-only `npm run publication:verify`: actual public snapshot matches the policy projection, fixed map coordinates and generated cover bytes match, hashed production JSON matches, and route inventory contains only approved ids.
 - Commands: `npm run check:local` 305/305; `npm run build`; `npm run isolation:public`; `npm run publication:verify`; `npm run test:public` 7/7; Pages-like Chromium 5/5; Pages-like WebKit 5/5; full local Chromium 129/129. WebKit is a Playwright browser check, not real Safari/iOS.
-- Evidence and details: `docs/47-PUBLIC-RELEASE-CLOSEOUT.md`; prior Pages preflight updated in `docs/45`. Live GitHub Pages, HTTPS/cache, real device, screen reader, rights and first-visitor gates remain open. No repo, workflow, push or deployment.
+- Evidence and details: `docs/47-PUBLIC-RELEASE-CLOSEOUT.md`; prior Pages preflight updated in `docs/45`. Live GitHub Pages URL and HTTPS were verified; real device, screen reader, rights and first-visitor gates remain open. Repository, workflow, push and deployment are complete.
 
-## Production Pages preflight (2026-09-24)
+## Live deployment follow-up (2026-09-24)
 
-- Scoped local-only preflight: production base `/henrys-reading-world/`, route/link/cover/share prefix handling and generated `dist/404.html`; no repo, workflow, push or deployment.
-- Built output served from a loopback Pages-like static server. 4/4 Chromium built-site tests passed, including direct room refresh via HTTP 404 fallback, mobile paths, actual public cover, stable share address and public JSON failure state. Real reduced-motion screenshots in ignored `.private/review/public-pages-preflight/` were reviewed at desktop and mobile widths.
-- Public snapshot moved from application JS to independently cacheable, hashed JSON asset. JS reduced from ~1,616 kB (583 kB gzip) to ~321 kB (98 kB gzip); JSON is ~1,998 kB (518 kB gzip). First-visit transfer is not materially reduced; live network/cache behavior is unverified.
-- `npm run check:local` 304/304 unit tests, `npm run build`, `npm run isolation:public`, `npm run test:public` 6/6, built-site Chromium 4/4, full local Chromium E2E 128/128 passed. Existing coverage warnings remain unchanged.
-- 404 fallback renders room deep links but retains HTTP 404 status; live Pages and link-preview behavior remain unverified. Browser/environment and rights gates remain open; see `docs/45-PUBLIC-PAGES-PREFLIGHT.md`.
+- Created public repository `HenryK39B5/henrys-reading-world`, pushed `master`, enabled Pages workflow mode, and deployed `https://henryk39b5.github.io/henrys-reading-world/`.
+- Workflow runs `35957063590` and `35957434777` both passed. The second run uses `checkout@v5`, `setup-node@v7` and `upload-pages-artifact@v5`; GitHub still reports a non-blocking Node 20 warning for `configure-pages@v5`.
+- Live HTTP checks: root, design, about, map, themes, paths, approved book room, map book selection, stable share route, JSON asset and cover all returned 200; excluded book and unknown path returned 404.
+- Live headless Chromium smoke passed for hall, design, book room, path room, map, stable share and share dialog with no page errors.
+- Remaining: real Safari/iOS, screen reader, low-brightness reading, external first-visitor observation and rights decisions. No additional data or code changes were made after deployment except the workflow runtime update and this record.
 
 ## V3 Public snapshot export and local release acceptance (2026-09-23)
 
