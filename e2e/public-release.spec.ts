@@ -25,6 +25,11 @@ test.describe('non-empty public release', () => {
 
     test('the public site explains its navigation, model boundary and publication scope', async ({ page }) => {
         await page.goto('/about');
+        await page.getByTestId('about-technical-link').click();
+        await expect(page).toHaveURL('/design/technical');
+        await expect(page.getByTestId('room-heading')).toHaveText('技术实现');
+        await page.goBack();
+        await expect(page).toHaveURL('/about');
         await page.getByTestId('about-design-link').click();
         await expect(page).toHaveURL('/design');
         await expect(page.getByTestId('room-heading')).toHaveText('这个网站怎么运作');

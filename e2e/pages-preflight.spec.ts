@@ -102,6 +102,28 @@ test('the finished design page remains readable and linked across widths', async
     await expect(page).toHaveURL(`${site}/paths/`);
 });
 
+test('about gives each explanation its own entry without adding to primary navigation', async ({ page }) => {
+    const folder = join(process.cwd(), '.private/review/maintenance/m05');
+    await mkdir(folder, { recursive: true });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    for (const width of [1440, 390, 320]) {
+        await page.setViewportSize({ width, height: 900 });
+        const response = await page.goto(`${site}/about/`);
+        expect(response?.status()).toBe(200);
+        await expect(page.getByTestId('about-design-link')).toBeVisible();
+        await expect(page.getByTestId('about-technical-link')).toBeVisible();
+        const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+        expect(overflow, `about page at ${String(width)}px`).toBeLessThanOrEqual(1);
+        if (test.info().project.name === 'chromium') {
+            await page.screenshot({ path: join(folder, `about-links-${String(width)}.png`), fullPage: true });
+        }
+    }
+    await page.getByTestId('about-technical-link').click();
+    await expect(page).toHaveURL(`${site}/design/technical/`);
+    await page.goBack();
+    await expect(page).toHaveURL(`${site}/about/`);
+});
+
 test('the technical companion has a direct public entry and readable narrow layouts', async ({ page }) => {
     const folder = join(process.cwd(), '.private/review/maintenance/m05');
     await mkdir(folder, { recursive: true });

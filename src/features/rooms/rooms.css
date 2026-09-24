@@ -652,6 +652,10 @@
     text-decoration-color: var(--ink-soft);
 }
 
+.about-design-link a {
+    white-space: nowrap;
+}
+
 @media (max-width: 640px) {
     .design-intro {
         margin-bottom: 36px;

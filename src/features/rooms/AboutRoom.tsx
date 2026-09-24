@@ -33,8 +33,8 @@ export function AboutRoom({ index }: AboutRoomProps) {
             </p>
 
             <p className="room-note about-design-link">
-                想了解随机遇见、主题小径和地图的设计，可以看
-                <a href={sitePath('/design')} data-testid="about-design-link">这个网站怎么运作</a>。
+                想了解阅读方式，可以看<a href={sitePath('/design')} data-testid="about-design-link">这个网站怎么运作</a>；
+                想看数据、标签和地图的实现，可以读<a href={sitePath('/design/technical')} data-testid="about-technical-link">技术实现</a>。
             </p>
 
             <p className="room-note about-rights" data-testid="about-rights">

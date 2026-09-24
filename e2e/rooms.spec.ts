@@ -260,6 +260,11 @@ test.describe('rooms and their URLs', () => {
         await expect(page).toHaveURL('/design');
         await page.goBack();
         await expect(page).toHaveURL('/about');
+        await page.getByTestId('about-technical-link').click();
+        await expect(page).toHaveURL('/design/technical');
+        await expect(page.getByTestId('room-heading')).toHaveText('技术实现');
+        await page.goBack();
+        await expect(page).toHaveURL('/about');
     });
 
     test('an unknown path explains itself and offers a way out', async ({ page }) => {
