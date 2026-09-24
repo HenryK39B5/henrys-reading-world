@@ -1,17 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-    testDir: './e2e',
-    testMatch: '**/capture-v3-batch5.spec.ts',
+    testDir: '..',
+    testMatch: '**/capture-7d.spec.ts',
     fullyParallel: false,
     retries: 0,
     reporter: [['list']],
-    use: {
-        baseURL: 'http://127.0.0.1:5173',
-        trace: 'off',
-        screenshot: 'off',
-        video: 'off',
-    },
+    use: { baseURL: 'http://127.0.0.1:5173', trace: 'off', screenshot: 'off', video: 'off' },
     projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
     webServer: {
         command: 'npm run dev:local',

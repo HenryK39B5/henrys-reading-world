@@ -52,7 +52,7 @@ npm run test:e2e          # 完整本机 Chromium 回归
 
 - `src/`：阅读体验、领域逻辑和已批准的公开快照；`public/covers/`：公开封面。
 - `scripts/`：数据校验、离线内容生产、公开投影与构建检查；私有输入只来自本机。
-- `e2e/`、`tests/`：浏览器与纯函数回归；`docs/`：产品决策、实现记录及维护清单。
+- `e2e/`、`tests/`：浏览器与纯函数回归；专项截图/审计配置在 `e2e/config/`，日常测试配置留在根目录；`docs/`：产品决策、实现记录及维护清单。
 - `.github/workflows/deploy-pages.yml`：`master` 推送后以 `npm ci`、`npm run build` 生成 Pages artifact 并部署。网站托管在 `/henrys-reading-world/` 子路径下。
 
 提交源码不等于批准新内容公开。工作流会在推送 `master` 时自动部署，因此本机改动应先通过公开隔离与投影校验，并按维护清单完成验收，再决定是否推送。历史实施结果保存在 [执行记录](docs/08-REVIEW-CHECKLIST.md)；发布后尚未完成的设备、读屏和权利判断见 [发布验收记录](docs/47-PUBLIC-RELEASE-CLOSEOUT.md)。

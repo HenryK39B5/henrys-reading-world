@@ -1,10 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-    testDir: './e2e',
-    testMatch: '**/audit-7g.spec.ts',
+    testDir: '..',
+    testMatch: '**/capture-cross-page.spec.ts',
     fullyParallel: false,
     retries: 0,
+    timeout: 120_000,
     reporter: [['list']],
     use: { baseURL: 'http://127.0.0.1:5173', trace: 'off', screenshot: 'off', video: 'off' },
     projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],

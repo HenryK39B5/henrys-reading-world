@@ -7,7 +7,7 @@ import { defineConfig, devices } from '@playwright/test';
  * review can be photographed without overwriting anything a person has decided.
  */
 export default defineConfig({
-    testDir: './e2e/publication',
+    testDir: '../publication',
     testMatch: '**/capture-publication.spec.ts',
     fullyParallel: false,
     workers: 1,

@@ -1,12 +1,21 @@
 import { defineConfig, devices } from '@playwright/test';
 
+/**
+ * V2-E4 evidence capture: screenshots and measurements of the Book Aura share cards only, kept out of the
+ * normal test run (see testIgnore in playwright.config.ts) because it writes real passages to .private/.
+ */
 export default defineConfig({
-    testDir: './e2e',
-    testMatch: '**/audit-7i.spec.ts',
+    testDir: '..',
+    testMatch: '**/capture-v2e4.spec.ts',
     fullyParallel: false,
     retries: 0,
     reporter: [['list']],
-    use: { baseURL: 'http://127.0.0.1:5173', trace: 'off', screenshot: 'off', video: 'off' },
+    use: {
+        baseURL: 'http://127.0.0.1:5173',
+        trace: 'off',
+        screenshot: 'off',
+        video: 'off',
+    },
     projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
     webServer: {
         command: 'npm run dev:local',

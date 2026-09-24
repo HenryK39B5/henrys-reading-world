@@ -1,6 +1,6 @@
 # 08 — 执行记录与 Prototype Review
 
-上线后的未完成任务与状态统一维护在 `docs/48-MAINTENANCE-ROADMAP.md`；本文件继续按阶段追加实际执行证据，不作为第二份待办清单。
+上线后的未完成任务与状态统一维护在 `docs/48-MAINTENANCE-ROADMAP.md`；本文件继续按阶段追加实际执行证据，不作为第二份待办清单。2026-09-24 起，历史截图与专项审计 Playwright 配置位于 `e2e/config/`；下文更早的根目录调用命令保留为当时执行记录，重新运行时须改用新路径。
 
 ## 当前真实状态
 
@@ -3265,6 +3265,12 @@ Slice / task IDs：
 
 - 范围：仅完整重写 `README.md`，以在线地址、公开范围、可复现的公开版运行命令、需要本机材料的维护命令、仓库结构和 Pages 自动部署边界替代过期施工流水账。历史记录保留在 `docs/`；`/design` 未改。
 - 验证：7 个相对链接均存在；README 不再含“尚未部署”。M-01 已运行 typecheck、lint、308 单测、130 local E2E、公开构建/隔离/投影及公开/Pages 式浏览器检查；本阶段无产品代码变更、未单独重跑浏览器或截图。未推送或部署。
+
+## M-03 维护配置与仓库公开面（2026-09-24）
+
+- 整理范围：12 个 `playwright.audit-*` / `playwright.capture*` 配置从根目录迁移至 `e2e/config/`，保留 5 个活跃根配置；改配置相对 testDir、`package.json` 截图命令、`e2e/capture-7d.spec.ts` 注释和 README 目录指引；`package.json` 说明去掉“第一轮原型”的过期措辞。不删历史截图测试、审核器或 Studio，也不重写历史文档与 Git 提交。
+- 实际验证：12 个配置 `npx playwright test --config <路径> --list` 全部发现预期测试；迁移后的 7I 审计 Chromium 3/3；`npm run capture:v2e -- --list` 发现原测试；`npm run typecheck`、`npm run lint`、`npm run build` 通过。截图捕获脚本未实跑，以免覆盖已有本机评审素材；日常回归见 M-01 阶段结果。
+- 公共面核查：85 提交历史的 437 条唯一路径中，未命中 `.private` / `.env` / 构建产物或常见凭证文件；当前跟踪内容未命中常见 GitHub token / 私钥标记。此扫描不证明文档逐行合适公开，也不推断书摘或封面的授权。无浏览器新截图，无推送或部署。
 
 ## V3 Public snapshot export and local release acceptance (2026-09-23)
 

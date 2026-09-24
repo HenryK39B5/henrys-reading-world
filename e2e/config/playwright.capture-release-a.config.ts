@@ -1,12 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Review capture runs a separate spec that only takes screenshots and prints measurements.
- * It is kept out of the normal test run (see testIgnore in playwright.config.ts).
+ * Release-A evidence on the product side (docs/18 §6.3): the book room's walk and the copied text's
+ * provenance, captured from the real local server. Kept out of the normal run, like the other captures.
  */
 export default defineConfig({
-    testDir: './e2e',
-    testMatch: '**/capture.spec.ts',
+    testDir: '..',
+    testMatch: '**/capture-release-a.spec.ts',
     fullyParallel: false,
     retries: 0,
     reporter: [['list']],
