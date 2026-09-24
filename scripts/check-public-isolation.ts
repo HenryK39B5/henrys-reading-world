@@ -45,7 +45,8 @@ for (const needle of [
     'WEREAD_API_KEY', 'VOYAGE_API_KEY', 'COHERE_API_KEY', 'OPENAI_API_KEY', 'SILICONFLOW_API_KEY',
     'SiliconFlow_API_KEY', 'userVid', 'bookmarkId', '.private/embeddings', 'embedding evaluation labels',
     '.private/tags', 'candidate-vocabulary.json', 'candidate-seeds.json', 'curated-seeds.json',
-    'candidate-query-vectors.json', 'vocabulary-manifest.json', 'share-cards', 'flomo', 'weread_image',
+    'candidate-query-vectors.json', 'vocabulary-manifest.json', 'share-cards', 'flomo-starmap',
+    'flomo_178', 'weread_image',
     'publication-review', 'reviewComplete', 'excludedHighlightIds', '__publication_policy', 'tag-studio',
     '__tag_vocabulary', '__tag_assignments', 'studio-rationale', 'possible-missing-tag',
 ]) {

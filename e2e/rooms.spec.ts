@@ -181,6 +181,7 @@ test.describe('rooms and their URLs', () => {
             { path: '/books', heading: '所有书', nav: 'nav-books' },
             { path: `/books/${book.id}`, heading: `《${book.title}》`, nav: 'nav-books' },
             { path: '/about', heading: '关于', nav: 'nav-about' },
+            { path: '/design', heading: '这个网站怎么运作', nav: 'nav-about' },
         ];
 
         for (const room of rooms) {
@@ -234,6 +235,30 @@ test.describe('rooms and their URLs', () => {
         const roomText = await page.locator('[data-room="about"]').innerText();
         expect(roomText.split(String(data.highlights.length)).length - 1).toBe(1);
         expect(roomText.split(String(data.books.length)).length - 1).toBe(1);
+    });
+
+    test('the site explanation is discoverable, grounded in real product behavior and escapable', async ({ page }) => {
+        await page.goto('/');
+        await roomReady(page);
+        await page.getByTestId('exit-design').click();
+        await expect(page).toHaveURL('/design');
+        await expect(page.getByTestId('room-heading')).toHaveText('这个网站怎么运作');
+        const article = page.locator('[data-room="design"]');
+        await expect(article.getByRole('heading', { name: '从一句开始' })).toBeVisible();
+        await expect(article.getByRole('heading', { name: '书的主题，句子的主题' })).toBeVisible();
+        await expect(article.getByRole('heading', { name: '沿主题跨书阅读' })).toBeVisible();
+        await expect(article.getByRole('heading', { name: '地图怎样形成' })).toBeVisible();
+        await expect(article.getByRole('heading', { name: '公开范围与阅读语境' })).toBeVisible();
+        await expect(article).toContainText('不会仅凭数量占据首页');
+        await expect(article).toContainText('未标注的句子仍然参与整体地形');
+        await expect(article).toContainText('访客浏览时不会调用模型');
+        await expect(article).toContainText('完整收录内容仍会被下载');
+        await page.getByRole('link', { name: '内容与来源说明' }).click();
+        await expect(page).toHaveURL('/about');
+        await page.getByTestId('about-design-link').click();
+        await expect(page).toHaveURL('/design');
+        await page.goBack();
+        await expect(page).toHaveURL('/about');
     });
 
     test('an unknown path explains itself and offers a way out', async ({ page }) => {

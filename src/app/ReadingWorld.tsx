@@ -6,6 +6,7 @@ import { INITIAL_BOOK_BATCH } from '../domain/reading.ts';
 import { ALL_SCOPE, type StageScope } from '../domain/selection.ts';
 import { useStageSessions } from '../features/encounter/useStageSessions.ts';
 import { AboutRoom } from '../features/rooms/AboutRoom.tsx';
+import { DesignRoom } from '../features/rooms/DesignRoom.tsx';
 import { BookRoom } from '../features/rooms/BookRoom.tsx';
 import { BooksRoom } from '../features/rooms/BooksRoom.tsx';
 import { HallRoom } from '../features/rooms/HallRoom.tsx';
@@ -302,6 +303,8 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
                 );
             case 'about':
                 return <AboutRoom index={index} />;
+            case 'design':
+                return <DesignRoom />;
             case 'unknown':
                 return <UnknownRoom path={route.path} />;
         }

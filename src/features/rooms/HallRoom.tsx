@@ -50,6 +50,9 @@ export function HallRoom({ index, nowYear, session, onOpenBook, onShare, unavail
                 <a className="room-exit" href={sitePath('/about')} data-testid="exit-about">
                     关于
                 </a>
+                <a className="room-exit" href={sitePath('/design')} data-testid="exit-design">
+                    这个网站怎么运作
+                </a>
             </nav>
         </section>
     );

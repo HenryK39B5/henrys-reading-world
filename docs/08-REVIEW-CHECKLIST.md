@@ -22,16 +22,16 @@
 | Surprise 机制修订 | 已按用户反馈调整 | 去掉“距今年份”分支，改为“换书 + 带来本次会话未出现过的主题”的领域意外 |
 | 出处展开（Slice 3） | 已完成 | 原位展开、真实收录计数、再看一处 / 收起、焦点回归、耗尽与单条明确说明 |
 | 书籍 / 主题 / About（Slice 4） | 已完成 | 书籍区与书详情、5 个主题的跨书连线、真实年份筛选与空交集处理、真实计数 About |
-| 导航 | V3 五项主导航 + 地图次入口已开放 | 随机 / 主题书架 / 主题小径 / 所有书 / 关于为主导航；小径、书房与地图区域提供 `/map` 入口 |
-| 浏览器验证 | Batch 5E 全量重跑 | Playwright + Chromium（本机）：**115 个 local 消费者用例** + **10 个 Tag Studio** + **9 个审核器** + **1 个 public 空态**；地图视觉取证 3 / 3 |
-| 本机检查 | Batch 5E 全绿 | `check:local`：typecheck + lint + **295 个单测（31 文件）** + schema 3 数据校验；Batch 5 的 `verify:ids`、6 个真实数据 smoke、public build、`isolation:public` 与 local-private build 拒绝继续有效 |
+| 导航 | 六项主导航 + 说明页已开放 | 随便看看 / 主题书架 / 主题小径 / 世界地图 / 所有书 / 关于；从门厅及关于可进入 `/design` |
+| 浏览器验证 | 站内说明页批次全量重跑 | Playwright + Chromium（本机）：**129 个 local**、**7 个非空 public**、**5 个 Pages 式生产包预检**；真实截图与视口检查见 `docs/46` |
+| 本机检查 | 站内说明页批次全绿 | `check:local`：typecheck + lint + **304 个单测（33 文件）** + local schema 3 校验；public build 与 isolation 通过 |
 | 视觉检查（Astra） | 已执行 | 1440 / 390 实际截图；发现并修正孤字成行、26px 点击目标、出处行间距、移动端书目节奏 |
 | 评审证据工具 | 已建立 | `npm run capture:review`：截图 + 可读数字（字号 / 行数 / 对比度 / 点击目标 / 溢出 / 延迟）|
 | 封面与色彩（视觉修复） | 已完成 | 127 张真实书封下载到 `.private/covers/`；`local-covers/` 仅由 dev:local 服务；每本书主色从封面实时提取并降饱和 |
 | 连续换句录屏 | 有意不做 | 见下方“证据策略” |
-| 公开构建 | 已执行 | `npm run build` 成功；local 模式构建被拒绝；公开快照当前为空 |
+| 公开构建 | 本机已验收 | `npm run build`、非空公开版浏览器与隔离检查通过；local 模式仍禁止生产构建；尚未部署 |
 | 发布审核清单 | 已完成两轮审核 | 私有 policy：108 本公开 / 22 本排除 / 6 条单独排除，`reviewComplete=true`，private preview `releaseReady=true` |
-| 可公开快照 | 仍未生成 | `src/data/public-snapshot.json` 保持 0 本 / 0 条；正式 export、public covers、repo、push 与部署留给后续 Release-B～E |
+| 可公开快照 | 已获授权并在本机导出 | `src/data/public-snapshot.json`：108 本 / 3,462 条，封面 108 张；尚未创建远程仓库、push 或部署 |
 | 数据覆盖缺口 | 已更新 | 真实划线无原始换行样本（唯一剩余警告）；年份仅 2024–2026；V2-A 后已不再限于 30–50 条样本 |
 | Product Critique #1 | 已完成方向评审 | 用户确认：不以塑造 Henry 印象为算法目标；改为全量真实划线的轻松漫游、书籍主题书架与公平两阶段抽样 |
 | v2 施工准备 | 已完成 | 最新产品决定见 `docs/10`，迁移与验收路线见 `docs/11` |
@@ -53,7 +53,15 @@
 | V3 Batch 6 全量标签 | 已完成 | 1,694 reviewed / 2,969 draft；688 条全文 override；自动 high-risk 0；snapshot、路径投影与最终地图已重建；详见 `docs/28` |
 | 真实访客 Gate | 未进行 | 用户本人体验反馈非常积极（V2-E4D 就是其反馈驱动的收尾），但尚无首次访客结果，不冒充产品 Gate 通过 |
 
-原始返回、更新包、候选池、快照与截图全部留在 `.private/`，已被 `.gitignore` 排除，未进入前端包。
+原始返回、更新包、候选池、完整本机快照与私有截图留在 `.private/`，已被 `.gitignore` 排除；获准公开的快照与封面位于 `src/data/` 和 `public/covers/`，仅在本机生成，尚未部署。
+
+## 站内产品说明 `/design`（2026-09-24）
+
+- 范围：访客可直达的产品说明页；门厅与 About 入口；路由与真实链接；不加主导航项。文案解释按书公平抽句、两层主题、小径公平与条件性语义节奏、全点地图与本机 embedding、公开范围与完整快照可下载的边界。无模型切换、数据重建、标签变更或发布动作。
+- 文件：`src/features/rooms/DesignRoom.tsx`、`AboutRoom.tsx`、`HallRoom.tsx`、`rooms.css`，路由/导航与测试；公开隔离脚本仅收窄 flomo 私有参考文件名探针；`README.md` 同步修正已导出快照的过期状态。记录见 `docs/46-SITE-DESIGN-EXPLANATION.md`。
+- 命令：`npm run check:local` 304/304、`npm run build`、`npm run isolation:public`、`npm run test:public` 7/7、`npx playwright test --config playwright.pages.config.ts` 5/5、全套 local Chromium 129/129；typecheck/lint/数据校验通过，原有覆盖提醒两项未变。
+- 浏览器证据：`.private/review/site-design/design-1440.png`、`design-390.png`、`design-320.png`；阅读与链接在桌面、移动端和 200% 等价视口可用，未发现横向溢出。
+- 未验证 / 偏差：Pages 式深链仍为 HTTP 404 回退；Safari、真机、读屏、浏览器菜单缩放、外部首次访客与作者本人对页面语气的最终确认仍待进行。下一步等 Henry 审核站内文案；GitHub、skill、push、workflow、部署均不在本阶段范围。
 
 ## V3 Batch 0 — 权威重置与顶层设计（2026-09-18）
 

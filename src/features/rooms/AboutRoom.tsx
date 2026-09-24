@@ -9,8 +9,8 @@ export type AboutRoomProps = {
 /**
  * 关于: the real collection range, and nothing about the reader (docs/12 §2.6).
  *
- * Internal principles, release process and "what this page refuses to do" are not the visitor's
- * business, so they are not written here.
+ * This page keeps the collection and source disclosure concise; visitors who want the product
+ * explanation can follow the separate design page without interrupting the reading flow.
  */
 export function AboutRoom({ index }: AboutRoomProps) {
     const span = yearSpanText(index);
@@ -30,6 +30,11 @@ export function AboutRoom({ index }: AboutRoomProps) {
             </p>
             <p className="room-note about-context" data-testid="about-context">
                 这里展示的是我在阅读中留下的原文划线。单句脱离原书后可能失去部分上下文，也不代表我认同作者的全部观点。
+            </p>
+
+            <p className="room-note about-design-link">
+                想了解随机遇见、主题小径和地图的设计，可以看
+                <a href={sitePath('/design')} data-testid="about-design-link">这个网站怎么运作</a>。
             </p>
 
             <p className="room-note about-rights" data-testid="about-rights">

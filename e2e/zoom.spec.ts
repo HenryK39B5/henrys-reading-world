@@ -57,6 +57,7 @@ function rooms(): Room[] {
         { label: '所有书', path: '/books' },
         { label: '书籍房间', path: `/books/${encodeURIComponent(bookId)}` },
         { label: '关于', path: '/about' },
+        { label: '网站说明', path: '/design' },
     ];
 }
 

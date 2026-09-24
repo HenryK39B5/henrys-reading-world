@@ -48,11 +48,38 @@ test('404 fallback retains direct book, map, and unknown URL', async ({ page }) 
     response = await page.goto(`${site}/map`);
     expect(response?.status()).toBe(404);
     await expect(page.getByTestId('map-canvas')).toBeVisible();
+    response = await page.goto(`${site}/design`);
+    expect(response?.status()).toBe(404);
+    await expect(page.getByTestId('room-heading')).toHaveText('这个网站怎么运作');
+    await page.getByRole('link', { name: '主题书架' }).last().click();
+    await expect(page).toHaveURL(`${site}/themes`);
     response = await page.goto(`${site}/not-a-room`);
     expect(response?.status()).toBe(404);
     await expect(page.getByTestId('room-heading')).toBeVisible();
     await page.getByTestId('exit-hall').click();
     await expect(page).toHaveURL(`${site}/`);
+});
+
+test('the finished design page remains readable and linked across widths', async ({ page }) => {
+    const folder = join(process.cwd(), '.private/review/site-design');
+    await mkdir(folder, { recursive: true });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    for (const width of [1440, 720, 390, 320]) {
+        await page.setViewportSize({ width, height: 900 });
+        const response = await page.goto(`${site}/design`);
+        expect(response?.status()).toBe(404);
+        const article = page.locator('[data-room="design"]');
+        await expect(article.getByRole('heading', { name: '地图怎样形成' })).toBeVisible();
+        const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+        expect(overflow, `design page at ${String(width)}px`).toBeLessThanOrEqual(1);
+        if (width !== 720) {
+            await page.screenshot({ path: join(folder, `design-${String(width)}.png`), fullPage: true });
+        }
+    }
+    const pathLink = page.locator('[data-room="design"]').getByRole('link', { name: '主题小径', exact: true });
+    await pathLink.focus();
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(`${site}/paths`);
 });
 
 test('failed public asset stays an honest error state instead of showing invented content', async ({ page }) => {

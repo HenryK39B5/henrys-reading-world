@@ -33,6 +33,7 @@ function activeId(route: RoomRoute): string {
         case 'book':
             return 'books';
         case 'about':
+        case 'design':
             return 'about';
         case 'unknown':
             return '';

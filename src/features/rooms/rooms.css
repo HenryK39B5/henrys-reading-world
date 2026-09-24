@@ -596,7 +596,71 @@
     margin: 20px 0 0;
 }
 
+.about-design-link {
+    margin: 22px 0 0;
+}
+
+.room-design {
+    max-width: 760px;
+}
+
+.design-intro {
+    margin: 0 0 48px;
+}
+
+.design-intro .room-heading {
+    margin: 10px 0 18px;
+    font-size: clamp(28px, 4vw, 38px);
+    line-height: 1.4;
+}
+
+.design-lead {
+    max-width: 40em;
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.9;
+}
+
+.design-section {
+    border-top: 1px solid var(--rule);
+    padding: 22px 0 24px;
+}
+
+.design-section h2 {
+    margin: 0 0 16px;
+    font-family: var(--stage-font);
+    font-size: 23px;
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+.design-section p {
+    max-width: 42em;
+    margin: 0 0 16px;
+    color: var(--ink-soft);
+    font-size: 15px;
+    line-height: 1.9;
+}
+
+.design-section p:last-child {
+    margin-bottom: 0;
+}
+
+.design-section a,
+.about-design-link a {
+    color: var(--ink);
+    text-decoration-color: var(--ink-soft);
+}
+
 @media (max-width: 640px) {
+    .design-intro {
+        margin-bottom: 36px;
+    }
+
+    .design-section h2 {
+        font-size: 21px;
+    }
+
     .shelf-description {
         margin-left: 0;
     }

@@ -21,6 +21,7 @@ describe('routes are parsed from real paths', () => {
         expect(parseRoute('/books')).toEqual({ name: 'books', year: null, themeId: null });
         expect(parseRoute('/books/b-013')).toEqual({ name: 'book', bookId: 'b-013' });
         expect(parseRoute('/about')).toEqual({ name: 'about' });
+        expect(parseRoute('/design')).toEqual({ name: 'design' });
     });
 
     it('keeps real filters and drops impossible ones', () => {
@@ -67,6 +68,7 @@ describe('routes are rebuilt as canonical URLs', () => {
             '/books',
             '/books/b-013',
             '/about',
+            '/design',
         ]) {
             const [pathname = '/', search = ''] = path.split('?');
             expect(routePath(parseRoute(pathname, search))).toBe(path);
@@ -108,6 +110,7 @@ describe('routes are rebuilt as canonical URLs', () => {
             routeKey({ name: 'books', year: 2025, themeId: null }),
             routeKey({ name: 'book', bookId: 'b-001' }),
             routeKey({ name: 'about' }),
+            routeKey({ name: 'design' }),
         ];
         expect(new Set(keys).size).toBe(keys.length);
         expect(roomPath({ name: 'map', tagId: 'tag-001', bookId: null, highlightId: 'h-001' })).toBe('/map');

@@ -23,6 +23,16 @@ test.describe('non-empty public release', () => {
         await expect(page.getByTestId('theme-list').locator('li').first()).toBeVisible();
     });
 
+    test('the public site explains its navigation, model boundary and publication scope', async ({ page }) => {
+        await page.goto('/about');
+        await page.getByTestId('about-design-link').click();
+        await expect(page).toHaveURL('/design');
+        await expect(page.getByTestId('room-heading')).toHaveText('这个网站怎么运作');
+        await expect(page.locator('[data-room="design"]')).toContainText('未标注的句子仍然参与整体地形');
+        await expect(page.locator('[data-room="design"]')).toContainText('公开版的完整收录内容仍会被下载');
+        await expect(page.getByText('仅本机 · 未公开审核')).toHaveCount(0);
+    });
+
     test('a public book room has a real passage and no private mode marker', async ({ page }) => {
         const book = snapshot.books[0];
         expect(book).toBeDefined();
