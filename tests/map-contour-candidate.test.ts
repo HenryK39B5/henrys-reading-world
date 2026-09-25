@@ -27,4 +27,21 @@ describe('offline contour comparison on the real approved density field', () => 
             }
         }
     });
+    it('adds nested local density levels without modifying the approved point field', () => {
+        const map = snapshot.map;
+        expect(map).toBeDefined();
+        if (map === undefined) return;
+        const before = JSON.stringify(map);
+        const levels = [48, 96, 136, 160, 184, 208, 232];
+        const relief = interpolatedContours(map.density, levels);
+        expect(relief.map((entry) => entry.level)).toEqual(levels);
+        expect(relief.every((entry) => entry.segments.length > 0)).toBe(true);
+        expect(JSON.stringify(map)).toBe(before);
+        for (const contour of relief) {
+            for (const segment of contour.segments) {
+                expect(segment).toHaveLength(4);
+                expect(segment.every((value) => Number.isFinite(value) && value >= 0 && value <= MAP_COORDINATE_MAX)).toBe(true);
+            }
+        }
+    });
 });

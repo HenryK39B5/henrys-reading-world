@@ -3289,6 +3289,11 @@ Slice / task IDs：
 - 实跑：`npm run check:local` 309/309，`npm run build`、`npm run isolation:public`、`npm run publication:verify`（184 静态入口）、`npm run test:public` 8/8、相关 local Chromium 1/1、Pages 式 Chromium 7/7、WebKit 7/7。Pages 页面截图在 `.private/review/maintenance/m05/about-links-{1440,390,320}.png`（Git 忽略）；320px 链接不拆词，三种宽度无横向溢出。第一轮截图拍在淡入初段；加 reduced-motion 后，CSS 更改一度未重建 `dist` 导致旧截图，再次 build/retest 后人工复看终版。WebKit 不是实际 Safari/iOS，读屏、系统缩放与人工内容权利判断仍未验收。
 - M-04 不替换现有等高线。新增讨论稿 `docs/50-READING-WORLD-CONTOUR-SEMANTICS.md`：对照 flomo 官方认知地图说明、本机视觉参考和当前 `buildDensity` 实现，明确现有线只表达公开划线在二维投影里的局部密度，不能直接代表个人偏好、已命名主题边界或跨书关联；记录同点位的候选视觉与后续验证问题。flomo 的产品语义不是其算法规格；概念及下一轮视觉方向仍待 Henry 讨论，未动地图、UMAP、模型、公开数据，未推送或部署。
 
+## M-04 划线聚集密度候选（2026-09-25）
+- Henry 选择“划线在哪里聚集”为等高线首要含义；不以它表达个人认同、主题边界或未经计算验证的跨书相遇。只扩展离线 `interpolatedContours` 为可指定层级，在现有公开密度场加入 136/184/208/232，与原有层级共同形成七层候选；生产地图不变。`scripts/compare-map-contours.ts` 将峰附近的点数、书籍数与最大单书占比写入本机忽略的候选文件；2.5 网格单元内的抽样不是整个山体的统计。
+- 真实同点位对照：`e2e/contour-compare.spec.ts` 在 Pages 式 Chromium 内存替换轮廓，世界/区域在 1440/390/320px 各拍现版与候选，共 12 张 `.private/review/maintenance/m04/relief/`。候选在总览更能显示局部峰；区域放大后线条开始与点和标签竞争，不作为直接上线方案。单元测试验证候选层级非空、有界且不修改输入；快照 hash 验证点与密度相同。
+- 验证：`npm run typecheck`、`npm run map:contours:compare`、新候选 Chromium 1/1、`npm run check:local` 310/310、`npm run build`、`npm run isolation:public`、`npm run publication:verify` 通过，生产 JS/JSON 资产未变。初次 E2E 假设窄屏画布大于 300px，修正后区域桌面宽度仍不符阈值；改用有效画布尺寸断言后通过。下一步讨论是否只在总览强调高峰、区域淡化多余轮廓，再考虑是否从峰附近抵达真实划线；无产品地图改动、推送或部署。
+
 ## V3 Public snapshot export and local release acceptance (2026-09-23)
 
 - User explicitly authorized local public export. `npm run publication:export` generated `src/data/public-snapshot.json` and 108 resized `public/covers/*.jpg`; no repository, push, workflow, or deployment action was performed.

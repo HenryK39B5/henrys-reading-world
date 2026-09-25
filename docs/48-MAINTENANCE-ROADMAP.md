@@ -37,6 +37,8 @@ M-01 先于 M-04：先稳定地图标签，才比较等高线的视觉差异。M
 
 - 2026-09-24 · M-05 完成；M-04 进行中 · Henry 认可技术文章与全站链接职责，要求“关于”把运作方式和技术实现并列提供，而非新增首页入口；本地提交 `2d4f4ba` 完成双入口与 320px 短链接不拆词。`npm run check:local` 309/309、`npm run build`、`npm run isolation:public`、`npm run publication:verify`、public Chromium 8/8、相关 local Chromium 1/1、Pages 式 Chromium 7/7 和 WebKit 7/7 通过；在重建后重新拍摄并检查 `.private/review/maintenance/m05/about-links-{1440,390,320}.png`。初次截图捕获了入场动画且样式修改后曾误用旧 `dist`，两处均已纠正，不能以旧图作验收。未推送或部署。等高线不再仅以平滑程度决定：`docs/50-READING-WORLD-CONTOUR-SEMANTICS.md` 区分 flomo 的笔记山峰叙事、本站划线二维密度的实际含义，以及尚未验证的跨书相遇层；地图代码、点位和线上视觉未改。下一步是与 Henry 确定等高线要帮访客看见什么，再设计同点位对照。
 
+- 2026-09-25 · M-04 进行中 · Henry 明确选择以“划线在哪里聚集”作为等高线的第一含义。离线候选在同一 3,462 个固定点位和同一 64 x 40 公开密度场上新增 136/184/208/232 等层级；审计高峰附近的书籍构成，世界/区域在 1440/390/320px 各拍现版/候选，共 12 张 `.private/review/maintenance/m04/relief/` 截图。总览的局部高峰更清楚，区域视图新增线条偏密，未通过直接替换的视觉判断。`npm run check:local` 310/310、`npm run build`、`npm run isolation:public`、`npm run publication:verify` 和 Pages 式候选 Chromium 1/1 通过；首次截图断言错误假设窄屏/区域画布宽度，修正为确认画布有效后重跑通过。现有产品渲染、坐标、embedding、公开快照未改，未推送或部署。具体判断见 `docs/50`；下一步讨论是否仅在总览强调高峰、放大时让位于点与文字。
+
 ## 更新格式
 
 任务状态改变时，在对应 ID 下追加一条简短记录：`日期 · 状态 · 范围/决定 · 实际命令及结果 · 本机证据（若有） · 提交号 · 遗留问题`。同时按 `docs/08` 的约定记录完成阶段；不要为待做任务填写预期测试结果。公开仓库中的记录仅包含适合公开的信息。

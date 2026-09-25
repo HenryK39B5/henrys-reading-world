@@ -3,9 +3,9 @@ import { MAP_COORDINATE_MAX, type MapContour, type MapDensity } from '../../src/
 import { MAP_CONTOUR_LEVELS } from './mapLayout.ts';
 
 /** Alternative line geometry on the existing density grid; no points or field values are recalculated. */
-export function interpolatedContours(density: MapDensity): MapContour[] {
+export function interpolatedContours(density: MapDensity, levels: readonly number[] = MAP_CONTOUR_LEVELS): MapContour[] {
     const { columns, rows } = density;
-    const generator = contours().size([columns, rows]).thresholds([...MAP_CONTOUR_LEVELS]).smooth(true);
+    const generator = contours().size([columns, rows]).thresholds([...levels]).smooth(true);
     const project = (value: number, maximum: number): number =>
         Math.round(Math.max(0, Math.min(1, (value - 0.5) / (maximum - 1))) * MAP_COORDINATE_MAX);
     return generator(density.values).map((geometry) => {

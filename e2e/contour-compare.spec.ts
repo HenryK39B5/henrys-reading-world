@@ -10,6 +10,9 @@ const artifact = JSON.parse(readFileSync('.private/review/maintenance/m04/candid
     pointsHash: string;
     densityHash: string;
     candidate: MapContour[];
+    relief: MapContour[];
+    reliefLevels: number[];
+    peaks: { column: number; row: number; value: number; nearbyPoints: number; books: number; largestBookShare: number }[];
 };
 const hash = (value: unknown): string => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const folder = join(process.cwd(), '.private/review/maintenance/m04');
@@ -44,5 +47,41 @@ test('current and interpolated contours render the identical public map at match
                 await expect(page.getByTestId('map-summary')).toContainText('3462 个真实点');
             }
         }
+    }
+});
+
+test('localized density relief reveals peaks without changing points, labels or density', async ({ page }) => {
+    const map = snapshot.map;
+    expect(map).toBeDefined();
+    if (map === undefined) return;
+    expect(artifact.pointsHash).toBe(hash(map.points));
+    expect(artifact.densityHash).toBe(hash(map.density));
+    expect(artifact.relief.map((entry) => entry.level)).toEqual(artifact.reliefLevels);
+    expect(artifact.peaks.length).toBeGreaterThan(3);
+    const evidence = join(process.cwd(), '.private/review/maintenance/m04/relief');
+    mkdirSync(evidence, { recursive: true });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    for (const [variant, traced] of [
+        ['baseline', map.contours],
+        ['relief', artifact.relief],
+    ] as const) {
+        await page.route('**/assets/public-snapshot-*.json', (route) => route.fulfill({
+            json: { ...snapshot, map: { ...map, contours: traced } },
+        }));
+        for (const width of [1440, 390, 320]) {
+            await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
+            for (const [room, path] of [
+                ['world', '/henrys-reading-world/map/'],
+                ['region', '/henrys-reading-world/map/?tag=tag-040'],
+            ] as const) {
+                await page.goto(path);
+                const canvas = page.getByTestId('map-canvas');
+                await expect(canvas).toBeVisible();
+                await expect.poll(() => canvas.evaluate((node) => (node as HTMLCanvasElement).width)).toBeGreaterThan(200);
+                await canvas.screenshot({ path: join(evidence, `${variant}-${room}-${String(width)}.png`) });
+                await expect(page.getByTestId('map-summary')).toContainText('3462 个真实点');
+            }
+        }
+        await page.unroute('**/assets/public-snapshot-*.json');
     }
 });
