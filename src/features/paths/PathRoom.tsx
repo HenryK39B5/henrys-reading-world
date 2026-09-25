@@ -73,10 +73,10 @@ export function PathRoom({ index, tagId, nowYear, room, onOpenBook, onShare }: P
                     <p className="path-text" data-testid="path-passage">{current.text}</p>
                 </blockquote>
                 <p className="path-source">
-                    <span aria-hidden="true">——</span>
                     <button type="button" className="path-book-link" onClick={() => onOpenBook(book.id)}>
-                        《{book.title}》{book.author}
+                        《{book.title}》
                     </button>
+                    <span className="path-author">{book.author}</span>
                     {time === null ? null : <span className="path-time">· {time}</span>}
                 </p>
                 <TopicClues

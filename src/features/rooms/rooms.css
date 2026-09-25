@@ -587,6 +587,11 @@
     line-height: 1.78;
 }
 
+.room-about > .room-note {
+    margin-top: 22px;
+    margin-bottom: 0;
+}
+
 .about-detail {
     margin-top: 22px;
 }

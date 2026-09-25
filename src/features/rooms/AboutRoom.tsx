@@ -32,6 +32,10 @@ export function AboutRoom({ index }: AboutRoomProps) {
                 这里展示的是我在阅读中留下的原文划线。单句脱离原书后可能失去部分上下文，也不代表我认同作者的全部观点。
             </p>
 
+            <p className="room-note about-map-note" data-testid="about-map-note">
+                地图把已公开的真实划线放回一张固定的二维阅读世界；地形表达公开点位的局部聚集，不替代原书上下文，也不代表个人偏好判断。
+            </p>
+
             <p className="room-note about-design-link">
                 想了解阅读方式，可以看<a href={sitePath('/design')} data-testid="about-design-link">这个网站怎么运作</a>；
                 想看数据、标签和地图的实现，可以读<a href={sitePath('/design/technical')} data-testid="about-technical-link">技术实现</a>。

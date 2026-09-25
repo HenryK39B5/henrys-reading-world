@@ -26,6 +26,15 @@
     line-height: 1.75;
 }
 
+.map-head-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px 14px;
+}
+
+.map-world-return,
 .map-list-return {
     white-space: nowrap;
 }

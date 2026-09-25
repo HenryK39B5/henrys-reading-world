@@ -264,12 +264,15 @@
 
 .path-book-link {
     min-height: 44px;
+    max-width: min(100%, 34ch);
     padding: 4px 0;
     border: 0;
     background: transparent;
     color: inherit;
     cursor: pointer;
+    overflow-wrap: anywhere;
     text-align: left;
+    white-space: normal;
 }
 
 .path-book-link:hover {

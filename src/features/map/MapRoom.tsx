@@ -210,7 +210,12 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                     </p>
                     {tag?.description === undefined ? null : <p className="map-region-description">{tag.description}</p>}
                 </div>
-                {tag === undefined ? null : <a className="room-exit map-list-return" href={sitePath('/paths')}>小径列表</a>}
+                {tag === undefined ? null : (
+                    <nav className="map-head-actions" aria-label="当前地图层级">
+                        <a className="room-exit map-world-return" href={sitePath('/map')}>回到世界总览</a>
+                        <a className="room-exit map-list-return" href={sitePath('/paths')}>小径列表</a>
+                    </nav>
+                )}
             </header>
 
             {unknownSelection ? (
