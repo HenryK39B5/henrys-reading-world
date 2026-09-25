@@ -15,6 +15,7 @@ import { MAP_COORDINATE_MAX } from '../../domain/types.ts';
 import type { SnapshotIndex } from '../../domain/snapshot.ts';
 import { placeMapLabels, visibleMapLabels, type LabelPlacement } from './labelPlacement.ts';
 import { MapStudyTerrain, type MapStudyData } from './MapStudyTerrain.tsx';
+import publicMapTerrainUrl from '../../data/public-map-terrain.json?url';
 
 export type MapCanvasProps = {
     index: SnapshotIndex;
@@ -106,13 +107,17 @@ export function MapCanvas({
     useEffect(() => {
         if (!__MAP_STUDY__) return;
         const controller = new AbortController();
-        void fetch('/__map_study', { cache: 'no-store', signal: controller.signal })
+        const source = __MAP_STUDY_ENDPOINT__ ? '/__map_study' : __LOCAL_MODE__ ? '/__local_map_terrain' : publicMapTerrainUrl;
+        void fetch(source, { cache: 'no-store', signal: controller.signal })
             .then((response) => {
-                if (!response.ok) throw new Error('Map study field unavailable');
+                if (!response.ok) throw new Error('Map terrain unavailable');
                 return response.json() as Promise<MapStudyData>;
             })
-            .then((value) => { if (!controller.signal.aborted) setStudy(value); })
-            .catch(() => { /* The ordinary map stays usable if the local study artifact is missing. */ });
+            .then((value) => {
+                if (!controller.signal.aborted && value.density?.columns === 128 && value.density.rows === 80 &&
+                    Array.isArray(value.contours) && Array.isArray(value.bands)) setStudy(value);
+            })
+            .catch(() => { /* The existing Canvas map remains available if the terrain asset is missing. */ });
         return () => controller.abort();
     }, []);
 

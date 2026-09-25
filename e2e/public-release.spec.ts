@@ -64,8 +64,25 @@ test.describe('non-empty public release', () => {
         await page.goto('/map');
         await expect(page.getByTestId('room-heading')).toHaveText('阅读世界地图');
         await expect(page.getByTestId('map-canvas')).toBeVisible();
+        await expect(page.locator('.map-canvas-wrap[data-map-study="ready"]')).toBeVisible();
+        await expect(page.getByTestId('map-study-terrain')).toHaveAttribute('data-renderer', 'webgl2');
+        await expect(page.getByTestId('map-study-bands')).toBeVisible();
         await expect(page.locator('#map-region-list')).toBeVisible();
         await expect(page.getByText('仅本机 · 未公开审核')).toHaveCount(0);
+    });
+
+    test('the public map stays navigable with Canvas bands when WebGL2 is unavailable', async ({ page }) => {
+        await page.addInitScript(() => {
+            const original = HTMLCanvasElement.prototype.getContext;
+            HTMLCanvasElement.prototype.getContext = function (kind, ...options) {
+                if (kind === 'webgl2') return null;
+                return original.call(this, kind, ...options);
+            } as typeof original;
+        });
+        await page.goto('/map');
+        await expect(page.getByTestId('map-study-terrain')).toHaveAttribute('data-renderer', 'bands');
+        await page.locator('.map-region-list a').first().click();
+        await expect(page.locator('.map-point-list a').first()).toBeVisible();
     });
 
     test('a public share dialog carries a stable approved highlight link', async ({ page }) => {

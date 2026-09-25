@@ -2,5 +2,7 @@
 
 /** Injected by vite.config.ts: true only for the loopback `dev:local` server. */
 declare const __LOCAL_MODE__: boolean;
-/** True only on the loopback `dev:map:study` server; always false in public builds. */
+/** Legacy name for the accepted terrain renderer, enabled in public and local reading maps. */
 declare const __MAP_STUDY__: boolean;
+/** Only the isolated study server uses its original local density endpoint. */
+declare const __MAP_STUDY_ENDPOINT__: boolean;

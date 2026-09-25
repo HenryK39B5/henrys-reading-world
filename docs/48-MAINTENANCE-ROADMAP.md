@@ -53,6 +53,10 @@ M-01 先于 M-04：先稳定地图标签，才比较等高线的视觉差异。M
 
 - 2026-09-25 · M-04 待 Henry 真机稳定性验收 · 第一阶段稳定性完成：确认 `5176` 已停止；新增 WebKit/Chromium、DPR 2、1440→720→390→320→1440 resize、24 轮滚轮/拖动、继续缩放、主题列表导航以及 Chromium WebGL 丢失后 Canvas 回退的专项测试。修正 720 viewport 实际 Canvas 为 672px 的测试假设后，`npm run test:map:stability` Chromium 2/2、WebKit 1/1 通过，WebKit context-loss 按扩展不可稳定暴露跳过；Playwright 往返采样不作为帧率。证据在 `.private/review/maintenance/m04/stability/`，候选图压力后非空且可导航。Windows 无法替代真实 iOS/Safari、Android、低端 GPU、长时间墙钟运行和浏览器菜单真实 200%；线上地图/快照未改，无推送部署。
 
+- 2026-09-25 · M-04 待完整回归与发布 Gate · Henry 确认采用 WebGL2 连续明暗＋低强度等值带。正式地图已接入：公开构建读取 `src/data/public-map-terrain.json`（公开 3,462 固定点生成，128x80/7 层，构建前校验 map version/points hash），`dev:local` 读取独立 `.private/local-map-terrain.json`，旧 `map-study` 仍仅作隔离研究端点。WebGL2 不可用或 context loss 后回退 Canvas2D 等值带；公开 Chromium 9/9、Pages Chromium/WebKit 4/4、既有本机地图/标签 15/15、隔离候选 14/14 加 1 skip、单测 318/318、build/isolation/publication verify 已通过。完整默认 130 项 E2E、Henry 发布确认和部署仍待做；未推送部署。
+
+- 2026-09-25 · M-04 待 Henry 发布/部署 Gate · 正式渲染已接入并完成完整工程回归：公开构建使用带指纹的 128x80/7 层 `src/data/public-map-terrain.json`，本机模式使用独立 `.private/local-map-terrain.json`；WebGL2 连续明暗＋28% Canvas 等值带，初始化失败/不可用/context loss 回退 Canvas。`npm run check:local` 318/318，完整默认本机 E2E 130/130（固定 5173），公开 Chromium 9/9，Pages Chromium/WebKit 4/4，本机地图/标签 15/15，隔离候选 14/14 加 1 个预期 skip，build/isolation/publication verify 通过。地图点位、公开快照和内容未变；真机仍未测，未推送部署。下一步只剩 Henry 发布确认和单独部署 Gate。
+
 ## 更新格式
 
 任务状态改变时，在对应 ID 下追加一条简短记录：`日期 · 状态 · 范围/决定 · 实际命令及结果 · 本机证据（若有） · 提交号 · 遗留问题`。同时按 `docs/08` 的约定记录完成阶段；不要为待做任务填写预期测试结果。公开仓库中的记录仅包含适合公开的信息。

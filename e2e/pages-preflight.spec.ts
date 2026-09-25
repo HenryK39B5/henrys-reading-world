@@ -55,6 +55,7 @@ test('public room documents return 200; missing rooms still use the 404 fallback
     response = await page.goto(`${site}/map/?book=${encodeURIComponent(book.id)}`);
     expect(response?.status()).toBe(200);
     await expect(page.getByTestId('map-canvas')).toBeVisible();
+    await expect(page.getByTestId('map-study-terrain')).toHaveAttribute('data-renderer', /webgl2|bands/);
     response = await page.goto(`${site}/design/`);
     expect(response?.status()).toBe(200);
     await expect(page.getByTestId('room-heading')).toHaveText('这个网站怎么运作');
@@ -78,6 +79,21 @@ test('public room documents return 200; missing rooms still use the 404 fallback
     await expect(page.getByTestId('room-heading')).toBeVisible();
     await page.getByTestId('exit-hall').click();
     await expect(page).toHaveURL(`${site}/`);
+});
+
+test('built project-site map loads its approved terrain asset and stays readable at desktop and mobile widths', async ({ page }) => {
+    const folder = join(process.cwd(), '.private/review/maintenance/m04/production');
+    await mkdir(folder, { recursive: true });
+    for (const width of [1440, 390, 320]) {
+        await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
+        const response = await page.goto(`${site}/map/`);
+        expect(response?.status()).toBe(200);
+        await expect(page.getByTestId('map-summary')).toContainText('3462 个真实点');
+        await expect(page.locator('.map-canvas-wrap[data-map-study="ready"]')).toBeVisible();
+        await expect(page.getByTestId('map-study-terrain')).toHaveAttribute('data-renderer', /webgl2|bands/);
+        await page.getByTestId('map-stage').screenshot({ path: join(folder, `world-${String(width)}-${test.info().project.name}.png`) });
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+    }
 });
 
 test('the finished design page remains readable and linked across widths', async ({ page }) => {

@@ -20,6 +20,7 @@ import { validateTopicTagAssignments, validateTopicTagVocabulary } from './src/d
 import type { Snapshot } from './src/domain/types.ts';
 import { validateSnapshot } from './src/domain/validate.ts';
 import { publicRoomPaths } from './scripts/public-route-entries.ts';
+import { matchesMapTerrain } from './scripts/embeddings/mapTerrainArtifact.ts';
 
 const LOCAL_SNAPSHOT_FILE = '.private/local-snapshot.json';
 const LOCAL_COVER_DIR = '.private/covers';
@@ -300,6 +301,31 @@ function localSnapshotPlugin(flags: { snapshot: boolean; publication: boolean; t
     };
 }
 
+function localMapTerrainPlugin(enabled: boolean): Plugin {
+    return {
+        name: 'reading-world-local-map-terrain',
+        configureServer(server) {
+            if (!enabled) return;
+            server.middlewares.use((req, res, next) => {
+                if ((req.url ?? '').split('?')[0] !== '/__local_map_terrain') { next(); return; }
+                if (req.method !== 'GET') { sendText(res, 405, 'Method Not Allowed'); return; }
+                void (async () => {
+                    try {
+                        const snapshot = JSON.parse(await readFile(resolve(LOCAL_SNAPSHOT_FILE), 'utf8')) as Snapshot;
+                        const artifact = JSON.parse(await readFile(resolve('.private/local-map-terrain.json'), 'utf8')) as unknown;
+                        if (snapshot.visibility !== 'local-only' || !matchesMapTerrain(artifact, snapshot)) throw new Error('stale terrain');
+                        res.statusCode = 200;
+                        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+                        res.setHeader('Cache-Control', 'no-store');
+                        res.setHeader('X-Robots-Tag', 'noindex');
+                        res.end(JSON.stringify(artifact));
+                    } catch { sendText(res, 404, 'Local terrain unavailable; run npm run map:terrain:local.'); }
+                })();
+            });
+        },
+    };
+}
+
 function mapStudyPlugin(): Plugin {
     return {
         name: 'reading-world-map-study',
@@ -354,6 +380,7 @@ export default defineConfig(({ command, mode }) => {
         plugins: [
             react(),
             localSnapshotPlugin({ snapshot: anyLocalMode, publication: reviewMode, tags: tagStudioMode }),
+            localMapTerrainPlugin(anyLocalMode),
             ...(mapStudyMode ? [mapStudyPlugin()] : []),
             {
                 name: 'pages-room-entries',
@@ -406,7 +433,9 @@ export default defineConfig(({ command, mode }) => {
         },
         define: {
             __LOCAL_MODE__: JSON.stringify(anyLocalMode && command === 'serve'),
-            __MAP_STUDY__: JSON.stringify(mapStudyMode && command === 'serve'),
+            // Historical feature flag: the accepted study visuals now run in public and local map modes.
+            __MAP_STUDY__: JSON.stringify(mapStudyMode || localMode || (!anyLocalMode && command === 'serve') || command === 'build'),
+            __MAP_STUDY_ENDPOINT__: JSON.stringify(mapStudyMode && command === 'serve'),
         },
     };
 });

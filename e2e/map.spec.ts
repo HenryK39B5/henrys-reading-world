@@ -5,7 +5,7 @@ import { hasSnapshot, loadSnapshot } from './support/snapshot.ts';
 test.describe('V3 reading world map', () => {
     test.skip(!hasSnapshot, 'private local snapshot is not available');
 
-    test('renders the full real world on one canvas with a complete region-list alternative', async ({ page }) => {
+    test('renders the full real world on layered canvases with a complete region-list alternative', async ({ page }) => {
         const data = loadSnapshot();
         expect(data.map).toBeDefined();
         await page.goto('/map');
@@ -18,6 +18,8 @@ test.describe('V3 reading world map', () => {
         await expect(page.locator('.map-region-list > li')).toHaveCount(data.tags.length);
         await expect(page.getByTestId('map-regions-toggle')).toHaveAttribute('aria-expanded', 'true');
         await expect(page.getByTestId('map-canvas')).toBeVisible();
+        await expect(page.locator('.map-canvas-wrap[data-map-study="ready"]')).toBeVisible();
+        await expect(page.getByTestId('map-study-terrain')).toHaveAttribute('data-renderer', /webgl2|bands/);
 
         const canvasEvidence = await page.getByTestId('map-canvas').evaluate((canvas) => {
             const element = canvas as HTMLCanvasElement;
@@ -40,7 +42,9 @@ test.describe('V3 reading world map', () => {
             canvases: document.querySelectorAll('canvas').length,
             renderedPassages: document.querySelectorAll('.map-detail-passage, .map-point-list').length,
         }));
-        expect(dom.canvases).toBe(1);
+        // Main points/labels, terrain, and optional translucent isobands: never one DOM node per highlight.
+        expect(dom.canvases).toBeGreaterThanOrEqual(2);
+        expect(dom.canvases).toBeLessThanOrEqual(3);
         expect(dom.buttons).toBeLessThan(30);
         expect(dom.elements).toBeLessThan(800);
         expect(dom.renderedPassages).toBe(0);

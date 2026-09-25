@@ -3330,6 +3330,11 @@ Slice / task IDs：
 - 修正一次测试假设：720px viewport 下 Canvas 实际为 672px，源于页面 48px 内边距，不是 resize 故障。最终稳定性测试 Chromium 2/2、WebKit 1/1 通过；WebKit context-loss 项因扩展不稳定按预期跳过。命令往返采样 Chromium 中位 667ms/最大 712ms、WebKit 中位 324ms/最大 570ms，这包含 Playwright 自动化开销，不是帧率或 GPU 性能结论。截图/JSON 在 `.private/review/maintenance/m04/stability/`；压力后的地图在列表导航之前单独截图并抽样画布像素（Chromium 60 / WebKit 23 种），Canvas 回退后仍可导航。专用用例已从默认 Playwright 配置排除；最终 typecheck、lint、`npm run test:map:stability` 3/3（另 1 跳过）、`npm run build` 与 `npm run isolation:public` 均通过。
 - Windows 当前环境不能替代真实 iOS Safari、Android 设备、低端 GPU、长时间墙钟运行或浏览器菜单真实 200% 缩放；已有窄视口/DPR 2 和键盘路径只是自动化证据。丢上下文后候选保持 Canvas 回退，不尝试未经设备验证的 GPU 重建。无产品地图、公开快照、坐标或部署变化。
 
+## M-04 正式渲染方案接入候选（2026-09-25）
+- Henry 确认采用 WebGL2 连续明暗＋低强度等值带；本阶段将它从隔离 `map-study` 研究分支接入公开构建、普通公开开发模式和 `dev:local`。公开构建读取带指纹的 `src/data/public-map-terrain.json`，由已审核 3,462 个固定公开点离线生成；本机模式读取 `.private/local-map-terrain.json` 和 loopback-only `/__local_map_terrain`，由 4,663 个本机点独立生成。两个 artifact 均带 map version/points hash，公开构建前 `map:terrain:verify` 拒绝过期数据；`.private` 不进入公开包。
+- 正式运行层为 WebGL2 连续明暗＋28% Canvas2D 等值带；WebGL2 不可用/初始化失败时直接使用 Canvas 等值带，context loss 后保持回退并继续支持 resize、平移、缩放和路径导航。点、标签、详情仍在上层 Canvas。未改点位、UMAP、公开快照或主题语义。
+- 新增地形 artifact 生成/校验、2 个单测、公开强制无 WebGL 回退检查和 Pages 生产预览 1440/390/320px Chromium/WebKit 检查。公开 artifact 128x80、7 层，约 117 KB 原始/32 KB gzip。公开 Chromium 9/9、既有本机地图/标签 15/15、Pages 预览 4/4、隔离研究交互 14/14 加 1 个预期 WebKit context-loss skip，`npm run check:local` 318/318、build、public isolation、publication verify 通过。完整默认 130 项 E2E 与 Henry 发布/部署 Gate 待完成；未推送部署。
+
 ## V3 Public snapshot export and local release acceptance (2026-09-23)
 
 - User explicitly authorized local public export. `npm run publication:export` generated `src/data/public-snapshot.json` and 108 resized `public/covers/*.jpg`; no repository, push, workflow, or deployment action was performed.
