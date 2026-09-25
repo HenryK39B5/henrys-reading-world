@@ -19,6 +19,7 @@ export default defineConfig({
         '**/capture-7d.spec.ts',
         '**/capture-cross-page.spec.ts',
         '**/contour-compare.spec.ts',
+        '**/terrain-study.spec.ts',
         '**/audit-7g.spec.ts',
         '**/audit-7h.spec.ts',
         '**/audit-7i.spec.ts',

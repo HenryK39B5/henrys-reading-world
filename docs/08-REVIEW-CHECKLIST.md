@@ -3294,6 +3294,11 @@ Slice / task IDs：
 - 真实同点位对照：`e2e/contour-compare.spec.ts` 在 Pages 式 Chromium 内存替换轮廓，世界/区域在 1440/390/320px 各拍现版与候选，共 12 张 `.private/review/maintenance/m04/relief/`。候选在总览更能显示局部峰；区域放大后线条开始与点和标签竞争，不作为直接上线方案。单元测试验证候选层级非空、有界且不修改输入；快照 hash 验证点与密度相同。
 - 验证：`npm run typecheck`、`npm run map:contours:compare`、新候选 Chromium 1/1、`npm run check:local` 310/310、`npm run build`、`npm run isolation:public`、`npm run publication:verify` 通过，生产 JS/JSON 资产未变。初次 E2E 假设窄屏画布大于 300px，修正后区域桌面宽度仍不符阈值；改用有效画布尺寸断言后通过。下一步讨论是否只在总览强调高峰、区域淡化多余轮廓，再考虑是否从峰附近抵达真实划线；无产品地图改动、推送或部署。
 
+## M-04 网格精度与二维渲染隔离实验（2026-09-25）
+- Henry 扩大探索授权：可比较密度采样、等值带、WebGL/Worker 路线，必要时也可在独立试验中重算本机 embedding/UMAP；3D 暂缓。正式替换公开点位、变更线上地图或使用远程 embedding provider 仍非本阶段动作。
+- 新增 `scripts/embeddings/densityStudy.ts`、`scripts/compare-map-density.ts`、`tests/density-study.test.ts` 与隔离 Pages 式 `e2e/terrain-study.spec.ts`/配置；增加两条 npm 研究命令。使用同一批 3,462 公开点位和同一地图空间平滑宽度重采样 64 x 40 / 128 x 80 / 256 x 160；对全部档位固定原峰值归一化标尺，64 x 40 精确复现已发布网格；D3 生成相同七档等值线与 128 x 80 等值带。样板的 Canvas2D 填色与 WebGL2 着色层仅在测试浏览器注入，不进入产品代码或公开构建。WebGL 初次合成参数错误导致过亮，改为非预乘 alpha 后重新截图；不掩盖失败过程。
+- 实际命令：`npm run check:local` 312/312，`npm run build`、`npm run isolation:public`、`npm run publication:verify`、`npm run map:terrain:study`、`npm run test:terrain:study` Chromium 2/2 通过；默认本机 `npx playwright test --config playwright.config.ts --list` 保持 130 项，专用研究测试不混入常规 E2E。点位/标签/原密度 hash 检查，真实 Canvas 非空与 WebGL 像素/alpha 检查通过。证据 `.private/review/maintenance/m04/resolution/` 包含 18 张同视口线稿、6 张总览填色对照；128 x 80 减少网格感，256 x 160 外观增益较小，填色视觉差异细微；GPU 性能、真机/读屏/放大与 context-loss 回退未验证。与此前试验同属待选候选，没有覆盖本地 UMAP 布局、公开快照、产品地图或部署。详细结论和下一步见 `docs/51-DENSITY-RESOLUTION-AND-RENDERING-STUDY.md`。
+
 ## V3 Public snapshot export and local release acceptance (2026-09-23)
 
 - User explicitly authorized local public export. `npm run publication:export` generated `src/data/public-snapshot.json` and 108 resized `public/covers/*.jpg`; no repository, push, workflow, or deployment action was performed.
