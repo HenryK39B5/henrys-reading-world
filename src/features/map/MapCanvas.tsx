@@ -349,33 +349,29 @@ export function MapCanvas({
             const placeName = __MAP_STUDY__ && study !== null;
             const hovered = placeName && hoverTarget?.kind === 'label' && hoverTarget.id === hit.summary.tagId;
             const width = hit.right - hit.left - 16;
+            let litPointsUnderName = 0;
+            if (placeName && active) {
+                for (const point of tagPoints) {
+                    const screen = mapToScreen(point, view, size.width, size.height);
+                    if (Math.abs(screen.x - hit.x) < width / 2 + 2 && Math.abs(screen.y - hit.y) < 9) {
+                        litPointsUnderName += 1;
+                    }
+                    if (litPointsUnderName >= 5) break;
+                }
+            }
+            const onLitCluster = litPointsUnderName >= 5;
             ctx.font = `${active ? '600 16px' : '400 13px'} system-ui, "Microsoft YaHei", sans-serif`;
             if (placeName) {
-                if (Math.abs(hit.x - hit.anchorX) + Math.abs(hit.y + 10 - hit.anchorY) > 5) {
-                    ctx.beginPath();
-                    ctx.moveTo(hit.anchorX, hit.anchorY);
-                    ctx.lineTo(hit.x, hit.y + 8);
-                    ctx.strokeStyle = 'rgba(185, 203, 174, 0.54)';
-                    ctx.lineWidth = 0.8;
-                    ctx.stroke();
-                }
-                ctx.beginPath();
-                ctx.arc(hit.anchorX, hit.anchorY, 1.7, 0, Math.PI * 2);
-                ctx.fillStyle = hovered || active ? '#e9d6a8' : 'rgba(199, 218, 182, 0.82)';
-                ctx.fill();
-                ctx.save();
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.lineJoin = 'round';
-                ctx.lineWidth = 3;
-                ctx.strokeStyle = 'rgba(22, 36, 31, 0.97)';
-                ctx.shadowColor = 'rgba(14, 27, 23, 0.9)';
-                ctx.shadowBlur = 5;
-                ctx.strokeText(hit.summary.title, hit.x, hit.y);
-                ctx.shadowBlur = 0;
-                ctx.fillStyle = active || hovered ? '#f7efd9' : '#dce7d4';
+                if (onLitCluster) {
+                    ctx.lineJoin = 'round';
+                    ctx.lineWidth = 1.2;
+                    ctx.strokeStyle = '#f1e9d5';
+                    ctx.strokeText(hit.summary.title, hit.x, hit.y);
+                }
+                ctx.fillStyle = onLitCluster ? '#1b2c25' : active || hovered ? '#f7efd9' : '#e4e9dd';
                 ctx.fillText(hit.summary.title, hit.x, hit.y);
-                ctx.restore();
             } else {
                 if (Math.abs(hit.x - hit.anchorX) + Math.abs(hit.y - hit.anchorY) > 5) {
                     ctx.beginPath();
@@ -392,20 +388,12 @@ export function MapCanvas({
                 ctx.textBaseline = 'middle';
                 ctx.fillText(hit.summary.title, hit.x, hit.y);
             }
-            if (active || hovered) {
+            if (active && !placeName) {
                 ctx.beginPath();
-                if (placeName) {
-                    const half = Math.min(width / 2, 14);
-                    ctx.moveTo(hit.x - half, hit.y + 10);
-                    ctx.lineTo(hit.x - 4, hit.y + 10);
-                    ctx.moveTo(hit.x + 4, hit.y + 10);
-                    ctx.lineTo(hit.x + half, hit.y + 10);
-                } else {
-                    ctx.moveTo(hit.x - width / 2, hit.y + 11);
-                    ctx.lineTo(hit.x + width / 2, hit.y + 11);
-                }
-                ctx.strokeStyle = active ? '#c9ae80' : '#e7dfba';
-                ctx.lineWidth = active ? 1.5 : 1;
+                ctx.moveTo(hit.x - width / 2, hit.y + 11);
+                ctx.lineTo(hit.x + width / 2, hit.y + 11);
+                ctx.strokeStyle = '#c9ae80';
+                ctx.lineWidth = 1.5;
                 ctx.stroke();
             }
         }

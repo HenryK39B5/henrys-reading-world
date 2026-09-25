@@ -10,7 +10,7 @@ const points = snapshot.map?.points ?? [];
 const contourStudy = JSON.parse(readFileSync('.private/review/maintenance/m04/resolution/field-comparison.json', 'utf8')) as {
     fields: Array<{ contours: NonNullable<Snapshot['map']>['contours'] }>;
 };
-const output = join(process.cwd(), '.private/review/maintenance/m04/interactive');
+const output = join(process.cwd(), '.private/review/maintenance/m04/interactive/type-only');
 
 type View = { centerX: number; centerY: number; zoom: number };
 
@@ -84,6 +84,17 @@ test('place-name labels keep their real anchor clickable and distinguish hover f
         await page.mouse.move(0, 0);
         await expect(canvas).not.toHaveAttribute('data-map-hover-label', /.+/);
         await page.getByTestId('map-stage').screenshot({ path: join(output, `place-name-selected-${String(width)}.png`) });
+    }
+});
+
+test('type-only names remain readable in a sparse real topic region', async ({ page }) => {
+    mkdirSync(output, { recursive: true });
+    for (const width of [1440, 390, 320]) {
+        await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
+        await page.goto('/map?tag=tag-048');
+        await expect(page.locator('.map-canvas-wrap[data-map-study="ready"]')).toBeVisible();
+        await expect(page.getByTestId('map-summary')).toContainText('3462 个真实点');
+        await page.getByTestId('map-stage').screenshot({ path: join(output, `sparse-selected-${String(width)}.png`) });
     }
 });
 

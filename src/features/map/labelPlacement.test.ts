@@ -42,14 +42,13 @@ describe('map label placement', () => {
         }
     });
 
-    it('keeps a place name above its true anchor and reserves the anchor in its hit bounds', () => {
+    it('centers pure lettering on the real anchor and reserves a larger invisible hit area', () => {
         const label = summary('tag-001', 5000, 1, '学习');
         const [placed] = placeMapLabels([label], null, 1, size, measure, true);
         expect(placed).toBeDefined();
-        expect(placed!.y).toBe(placed!.anchorY - 10);
+        expect(placed!.y).toBe(placed!.anchorY);
         expect(placed!.top).toBeLessThan(placed!.y - 6);
-        expect(placed!.bottom).toBeGreaterThan(placed!.anchorY);
-        expect(placeMapLabels([label], null, 1, size, measure)[0]?.y).toBe(placed!.anchorY);
+        expect(placed!.bottom).toBeGreaterThan(placeMapLabels([label], null, 1, size, measure)[0]!.bottom);
     });
 
     it('reserves the first placement for the selected region', () => {

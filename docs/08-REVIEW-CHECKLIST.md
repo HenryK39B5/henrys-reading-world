@@ -3320,6 +3320,11 @@ Slice / task IDs：
 - 地图主题词去掉实心矩形，改用紧贴字形的暗描边/柔影、真实锚点的小点、避让后的引线；悬停字增亮并以短线强调，当前区域保留较强字号和暖色短线。保留现有稳定排位、桌面 18/手机 10 个上限、不可见可点区域与锚点 7px 命中、标签优先和键盘列表替代；不移动标签语义坐标、真实划线点或快照。
 - 浏览器证据：`.private/review/maintenance/m04/interactive/world-{1440,390,320}.png`、`place-name-hover-{1440,390,320}.png`、`place-name-selected-{1440,390,320}.png`、`one-click-overlap-390.png`；已人工检查世界/区域、320px 与选中环的可读性和裁切。`npm run check:local` 316/316，`npm run test:map:interactive` 10/10，独立 5188 端口本机地图与标签回归 15/15，公开 Chromium 8/8，`npm run build`、`npm run isolation:public`、`npm run publication:verify` 通过。没有额外依赖；线上外观/正式快照未改变，未推送部署。Henry 的视觉 Gate、真机/Safari/读屏、浏览器菜单 200% 和持续交互性能待验收；详见 `docs/53-LOCAL-INTERACTIVE-MAP-CANDIDATE.md`。
 
+## M-04 主题词纯文字候选（2026-09-25）
+- Henry 对照本机 flomo 参考图指出：上一版虽无矩形，3px 字形描边与 5px 阴影仍像一块暗底。候选模式中的地图标签现只绘文字，移除描边底、阴影、小锚点、引线和装饰短线；文字回到真实标签锚点，避让规则、透明点击区与锚点命中仍保留。悬停提亮文字，选中主题用加粗 16px 字形；不把主题名称误当真实密度峰名，也未变动任何坐标或点位。
+- 密集“交易”高亮点群会吞掉浅字，稀疏“改革”又不适合统一深字：候选仅依据当前名称字形范围内的真实已选点数量决定选中词是浅字，还是深字配 1.2px 浅色**字形**细边；不抽样 Canvas 像素、不抹去点、不添加文字背景。反相合成试验使笔画斑驳，已舍弃。新截图保存在 `.private/review/maintenance/m04/interactive/type-only/`（世界/交易/改革的 1440/390/320px 视图），上一版截图未覆盖；已人工复看密集与稀疏区域，真机视觉仍待 Henry 验收。
+- `npm run check:local` 316/316，`npm run test:map:interactive` 独立运行 11/11，现有本机地图/标签 15/15（5188）、公开 Chromium 8/8、`npm run build`、`npm run isolation:public`、`npm run publication:verify` 通过。候选首轮与本机全套 E2E 并行时第一项 5 秒内未找到 ready，10/11；单独两次复跑均 11/11，记录为并行负载下的就绪超时，不能直接证明产品故障或真机稳定性。仅本机 `5176/map` 开启，未推送部署；真机/Safari/读屏、浏览器菜单 200% 与持续拖动缩放性能未完成。
+
 ## V3 Public snapshot export and local release acceptance (2026-09-23)
 
 - User explicitly authorized local public export. `npm run publication:export` generated `src/data/public-snapshot.json` and 108 resized `public/covers/*.jpg`; no repository, push, workflow, or deployment action was performed.
