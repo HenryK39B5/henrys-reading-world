@@ -24,6 +24,7 @@ export default defineConfig({
         '**/terrain-study.spec.ts',
         '**/map-surface-study.spec.ts',
         '**/map-interactive-study.spec.ts',
+        '**/map-study-stability.spec.ts',
         '**/audit-7g.spec.ts',
         '**/audit-7h.spec.ts',
         '**/audit-7i.spec.ts',

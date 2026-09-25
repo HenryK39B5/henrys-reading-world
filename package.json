@@ -55,6 +55,7 @@
     "test:terrain:study": "playwright test --config e2e/config/playwright.terrain-study.config.ts",
     "test:map:surface": "playwright test --config e2e/config/playwright.terrain-study.config.ts map-surface-study.spec.ts",
     "test:map:interactive": "playwright test --config e2e/config/playwright.map-study.config.ts",
+    "test:map:stability": "playwright test --config e2e/config/playwright.map-study.config.ts map-study-stability.spec.ts",
     "embeddings:compare": "node scripts/embedding-compare.ts",
     "embeddings:neighbours": "node scripts/embedding-neighbours.ts",
     "tags:sample": "node scripts/tag-discovery-sample.ts",

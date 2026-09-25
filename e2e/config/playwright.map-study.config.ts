@@ -3,11 +3,14 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
     testDir: '..',
-    testMatch: 'map-interactive-study.spec.ts',
+    testMatch: ['map-interactive-study.spec.ts', 'map-study-stability.spec.ts'],
     workers: 1,
     reporter: [['list']],
     use: { baseURL: 'http://127.0.0.1:5199', trace: 'off', screenshot: 'off' },
-    projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+    projects: [
+        { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+        { name: 'webkit', testMatch: 'map-study-stability.spec.ts', use: { ...devices['Desktop Safari'] } },
+    ],
     webServer: {
         command: 'vite --mode map-study --port 5199',
         cwd: fileURLToPath(new URL('../..', import.meta.url)),

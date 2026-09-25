@@ -51,6 +51,8 @@ M-01 先于 M-04：先稳定地图标签，才比较等高线的视觉差异。M
 
 - 2026-09-25 · M-04 待 Henry 纯文字版视觉验收 · 本机候选参考已有 flomo 图进一步去除主题词的描边暗底、阴影、锚点与短线，只绘文字；普通词浅色，当前主题按文字覆盖的真实已选点密度选用浅字或深字＋细字形边缘，不移动标签坐标、不遮点。`.private/review/maintenance/m04/interactive/type-only/` 与上一版 `interactive/` 截图可直接对照 1440/390/320px 世界、密集交易和稀疏改革。`npm run check:local` 316/316，独立候选 Chromium 11/11，本机地图/标签 15/15、公开 Chromium 8/8、build/isolation/publication verify 通过；首次候选与本机全套 E2E 并跑时 5 秒等待就绪超时，10/11，单独两次复跑全部通过。线上地图/快照不变，无推送部署；真机/Safari/读屏/持续性能仍待验收。
 
+- 2026-09-25 · M-04 待 Henry 真机稳定性验收 · 第一阶段稳定性完成：确认 `5176` 已停止；新增 WebKit/Chromium、DPR 2、1440→720→390→320→1440 resize、24 轮滚轮/拖动、继续缩放、主题列表导航以及 Chromium WebGL 丢失后 Canvas 回退的专项测试。修正 720 viewport 实际 Canvas 为 672px 的测试假设后，`npm run test:map:stability` Chromium 2/2、WebKit 1/1 通过，WebKit context-loss 按扩展不可稳定暴露跳过；Playwright 往返采样不作为帧率。证据在 `.private/review/maintenance/m04/stability/`，候选图压力后非空且可导航。Windows 无法替代真实 iOS/Safari、Android、低端 GPU、长时间墙钟运行和浏览器菜单真实 200%；线上地图/快照未改，无推送部署。
+
 ## 更新格式
 
 任务状态改变时，在对应 ID 下追加一条简短记录：`日期 · 状态 · 范围/决定 · 实际命令及结果 · 本机证据（若有） · 提交号 · 遗留问题`。同时按 `docs/08` 的约定记录完成阶段；不要为待做任务填写预期测试结果。公开仓库中的记录仅包含适合公开的信息。

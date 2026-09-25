@@ -3325,6 +3325,11 @@ Slice / task IDs：
 - 密集“交易”高亮点群会吞掉浅字，稀疏“改革”又不适合统一深字：候选仅依据当前名称字形范围内的真实已选点数量决定选中词是浅字，还是深字配 1.2px 浅色**字形**细边；不抽样 Canvas 像素、不抹去点、不添加文字背景。反相合成试验使笔画斑驳，已舍弃。新截图保存在 `.private/review/maintenance/m04/interactive/type-only/`（世界/交易/改革的 1440/390/320px 视图），上一版截图未覆盖；已人工复看密集与稀疏区域，真机视觉仍待 Henry 验收。
 - `npm run check:local` 316/316，`npm run test:map:interactive` 独立运行 11/11，现有本机地图/标签 15/15（5188）、公开 Chromium 8/8、`npm run build`、`npm run isolation:public`、`npm run publication:verify` 通过。候选首轮与本机全套 E2E 并行时第一项 5 秒内未找到 ready，10/11；单独两次复跑均 11/11，记录为并行负载下的就绪超时，不能直接证明产品故障或真机稳定性。仅本机 `5176/map` 开启，未推送部署；真机/Safari/读屏、浏览器菜单 200% 与持续拖动缩放性能未完成。
 
+## M-04 WebKit、高 DPR 与持续交互稳定性（2026-09-25）
+- Henry 要求进入第一步稳定性验收；确认 `5176` 已停止监听，本阶段没有替用户启动长期服务。新增 `e2e/map-study-stability.spec.ts` 与 `npm run test:map:stability`。候选以 Chromium / Playwright WebKit、DPR 2 覆盖 1440→720→390→320→1440 resize、Canvas CSS 尺寸与物理 buffer 匹配、无横向溢出、24 轮交替滚轮/拖动、继续键盘缩放和主题列表导航；Chromium 另模拟 WebGL 丢失，验证 Canvas 等值带回退后 resize/缩放仍可用。
+- 修正一次测试假设：720px viewport 下 Canvas 实际为 672px，源于页面 48px 内边距，不是 resize 故障。最终稳定性测试 Chromium 2/2、WebKit 1/1 通过；WebKit context-loss 项因扩展不稳定按预期跳过。命令往返采样 Chromium 中位 667ms/最大 712ms、WebKit 中位 324ms/最大 570ms，这包含 Playwright 自动化开销，不是帧率或 GPU 性能结论。截图/JSON 在 `.private/review/maintenance/m04/stability/`；压力后的地图在列表导航之前单独截图并抽样画布像素（Chromium 60 / WebKit 23 种），Canvas 回退后仍可导航。专用用例已从默认 Playwright 配置排除；最终 typecheck、lint、`npm run test:map:stability` 3/3（另 1 跳过）、`npm run build` 与 `npm run isolation:public` 均通过。
+- Windows 当前环境不能替代真实 iOS Safari、Android 设备、低端 GPU、长时间墙钟运行或浏览器菜单真实 200% 缩放；已有窄视口/DPR 2 和键盘路径只是自动化证据。丢上下文后候选保持 Canvas 回退，不尝试未经设备验证的 GPU 重建。无产品地图、公开快照、坐标或部署变化。
+
 ## V3 Public snapshot export and local release acceptance (2026-09-23)
 
 - User explicitly authorized local public export. `npm run publication:export` generated `src/data/public-snapshot.json` and 108 resized `public/covers/*.jpg`; no repository, push, workflow, or deployment action was performed.
