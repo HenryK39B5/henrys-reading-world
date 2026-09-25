@@ -3304,6 +3304,11 @@ Slice / task IDs：
 - 浏览器证据：`.private/review/maintenance/m04/surface/` 共 36 张真实地图世界/交易主题区域、1440/390/320px 配对截图。小十字+淡等值带/连续明暗比逐格填充更干净；静态分享式超淡连续格线在桌面可见、窄屏几乎不可见，仍需单独的分享画布判断。区域等值带首版填色过重、像整块领地，下调透明度后重拍。测试确认 grid/cell 绘制被真正替换、底色像素非空、页面无横溢；不宣称用户视觉 Gate 已通过。
 - 实际命令：`npm run check:local` 312/312、`npm run build`、`npm run test:map:surface` 1/1、完整 `npm run test:terrain:study` 3/3、`npm run isolation:public`、`npm run publication:verify` 通过，默认常规 E2E `--list` 仍 130 项。未在手机/Safari、浏览器 200% 缩放、持续平移/缩放、WebGL context-loss/fallback 或分享导出验证；没有推送、部署。分析与候选下一步见 `docs/52-MAP-SURFACE-REFERENCE-STUDY.md`。
 
+## M-04 本机可交互地图候选（2026-09-25）
+- 范围：用户同意优先小十字、连续明暗与极淡等值带，不在界面叠连续网格；总览在放大到一定倍率后允许点选，密集点用原有底部读数和细环先确认，不增加小面板；等高线悬停延后。新增只在 `map-study` Vite 运行的 `/__map_study` 本机端点读取公开点派生候选，公开及普通本机模式不启用。候选 Canvas 原有点/标签/真实详情保留，WebGL2 绘 128 x 80 连续底色，极淡等值带补峰；无 WebGL / 丢上下文时 Canvas 等值带回退。纯函数 `studyPointAt` 判定同屏位置的邻近点，桌面约 3x、手机约 4x 解锁直达/预选；点击锚点 210ms 缓动，reduced-motion 即时。没有移动真实点或重新导出快照。
+- 浏览器证据：`.private/review/maintenance/m04/interactive/` 为世界/交易区域 1440/390/320px、重叠点预选、320px 无 GPU 回退和 720px context-loss 截图；Pages 式研究对照仍在 `.private/review/maintenance/m04/surface/`。`npm run test:map:interactive` Chromium 7/7 覆盖锚点放大、独立点详情及返回焦点、重叠点双步确认、拖动/缩放底色重绘、GPU 退路、触屏事件、键盘/列表路径与 reduced-motion；点/标签没有被底层吞掉。程序生成的截图只是视觉证据，Henry 的实际体验 Gate 尚未通过。
+- 实际命令：`npm run map:terrain:study`、`npm run check:local` 316/316、`npm run build`、`npm run isolation:public`、`npm run publication:verify`、候选 Chromium 7/7 及现有本机地图/标签回归 15/15 通过。最初直接用默认 5173 跑本机地图回归，遇到该端口已经运行公开 Vite，测试误读 3,462 而非 4,663 条数据，9/15 失败；将 `RW_E2E_PORT=5188` 接到本机专用服务器后 15/15 通过。正式构建 JS/CSS hash 变化但地图视觉保持旧版，候选没有被发布；iOS/Safari/低端 GPU 持续性能、浏览器 200% 与读屏未验证；详见 `docs/53-LOCAL-INTERACTIVE-MAP-CANDIDATE.md`。
+
 ## V3 Public snapshot export and local release acceptance (2026-09-23)
 
 - User explicitly authorized local public export. `npm run publication:export` generated `src/data/public-snapshot.json` and 108 resized `public/covers/*.jpg`; no repository, push, workflow, or deployment action was performed.

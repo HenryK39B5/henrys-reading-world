@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const port = Number(process.env.RW_E2E_PORT ?? 5173);
+
 /**
  * Browser verification runs against the local development server, which is the only mode that
  * serves the private, not-yet-publicly-approved snapshot. The server binds to loopback only.
@@ -21,6 +23,7 @@ export default defineConfig({
         '**/contour-compare.spec.ts',
         '**/terrain-study.spec.ts',
         '**/map-surface-study.spec.ts',
+        '**/map-interactive-study.spec.ts',
         '**/audit-7g.spec.ts',
         '**/audit-7h.spec.ts',
         '**/audit-7i.spec.ts',
@@ -35,16 +38,16 @@ export default defineConfig({
     retries: 0,
     reporter: [['list']],
     use: {
-        baseURL: 'http://127.0.0.1:5173',
+        baseURL: `http://127.0.0.1:${String(port)}`,
         trace: 'off',
         screenshot: 'off',
         video: 'off',
     },
     projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
     webServer: {
-        command: 'npm run dev:local',
-        url: 'http://127.0.0.1:5173',
-        reuseExistingServer: true,
+        command: `npm run dev:local -- --port ${String(port)}`,
+        url: `http://127.0.0.1:${String(port)}`,
+        reuseExistingServer: process.env.RW_E2E_PORT === undefined,
         stdout: 'ignore',
         stderr: 'pipe',
         timeout: 60_000,

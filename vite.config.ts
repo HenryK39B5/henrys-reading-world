@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { copyFile, mkdir, readFile, writeFile, rename } from 'node:fs/promises';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { dirname, resolve } from 'node:path';
@@ -299,6 +300,45 @@ function localSnapshotPlugin(flags: { snapshot: boolean; publication: boolean; t
     };
 }
 
+function mapStudyPlugin(): Plugin {
+    return {
+        name: 'reading-world-map-study',
+        config(_config, env) {
+            if (env.command === 'build') throw new Error('The map study is only available on a loopback development server.');
+        },
+        configureServer(server) {
+            server.middlewares.use((req, res, next) => {
+                if ((req.url ?? '').split('?')[0] !== '/__map_study') { next(); return; }
+                if (req.method !== 'GET') { sendText(res, 405, 'Method Not Allowed'); return; }
+                void (async () => {
+                    try {
+                        const snapshot = JSON.parse(await readFile(resolve('src/data/public-snapshot.json'), 'utf8')) as Snapshot;
+                        const study = JSON.parse(await readFile(resolve('.private/review/maintenance/m04/resolution/field-comparison.json'), 'utf8')) as {
+                            sourceVersion: string;
+                            pointsHash: string;
+                            fields: Array<{ density: { columns: number; rows: number; values: number[] }; contours: unknown[] }>;
+                            midBands: unknown[];
+                        };
+                        const map = snapshot.map;
+                        const pointsHash = createHash('sha256').update(JSON.stringify(map?.points)).digest('hex');
+                        const candidate = study.fields[1];
+                        if (snapshot.visibility !== 'public' || map === undefined || study.sourceVersion !== map.version ||
+                            study.pointsHash !== pointsHash || candidate?.density.columns !== 128 || candidate.density.rows !== 80 ||
+                            !Array.isArray(study.midBands)) throw new Error('map study is stale');
+                        res.statusCode = 200;
+                        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+                        res.setHeader('Cache-Control', 'no-store');
+                        res.setHeader('X-Robots-Tag', 'noindex');
+                        res.end(JSON.stringify({ density: candidate.density, contours: candidate.contours, bands: study.midBands }));
+                    } catch {
+                        sendText(res, 404, 'Run npm run map:terrain:study before opening the map study.');
+                    }
+                })();
+            });
+        },
+    };
+}
+
 export default defineConfig(({ command, mode }) => {
     // Vite reserves `local` for .env postfix handling, so the private development mode is named
     // `local-private` and is only reachable through the `dev:local` script. The publication reviewer is a
@@ -306,6 +346,7 @@ export default defineConfig(({ command, mode }) => {
     const localMode = mode === 'local-private';
     const reviewMode = mode === 'review-private';
     const tagStudioMode = mode === 'tag-studio-private';
+    const mapStudyMode = mode === 'map-study';
     const anyLocalMode = localMode || reviewMode || tagStudioMode;
 
     return {
@@ -313,6 +354,7 @@ export default defineConfig(({ command, mode }) => {
         plugins: [
             react(),
             localSnapshotPlugin({ snapshot: anyLocalMode, publication: reviewMode, tags: tagStudioMode }),
+            ...(mapStudyMode ? [mapStudyPlugin()] : []),
             {
                 name: 'pages-room-entries',
                 apply: 'build',
@@ -336,7 +378,7 @@ export default defineConfig(({ command, mode }) => {
             host: '127.0.0.1',
             strictPort: true,
             // Its own port, so the reviewer and the reading preview can be open side by side.
-            port: reviewMode ? 5174 : tagStudioMode ? 5175 : 5173,
+            port: reviewMode ? 5174 : tagStudioMode ? 5175 : mapStudyMode ? 5176 : 5173,
             fs: {
                 strict: true,
                 deny: [
@@ -364,6 +406,7 @@ export default defineConfig(({ command, mode }) => {
         },
         define: {
             __LOCAL_MODE__: JSON.stringify(anyLocalMode && command === 'serve'),
+            __MAP_STUDY__: JSON.stringify(mapStudyMode && command === 'serve'),
         },
     };
 });

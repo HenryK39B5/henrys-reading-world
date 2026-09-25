@@ -10,9 +10,11 @@ import {
     zoomMapViewAt,
     type MapViewport,
 } from '../../domain/map.ts';
+import { studyPointAt, studyPointZoomThreshold } from '../../domain/mapStudy.ts';
 import { MAP_COORDINATE_MAX } from '../../domain/types.ts';
 import type { SnapshotIndex } from '../../domain/snapshot.ts';
 import { placeMapLabels, visibleMapLabels, type LabelPlacement } from './labelPlacement.ts';
+import { MapStudyTerrain, type MapStudyData } from './MapStudyTerrain.tsx';
 
 export type MapCanvasProps = {
     index: SnapshotIndex;
@@ -76,9 +78,17 @@ export function MapCanvas({
     const gestureMoved = useRef(false);
     const [size, setSize] = useState<Size>({ width: 1, height: 1 });
     const [hoverText, setHoverText] = useState('');
+    const [study, setStudy] = useState<MapStudyData | null>(null);
+    const [preselectedId, setPreselectedId] = useState<string | null>(null);
+    const zoomFrame = useRef<number | null>(null);
     const wheelState = useRef({ view, onViewChange, size });
     wheelState.current = { view, onViewChange, size };
-    const layout = index.snapshot.map;
+    const layout = useMemo(() => {
+        const base = index.snapshot.map;
+        return base === undefined || !__MAP_STUDY__ || study === null
+            ? base
+            : { ...base, density: study.density, contours: study.contours };
+    }, [index.snapshot.map, study]);
     const labels = useMemo(() => summarizeMapLabels(index), [index]);
     const tagPoints = useMemo(
         () => (activeTagId === null ? [] : mapPointsForTag(index, activeTagId)),
@@ -91,6 +101,22 @@ export function MapCanvas({
     const interactivePoints = activeTagId !== null ? tagPoints : bookPoints;
     const tagPointIds = useMemo(() => new Set(tagPoints.map((point) => point.highlightId)), [tagPoints]);
     const bookPointIds = useMemo(() => new Set(bookPoints.map((point) => point.highlightId)), [bookPoints]);
+
+    useEffect(() => {
+        if (!__MAP_STUDY__) return;
+        const controller = new AbortController();
+        void fetch('/__map_study', { cache: 'no-store', signal: controller.signal })
+            .then((response) => {
+                if (!response.ok) throw new Error('Map study field unavailable');
+                return response.json() as Promise<MapStudyData>;
+            })
+            .then((value) => { if (!controller.signal.aborted) setStudy(value); })
+            .catch(() => { /* The ordinary map stays usable if the local study artifact is missing. */ });
+        return () => controller.abort();
+    }, []);
+
+    useEffect(() => () => { if (zoomFrame.current !== null) cancelAnimationFrame(zoomFrame.current); }, []);
+    useEffect(() => { if (__MAP_STUDY__) setPreselectedId(null); }, [view.centerX, view.centerY, view.zoom]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -107,6 +133,7 @@ export function MapCanvas({
         const canvas = canvasRef.current;
         if (canvas === null) return;
         const handleWheel = (event: WheelEvent): void => {
+            if (zoomFrame.current !== null) cancelAnimationFrame(zoomFrame.current);
             const current = wheelState.current;
             const rect = canvas.getBoundingClientRect();
             const anchor = { x: event.clientX - rect.left, y: event.clientY - rect.top };
@@ -148,33 +175,49 @@ export function MapCanvas({
         ctx.beginPath();
         for (let coordinate = 1000; coordinate < MAP_COORDINATE_MAX; coordinate += 1000) {
             const verticalStart = mapToScreen({ x: coordinate, y: 0 }, view, size.width, size.height);
-            const verticalEnd = mapToScreen({ x: coordinate, y: MAP_COORDINATE_MAX }, view, size.width, size.height);
             const horizontalStart = mapToScreen({ x: 0, y: coordinate }, view, size.width, size.height);
-            const horizontalEnd = mapToScreen({ x: MAP_COORDINATE_MAX, y: coordinate }, view, size.width, size.height);
-            ctx.moveTo(verticalStart.x, verticalStart.y);
-            ctx.lineTo(verticalEnd.x, verticalEnd.y);
-            ctx.moveTo(horizontalStart.x, horizontalStart.y);
-            ctx.lineTo(horizontalEnd.x, horizontalEnd.y);
+            if (__MAP_STUDY__ && study !== null) {
+                if (verticalStart.x >= 5 && verticalStart.x <= size.width - 5) {
+                    for (let other = 1000; other < MAP_COORDINATE_MAX; other += 1000) {
+                        const crossing = mapToScreen({ x: coordinate, y: other }, view, size.width, size.height);
+                        if (crossing.y < 5 || crossing.y > size.height - 5) continue;
+                        const radius = size.width < 520 ? 2.4 : 3;
+                        ctx.moveTo(crossing.x - radius, crossing.y);
+                        ctx.lineTo(crossing.x + radius, crossing.y);
+                        ctx.moveTo(crossing.x, crossing.y - radius);
+                        ctx.lineTo(crossing.x, crossing.y + radius);
+                    }
+                }
+            } else {
+                const verticalEnd = mapToScreen({ x: coordinate, y: MAP_COORDINATE_MAX }, view, size.width, size.height);
+                const horizontalEnd = mapToScreen({ x: MAP_COORDINATE_MAX, y: coordinate }, view, size.width, size.height);
+                ctx.moveTo(verticalStart.x, verticalStart.y);
+                ctx.lineTo(verticalEnd.x, verticalEnd.y);
+                ctx.moveTo(horizontalStart.x, horizontalStart.y);
+                ctx.lineTo(horizontalEnd.x, horizontalEnd.y);
+            }
         }
-        ctx.strokeStyle = 'rgba(155, 181, 153, 0.035)';
-        ctx.lineWidth = 0.6;
+        ctx.strokeStyle = __MAP_STUDY__ && study !== null ? 'rgba(181, 198, 178, 0.16)' : 'rgba(155, 181, 153, 0.035)';
+        ctx.lineWidth = __MAP_STUDY__ && study !== null ? 0.9 : 0.6;
         ctx.stroke();
 
-        const { density } = layout;
-        for (let row = 0; row < density.rows; row += 1) {
-            for (let column = 0; column < density.columns; column += 1) {
-                const value = density.values[row * density.columns + column] ?? 0;
-                if (value < 18) continue;
-                const start = mapToScreen({
-                    x: (column / (density.columns - 1)) * MAP_COORDINATE_MAX,
-                    y: (row / (density.rows - 1)) * MAP_COORDINATE_MAX,
-                }, view, size.width, size.height);
-                const end = mapToScreen({
-                    x: ((column + 1) / (density.columns - 1)) * MAP_COORDINATE_MAX,
-                    y: ((row + 1) / (density.rows - 1)) * MAP_COORDINATE_MAX,
-                }, view, size.width, size.height);
-                ctx.fillStyle = `rgba(135, 171, 142, ${String((value / 255) * 0.16)})`;
-                ctx.fillRect(start.x, start.y, end.x - start.x + 1, end.y - start.y + 1);
+        if (!__MAP_STUDY__ || study === null) {
+            const { density } = layout;
+            for (let row = 0; row < density.rows; row += 1) {
+                for (let column = 0; column < density.columns; column += 1) {
+                    const value = density.values[row * density.columns + column] ?? 0;
+                    if (value < 18) continue;
+                    const start = mapToScreen({
+                        x: (column / (density.columns - 1)) * MAP_COORDINATE_MAX,
+                        y: (row / (density.rows - 1)) * MAP_COORDINATE_MAX,
+                    }, view, size.width, size.height);
+                    const end = mapToScreen({
+                        x: ((column + 1) / (density.columns - 1)) * MAP_COORDINATE_MAX,
+                        y: ((row + 1) / (density.rows - 1)) * MAP_COORDINATE_MAX,
+                    }, view, size.width, size.height);
+                    ctx.fillStyle = `rgba(135, 171, 142, ${String((value / 255) * 0.16)})`;
+                    ctx.fillRect(start.x, start.y, end.x - start.x + 1, end.y - start.y + 1);
+                }
             }
         }
 
@@ -241,6 +284,18 @@ export function MapCanvas({
             ctx.restore();
         }
 
+        if (__MAP_STUDY__ && preselectedId !== null) {
+            const pending = layout.points.find((point) => point.highlightId === preselectedId);
+            if (pending !== undefined) {
+                const screen = mapToScreen(pending, view, size.width, size.height);
+                ctx.beginPath();
+                ctx.arc(screen.x, screen.y, 7, 0, Math.PI * 2);
+                ctx.strokeStyle = '#e8c68e';
+                ctx.lineWidth = 1.8;
+                ctx.stroke();
+            }
+        }
+
         if (activeHighlightId !== null) {
             const active = layout.points.find((point) => point.highlightId === activeHighlightId);
             if (active !== undefined) {
@@ -290,7 +345,7 @@ export function MapCanvas({
             }
         }
         labelHits.current = visibleLabels;
-    }, [activeBookId, activeHighlightId, activeTagId, bookAccent, highlightAccent, bookPointIds, bookPoints, index, labels, layout, size, tagPointIds, tagPoints, view]);
+    }, [activeBookId, activeHighlightId, activeTagId, bookAccent, highlightAccent, bookPointIds, bookPoints, index, labels, layout, preselectedId, size, study, tagPointIds, tagPoints, view]);
 
     const pointerPosition = (event: React.PointerEvent<HTMLCanvasElement>): { x: number; y: number } => {
         const rect = event.currentTarget.getBoundingClientRect();
@@ -300,8 +355,33 @@ export function MapCanvas({
     const labelAt = (position: { x: number; y: number }): LabelPlacement | undefined =>
         labelHits.current.find((hit) => position.x >= hit.left && position.x <= hit.right && position.y >= hit.top && position.y <= hit.bottom);
 
+    const animateStudyZoom = (position: { x: number; y: number }): void => {
+        if (zoomFrame.current !== null) cancelAnimationFrame(zoomFrame.current);
+        const initial = view;
+        const nextZoom = Math.min(8, initial.zoom * 1.8);
+        if (nextZoom <= initial.zoom) return;
+        const apply = (zoom: number): void => onViewChange(zoomMapViewAt(initial, zoom / initial.zoom, position, size.width, size.height));
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { apply(nextZoom); return; }
+        const start = performance.now();
+        const step = (now: number): void => {
+            const progress = Math.min(1, (now - start) / 210);
+            apply(initial.zoom + (nextZoom - initial.zoom) * (1 - (1 - progress) ** 3));
+            zoomFrame.current = progress < 1 ? requestAnimationFrame(step) : null;
+        };
+        zoomFrame.current = requestAnimationFrame(step);
+    };
+
+    const previewText = (highlightId: string): string => {
+        const highlight = index.highlightsById.get(highlightId);
+        if (highlight === undefined) return '一处划线';
+        const book = index.booksById.get(highlight.bookId);
+        const excerpt = Array.from(highlight.text).slice(0, 24).join('');
+        return `${book === undefined ? '一处划线' : `《${book.title}》`}：${excerpt}${Array.from(highlight.text).length > 24 ? '…' : ''}`;
+    };
+
     return (
-        <div className="map-canvas-wrap">
+        <div className="map-canvas-wrap" data-map-study={__MAP_STUDY__ && study !== null ? 'ready' : undefined}>
+            {__MAP_STUDY__ && study !== null ? <MapStudyTerrain data={study} view={view} width={size.width} height={size.height} /> : null}
             <canvas
                 ref={canvasRef}
                 className="map-canvas"
@@ -309,10 +389,12 @@ export function MapCanvas({
                 data-map-center-x={String(Math.round(view.centerX))}
                 data-map-center-y={String(Math.round(view.centerY))}
                 data-map-zoom={view.zoom.toFixed(3)}
+                data-map-preselected-id={__MAP_STUDY__ ? preselectedId ?? undefined : undefined}
                 role="img"
                 tabIndex={0}
                 aria-label="阅读世界地图。可拖动、滚轮缩放或双指缩放；键盘访客可使用地图下方的主题区域与划线列表。"
                 onPointerDown={(event) => {
+                    if (zoomFrame.current !== null) cancelAnimationFrame(zoomFrame.current);
                     const position = pointerPosition(event);
                     event.currentTarget.setPointerCapture(event.pointerId);
                     pointers.current.set(event.pointerId, position);
@@ -356,9 +438,11 @@ export function MapCanvas({
                     if (currentDrag !== null && currentDrag.pointerId === event.pointerId) {
                         const dx = position.x - currentDrag.startX;
                         const dy = position.y - currentDrag.startY;
+                        if (__MAP_STUDY__ && !currentDrag.moved && Math.abs(dx) + Math.abs(dy) <= 3) return;
                         if (Math.abs(dx) + Math.abs(dy) > 3) {
                             currentDrag.moved = true;
                             gestureMoved.current = true;
+                            if (__MAP_STUDY__) setPreselectedId(null);
                         }
                         const startMap = screenToMap({ x: 0, y: 0 }, currentDrag.view, size.width, size.height);
                         const movedMap = screenToMap({ x: dx, y: dy }, currentDrag.view, size.width, size.height);
@@ -370,6 +454,10 @@ export function MapCanvas({
                         event.currentTarget.style.cursor = 'grabbing';
                         return;
                     }
+                    if (__MAP_STUDY__ && preselectedId !== null) {
+                        event.currentTarget.style.cursor = 'pointer';
+                        return;
+                    }
                     const label = labelAt(position);
                     if (label !== undefined) {
                         const definition = label.summary.description === undefined ? '' : `；${label.summary.description}`;
@@ -377,12 +465,15 @@ export function MapCanvas({
                         event.currentTarget.style.cursor = 'pointer';
                         return;
                     }
-                    const point = nearestPoint(interactivePoints, position, view, size.width, size.height, 11);
+                    const points = __MAP_STUDY__ && study !== null && activeTagId === null && activeBookId === null
+                        ? layout?.points ?? [] : interactivePoints;
+                    const point = nearestPoint(points, position, view, size.width, size.height, 11);
                     if (point !== undefined) {
                         const highlight = index.highlightsById.get(point.highlightId);
                         const book = highlight === undefined ? undefined : index.booksById.get(highlight.bookId);
                         setHoverText(book === undefined ? '一处划线' : `《${book.title}》的一处划线`);
-                        event.currentTarget.style.cursor = 'pointer';
+                        event.currentTarget.style.cursor = __MAP_STUDY__ && study !== null && activeTagId === null && activeBookId === null && view.zoom < studyPointZoomThreshold(size.width)
+                            ? 'zoom-in' : 'pointer';
                     } else {
                         setHoverText('');
                         event.currentTarget.style.cursor = 'grab';
@@ -411,7 +502,25 @@ export function MapCanvas({
                     if (moved) return;
                     const label = labelAt(position);
                     if (label !== undefined) {
+                        setPreselectedId(null);
                         onSelectTag(label.summary.tagId);
+                        return;
+                    }
+                    if (__MAP_STUDY__ && study !== null && activeTagId === null && activeBookId === null && layout !== undefined) {
+                        const hit = studyPointAt(layout.points, position, view, size.width, size.height);
+                        if (hit === undefined) { setPreselectedId(null); setHoverText(''); return; }
+                        if (view.zoom < studyPointZoomThreshold(size.width)) {
+                            setPreselectedId(null);
+                            animateStudyZoom(position);
+                            return;
+                        }
+                        if (hit.ambiguous && preselectedId !== hit.point.highlightId) {
+                            setPreselectedId(hit.point.highlightId);
+                            setHoverText(previewText(hit.point.highlightId));
+                            return;
+                        }
+                        setPreselectedId(null);
+                        onSelectHighlight(hit.point.highlightId);
                         return;
                     }
                     const point = nearestPoint(interactivePoints, position, view, size.width, size.height, 13);
@@ -424,7 +533,7 @@ export function MapCanvas({
                     gestureMoved.current = false;
                 }}
                 onPointerLeave={(event) => {
-                    if (drag.current === null) setHoverText('');
+                    if (drag.current === null && preselectedId === null) setHoverText('');
                     event.currentTarget.style.cursor = 'grab';
                 }}
                 onKeyDown={(event) => {
