@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
     testDir: '..',
-    testMatch: 'terrain-study.spec.ts',
+    testMatch: ['terrain-study.spec.ts', 'map-surface-study.spec.ts'],
     workers: 1,
     reporter: [['list']],
     use: { baseURL: 'http://127.0.0.1:5198', trace: 'off', screenshot: 'off' },

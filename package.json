@@ -52,6 +52,7 @@
     "test:contours:compare": "playwright test --config e2e/config/playwright.contour-compare.config.ts",
     "map:terrain:study": "node scripts/compare-map-density.ts",
     "test:terrain:study": "playwright test --config e2e/config/playwright.terrain-study.config.ts",
+    "test:map:surface": "playwright test --config e2e/config/playwright.terrain-study.config.ts map-surface-study.spec.ts",
     "embeddings:compare": "node scripts/embedding-compare.ts",
     "embeddings:neighbours": "node scripts/embedding-neighbours.ts",
     "tags:sample": "node scripts/tag-discovery-sample.ts",

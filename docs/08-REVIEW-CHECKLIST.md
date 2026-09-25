@@ -3299,6 +3299,11 @@ Slice / task IDs：
 - 新增 `scripts/embeddings/densityStudy.ts`、`scripts/compare-map-density.ts`、`tests/density-study.test.ts` 与隔离 Pages 式 `e2e/terrain-study.spec.ts`/配置；增加两条 npm 研究命令。使用同一批 3,462 公开点位和同一地图空间平滑宽度重采样 64 x 40 / 128 x 80 / 256 x 160；对全部档位固定原峰值归一化标尺，64 x 40 精确复现已发布网格；D3 生成相同七档等值线与 128 x 80 等值带。样板的 Canvas2D 填色与 WebGL2 着色层仅在测试浏览器注入，不进入产品代码或公开构建。WebGL 初次合成参数错误导致过亮，改为非预乘 alpha 后重新截图；不掩盖失败过程。
 - 实际命令：`npm run check:local` 312/312，`npm run build`、`npm run isolation:public`、`npm run publication:verify`、`npm run map:terrain:study`、`npm run test:terrain:study` Chromium 2/2 通过；默认本机 `npx playwright test --config playwright.config.ts --list` 保持 130 项，专用研究测试不混入常规 E2E。点位/标签/原密度 hash 检查，真实 Canvas 非空与 WebGL 像素/alpha 检查通过。证据 `.private/review/maintenance/m04/resolution/` 包含 18 张同视口线稿、6 张总览填色对照；128 x 80 减少网格感，256 x 160 外观增益较小，填色视觉差异细微；GPU 性能、真机/读屏/放大与 context-loss 回退未验证。与此前试验同属待选候选，没有覆盖本地 UMAP 布局、公开快照、产品地图或部署。详细结论和下一步见 `docs/51-DENSITY-RESOLUTION-AND-RENDERING-STUDY.md`。
 
+## M-04 坐标底纹与连续密度表面对照（2026-09-25）
+- 范围：复看 `.private/reference/visual-references/flomo-map-2d.png` 和 `flomo-starmap.png`，区分界面小十字和静态分享淡网格。原地图另有逐格密度矩形导致的棋盘纹，不能只删除坐标线。新建 `e2e/map-surface-study.spec.ts`，只在 Pages 式浏览器拦截测试中的公开快照，以相同 3,462 点、56 标签、128 x 80 归一化场及七档轮廓，注入六种背景画法；没有改 `src/features/map/`、`src/data/`、正式地图资产或 embedding。专用命令 `npm run test:map:surface`，常规 Playwright 忽略该研究文件。
+- 浏览器证据：`.private/review/maintenance/m04/surface/` 共 36 张真实地图世界/交易主题区域、1440/390/320px 配对截图。小十字+淡等值带/连续明暗比逐格填充更干净；静态分享式超淡连续格线在桌面可见、窄屏几乎不可见，仍需单独的分享画布判断。区域等值带首版填色过重、像整块领地，下调透明度后重拍。测试确认 grid/cell 绘制被真正替换、底色像素非空、页面无横溢；不宣称用户视觉 Gate 已通过。
+- 实际命令：`npm run check:local` 312/312、`npm run build`、`npm run test:map:surface` 1/1、完整 `npm run test:terrain:study` 3/3、`npm run isolation:public`、`npm run publication:verify` 通过，默认常规 E2E `--list` 仍 130 项。未在手机/Safari、浏览器 200% 缩放、持续平移/缩放、WebGL context-loss/fallback 或分享导出验证；没有推送、部署。分析与候选下一步见 `docs/52-MAP-SURFACE-REFERENCE-STUDY.md`。
+
 ## V3 Public snapshot export and local release acceptance (2026-09-23)
 
 - User explicitly authorized local public export. `npm run publication:export` generated `src/data/public-snapshot.json` and 108 resized `public/covers/*.jpg`; no repository, push, workflow, or deployment action was performed.
