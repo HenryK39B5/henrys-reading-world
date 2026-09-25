@@ -36,6 +36,7 @@ export function placeMapLabels(
     zoom: number,
     size: Size,
     measure: (title: string, active: boolean) => number,
+    placeNames = false,
 ): LabelPlacement[] {
     const fixedView = { centerX: MAP_COORDINATE_MAX / 2, centerY: MAP_COORDINATE_MAX / 2, zoom };
     const selected = labels.find((entry) => entry.tagId === activeTagId);
@@ -59,13 +60,13 @@ export function placeMapLabels(
         const width = measure(summary.title, active);
         for (const offset of active ? LABEL_OFFSETS.slice(0, 1) : LABEL_OFFSETS) {
             const x = anchor.x + offset.x;
-            const y = anchor.y + offset.y;
+            const y = anchor.y + offset.y - (placeNames ? 10 : 0);
             const candidate = {
                 summary,
                 left: x - width / 2 - 8,
                 right: x + width / 2 + 8,
                 top: y - (active ? 16 : 13),
-                bottom: y + 9,
+                bottom: y + (placeNames ? 21 : 9),
                 x,
                 y,
                 anchorX: anchor.x,

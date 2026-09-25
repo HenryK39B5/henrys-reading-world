@@ -59,6 +59,34 @@ test('local map candidate renders real world and region views without a producti
     }
 });
 
+test('place-name labels keep their real anchor clickable and distinguish hover from selection', async ({ page }) => {
+    mkdirSync(output, { recursive: true });
+    const tag = snapshot.tags.find((entry) => entry.title === '交易');
+    const label = snapshot.map?.labels.find((entry) => entry.tagId === tag?.id);
+    expect(label).toBeDefined();
+    if (label === undefined || tag === undefined) return;
+    for (const width of [1440, 390, 320]) {
+        await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
+        await page.goto('/map');
+        const canvas = page.getByTestId('map-canvas');
+        await expect(page.locator('.map-canvas-wrap[data-map-study="ready"]')).toBeVisible();
+        const frame = await readView(page);
+        const position = mapToScreen(label, frame.view, frame.width, frame.height);
+        expect(position.x).toBeGreaterThan(10);
+        expect(position.x).toBeLessThan(frame.width - 10);
+        expect(position.y).toBeGreaterThan(10);
+        expect(position.y).toBeLessThan(frame.height - 10);
+        await canvas.hover({ position });
+        await expect(canvas).toHaveAttribute('data-map-hover-label', tag.id);
+        await page.getByTestId('map-stage').screenshot({ path: join(output, `place-name-hover-${String(width)}.png`) });
+        await canvas.click({ position });
+        await expect(page).toHaveURL(new RegExp(`tag=${tag.id}`));
+        await page.mouse.move(0, 0);
+        await expect(canvas).not.toHaveAttribute('data-map-hover-label', /.+/);
+        await page.getByTestId('map-stage').screenshot({ path: join(output, `place-name-selected-${String(width)}.png`) });
+    }
+});
+
 test('world tap zooms around the point, then an isolated point opens the existing detail', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/map');

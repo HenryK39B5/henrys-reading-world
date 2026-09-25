@@ -79,7 +79,7 @@ export function MapCanvas({
     const [size, setSize] = useState<Size>({ width: 1, height: 1 });
     const [hoverText, setHoverText] = useState('');
     const [study, setStudy] = useState<MapStudyData | null>(null);
-    const [hoverTarget, setHoverTarget] = useState<{ kind: 'point'; id: string } | { kind: 'contour'; index: number } | null>(null);
+    const [hoverTarget, setHoverTarget] = useState<{ kind: 'point' | 'label'; id: string } | { kind: 'contour'; index: number } | null>(null);
     const zoomFrame = useRef<number | null>(null);
     const wheelState = useRef({ view, onViewChange, size });
     wheelState.current = { view, onViewChange, size };
@@ -329,7 +329,7 @@ export function MapCanvas({
                 const screen = mapToScreen(active, view, size.width, size.height);
                 ctx.beginPath();
                 ctx.arc(screen.x, screen.y, 7, 0, Math.PI * 2);
-                ctx.strokeStyle = highlightAccent;
+                ctx.strokeStyle = __MAP_STUDY__ && study !== null ? '#f0ead8' : highlightAccent;
                 ctx.lineWidth = 2;
                 ctx.stroke();
                 ctx.beginPath();
@@ -342,32 +342,70 @@ export function MapCanvas({
         const placedLabels = placeMapLabels(labels, activeTagId, view.zoom, size, (title, active) => {
             ctx.font = `${active ? '600 16px' : '400 13px'} system-ui, "Microsoft YaHei", sans-serif`;
             return ctx.measureText(title).width;
-        });
+        }, __MAP_STUDY__ && study !== null);
         const visibleLabels = visibleMapLabels(placedLabels, view.centerX, view.centerY, view.zoom, size);
         for (const hit of visibleLabels) {
             const active = hit.summary.tagId === activeTagId;
+            const placeName = __MAP_STUDY__ && study !== null;
+            const hovered = placeName && hoverTarget?.kind === 'label' && hoverTarget.id === hit.summary.tagId;
             const width = hit.right - hit.left - 16;
             ctx.font = `${active ? '600 16px' : '400 13px'} system-ui, "Microsoft YaHei", sans-serif`;
-            if (Math.abs(hit.x - hit.anchorX) + Math.abs(hit.y - hit.anchorY) > 5) {
+            if (placeName) {
+                if (Math.abs(hit.x - hit.anchorX) + Math.abs(hit.y + 10 - hit.anchorY) > 5) {
+                    ctx.beginPath();
+                    ctx.moveTo(hit.anchorX, hit.anchorY);
+                    ctx.lineTo(hit.x, hit.y + 8);
+                    ctx.strokeStyle = 'rgba(185, 203, 174, 0.54)';
+                    ctx.lineWidth = 0.8;
+                    ctx.stroke();
+                }
                 ctx.beginPath();
-                ctx.moveTo(hit.anchorX, hit.anchorY);
-                ctx.lineTo(hit.x, hit.y);
-                ctx.strokeStyle = 'rgba(164, 190, 157, 0.36)';
-                ctx.lineWidth = 0.7;
-                ctx.stroke();
+                ctx.arc(hit.anchorX, hit.anchorY, 1.7, 0, Math.PI * 2);
+                ctx.fillStyle = hovered || active ? '#e9d6a8' : 'rgba(199, 218, 182, 0.82)';
+                ctx.fill();
+                ctx.save();
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.lineJoin = 'round';
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = 'rgba(22, 36, 31, 0.97)';
+                ctx.shadowColor = 'rgba(14, 27, 23, 0.9)';
+                ctx.shadowBlur = 5;
+                ctx.strokeText(hit.summary.title, hit.x, hit.y);
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = active || hovered ? '#f7efd9' : '#dce7d4';
+                ctx.fillText(hit.summary.title, hit.x, hit.y);
+                ctx.restore();
+            } else {
+                if (Math.abs(hit.x - hit.anchorX) + Math.abs(hit.y - hit.anchorY) > 5) {
+                    ctx.beginPath();
+                    ctx.moveTo(hit.anchorX, hit.anchorY);
+                    ctx.lineTo(hit.x, hit.y);
+                    ctx.strokeStyle = 'rgba(164, 190, 157, 0.36)';
+                    ctx.lineWidth = 0.7;
+                    ctx.stroke();
+                }
+                ctx.fillStyle = active ? 'rgba(39, 55, 47, 0.96)' : 'rgba(28, 43, 38, 0.90)';
+                ctx.fillRect(hit.left + 1, hit.top + 1, hit.right - hit.left - 2, hit.bottom - hit.top - 2);
+                ctx.fillStyle = active ? '#f2ebd8' : 'rgba(224, 232, 209, 0.92)';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(hit.summary.title, hit.x, hit.y);
             }
-            ctx.fillStyle = active ? 'rgba(39, 55, 47, 0.96)' : 'rgba(28, 43, 38, 0.90)';
-            ctx.fillRect(hit.left + 1, hit.top + 1, hit.right - hit.left - 2, hit.bottom - hit.top - 2);
-            ctx.fillStyle = active ? '#f2ebd8' : 'rgba(224, 232, 209, 0.92)';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(hit.summary.title, hit.x, hit.y);
-            if (active) {
+            if (active || hovered) {
                 ctx.beginPath();
-                ctx.moveTo(hit.x - width / 2, hit.y + 11);
-                ctx.lineTo(hit.x + width / 2, hit.y + 11);
-                ctx.strokeStyle = '#c9ae80';
-                ctx.lineWidth = 1.5;
+                if (placeName) {
+                    const half = Math.min(width / 2, 14);
+                    ctx.moveTo(hit.x - half, hit.y + 10);
+                    ctx.lineTo(hit.x - 4, hit.y + 10);
+                    ctx.moveTo(hit.x + 4, hit.y + 10);
+                    ctx.lineTo(hit.x + half, hit.y + 10);
+                } else {
+                    ctx.moveTo(hit.x - width / 2, hit.y + 11);
+                    ctx.lineTo(hit.x + width / 2, hit.y + 11);
+                }
+                ctx.strokeStyle = active ? '#c9ae80' : '#e7dfba';
+                ctx.lineWidth = active ? 1.5 : 1;
                 ctx.stroke();
             }
         }
@@ -380,7 +418,10 @@ export function MapCanvas({
     };
 
     const labelAt = (position: { x: number; y: number }): LabelPlacement | undefined =>
-        labelHits.current.find((hit) => position.x >= hit.left && position.x <= hit.right && position.y >= hit.top && position.y <= hit.bottom);
+        labelHits.current.find((hit) =>
+            (position.x >= hit.left && position.x <= hit.right && position.y >= hit.top && position.y <= hit.bottom)
+            || (__MAP_STUDY__ && study !== null && Math.hypot(position.x - hit.anchorX, position.y - hit.anchorY) <= 7),
+        );
 
     const animateStudyZoom = (position: { x: number; y: number }): void => {
         if (zoomFrame.current !== null) cancelAnimationFrame(zoomFrame.current);
@@ -409,6 +450,7 @@ export function MapCanvas({
                 data-map-center-y={String(Math.round(view.centerY))}
                 data-map-zoom={view.zoom.toFixed(3)}
                 data-map-hover-point={__MAP_STUDY__ && hoverTarget?.kind === 'point' ? hoverTarget.id : undefined}
+                data-map-hover-label={__MAP_STUDY__ && hoverTarget?.kind === 'label' ? hoverTarget.id : undefined}
                 data-map-hover-contour={__MAP_STUDY__ && hoverTarget?.kind === 'contour' ? String(hoverTarget.index) : undefined}
                 role="img"
                 tabIndex={0}
@@ -478,7 +520,7 @@ export function MapCanvas({
                     if (__MAP_STUDY__ && event.pointerType === 'touch') return;
                     const label = labelAt(position);
                     if (label !== undefined) {
-                        if (__MAP_STUDY__) setHoverTarget(null);
+                        if (__MAP_STUDY__ && study !== null) setHoverTarget((current) => current?.kind === 'label' && current.id === label.summary.tagId ? current : { kind: 'label', id: label.summary.tagId });
                         const definition = label.summary.description === undefined ? '' : `；${label.summary.description}`;
                         setHoverText(`${label.summary.title}：${String(label.summary.bookCount)} 本书，${String(label.summary.highlightCount)} 处已标注划线${definition}`);
                         event.currentTarget.style.cursor = 'pointer';

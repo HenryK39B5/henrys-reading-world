@@ -3315,6 +3315,11 @@ Slice / task IDs：
 - 单元与浏览器验收：`npm run check:local` 315/315、`npm run build`、`npm run isolation:public`、`npm run publication:verify`、候选 Chromium 9/9、原本机地图与标签 15/15（独立 5188 本机模式端口）、公开 Chromium 8/8 通过；普通 E2E 仍为 130 项。最初完整单测 314/315：测试错把屏幕左上角当作远离等高线的位置，实则有一条线穿过，改用确定远离线段的屏幕中心后重跑 315/315。点/轮廓截图均已人工复看；悬停在真机/Safari/低端设备的流畅度和视觉 Gate 仍待 Henry 体验。候选服务器仍在 `127.0.0.1:5176/map`，未推送或部署。
 - 仍待 Henry 视觉 Gate 与真机/Safari/读屏、长时间平移缩放性能；没有推送、部署。候选入口与旧预选交互的历史记录见 `docs/53-LOCAL-INTERACTIVE-MAP-CANDIDATE.md`。
 
+## M-04 本机主题地名与统一选中环候选（2026-09-25）
+- Henry 认可地形方向，指出按封面着色的选中环容易被看作不同状态，并授权试做无框主题词。只在 `map-study` 候选中将已打开划线的七像素描边统一为暖白色，书封色仍在详情出处边线与 Book Aura；点悬停保持柔光、打开保持清晰细环。公开/普通本机地图不变。
+- 地图主题词去掉实心矩形，改用紧贴字形的暗描边/柔影、真实锚点的小点、避让后的引线；悬停字增亮并以短线强调，当前区域保留较强字号和暖色短线。保留现有稳定排位、桌面 18/手机 10 个上限、不可见可点区域与锚点 7px 命中、标签优先和键盘列表替代；不移动标签语义坐标、真实划线点或快照。
+- 浏览器证据：`.private/review/maintenance/m04/interactive/world-{1440,390,320}.png`、`place-name-hover-{1440,390,320}.png`、`place-name-selected-{1440,390,320}.png`、`one-click-overlap-390.png`；已人工检查世界/区域、320px 与选中环的可读性和裁切。`npm run check:local` 316/316，`npm run test:map:interactive` 10/10，独立 5188 端口本机地图与标签回归 15/15，公开 Chromium 8/8，`npm run build`、`npm run isolation:public`、`npm run publication:verify` 通过。没有额外依赖；线上外观/正式快照未改变，未推送部署。Henry 的视觉 Gate、真机/Safari/读屏、浏览器菜单 200% 和持续交互性能待验收；详见 `docs/53-LOCAL-INTERACTIVE-MAP-CANDIDATE.md`。
+
 ## V3 Public snapshot export and local release acceptance (2026-09-23)
 
 - User explicitly authorized local public export. `npm run publication:export` generated `src/data/public-snapshot.json` and 108 resized `public/covers/*.jpg`; no repository, push, workflow, or deployment action was performed.
