@@ -2,11 +2,14 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import { mapToScreen } from '../src/domain/map.ts';
-import { studyPointAt } from '../src/domain/mapStudy.ts';
+import { studyContourPaths, studyPointAt } from '../src/domain/mapStudy.ts';
 import type { MapPoint, Snapshot } from '../src/domain/types.ts';
 
 const snapshot = JSON.parse(readFileSync('src/data/public-snapshot.json', 'utf8')) as Snapshot;
 const points = snapshot.map?.points ?? [];
+const contourStudy = JSON.parse(readFileSync('.private/review/maintenance/m04/resolution/field-comparison.json', 'utf8')) as {
+    fields: Array<{ contours: NonNullable<Snapshot['map']>['contours'] }>;
+};
 const output = join(process.cwd(), '.private/review/maintenance/m04/interactive');
 
 type View = { centerX: number; centerY: number; zoom: number };
@@ -26,16 +29,19 @@ async function readView(page: Page): Promise<{ view: View; width: number; height
     };
 }
 
-function findPoint(frame: Awaited<ReturnType<typeof readView>>, ambiguous: boolean): { point: MapPoint; x: number; y: number } {
+function findPoint(frame: Awaited<ReturnType<typeof readView>>, overlap = false): { point: MapPoint; x: number; y: number } {
     for (const point of points) {
         const screen = mapToScreen(point, frame.view, frame.width, frame.height);
         if (screen.x < 36 || screen.x > frame.width - 36 || screen.y < frame.height * 0.47 || screen.y > frame.height - 55) continue;
         const result = studyPointAt(points, screen, frame.view, frame.width, frame.height);
-        if (result?.point.highlightId === point.highlightId && result.ambiguous === ambiguous) {
+        const crowded = overlap && points.some((other) => other.highlightId !== point.highlightId &&
+            Math.hypot(mapToScreen(other, frame.view, frame.width, frame.height).x - screen.x,
+                mapToScreen(other, frame.view, frame.width, frame.height).y - screen.y) < 8);
+        if (result?.highlightId === point.highlightId && (!overlap || crowded)) {
             return { point, x: screen.x, y: screen.y };
         }
     }
-    throw new Error(`no ${ambiguous ? 'overlapped' : 'isolated'} visible point in map study`);
+    throw new Error(`no ${overlap ? 'overlapped' : 'visible'} point in map study`);
 }
 
 test('local map candidate renders real world and region views without a production map change', async ({ page }) => {
@@ -80,7 +86,7 @@ test('world tap zooms around the point, then an isolated point opens the existin
     }
     const ready = await readView(page);
     expect(ready.view.zoom).toBeGreaterThanOrEqual(4);
-    const isolated = findPoint(ready, false);
+    const isolated = findPoint(ready);
     await canvas.click({ position: { x: isolated.x, y: isolated.y } });
     await expect(page).toHaveURL(new RegExp(`h=${isolated.point.highlightId}`));
     await expect(page.getByTestId('map-detail')).toBeVisible();
@@ -88,7 +94,7 @@ test('world tap zooms around the point, then an isolated point opens the existin
     await expect(canvas).toBeFocused();
 });
 
-test('overlapping points preview the exact real highlight before entering detail', async ({ page }) => {
+test('one click on a crowded world dot opens its nearest real passage', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/map');
     const canvas = page.getByTestId('map-canvas');
@@ -98,15 +104,74 @@ test('overlapping points preview the exact real highlight before entering detail
     expect(frame.view.zoom).toBeGreaterThan(4);
     const overlap = findPoint(frame, true);
     await canvas.click({ position: { x: overlap.x, y: overlap.y } });
-    await expect(canvas).toHaveAttribute('data-map-preselected-id', overlap.point.highlightId);
-    await expect(page.getByTestId('map-detail')).toHaveCount(0);
-    const highlight = snapshot.highlights.find((item) => item.id === overlap.point.highlightId);
-    expect(highlight).toBeDefined();
-    await expect(page.locator('.map-hover-readout')).toContainText(Array.from(highlight?.text ?? '').slice(0, 8).join(''));
-    await page.getByTestId('map-stage').screenshot({ path: join(output, 'preview-overlap-390.png') });
-    await canvas.click({ position: { x: overlap.x, y: overlap.y } });
     await expect(page).toHaveURL(new RegExp(`h=${overlap.point.highlightId}`));
     await expect(page.getByTestId('map-detail')).toBeVisible();
+    const highlight = snapshot.highlights.find((item) => item.id === overlap.point.highlightId);
+    await expect(page.locator('.map-detail-passage')).toHaveText(highlight?.text ?? '');
+    await page.getByTestId('map-stage').screenshot({ path: join(output, 'one-click-overlap-390.png') });
+    await page.getByRole('link', { name: '关闭划线详情' }).click();
+    await expect(canvas).toBeFocused();
+});
+
+test('hover gives a world point a soft focus without using the selected-passage outline', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/map');
+    const canvas = page.getByTestId('map-canvas');
+    await expect(page.locator('.map-canvas-wrap[data-map-study="ready"]')).toBeVisible();
+    const frame = await readView(page);
+    const target = findPoint(frame);
+    const bounds = await canvas.boundingBox();
+    expect(bounds).not.toBeNull();
+    if (bounds === null) return;
+    await page.mouse.move(bounds.x + target.x, bounds.y + target.y);
+    await expect(canvas).toHaveAttribute('data-map-hover-point', target.point.highlightId);
+    await expect(canvas).not.toHaveAttribute('data-map-hover-contour', /.+/);
+    await expect(page.getByTestId('map-detail')).toHaveCount(0);
+    await canvas.screenshot({ path: join(output, 'hover-point-390.png') });
+    const hovered = await canvas.screenshot();
+    await page.mouse.move(0, 0);
+    await expect(canvas).not.toHaveAttribute('data-map-hover-point', /.+/);
+    expect((await canvas.screenshot()).equals(hovered)).toBe(false);
+});
+
+test('hover highlights just one connected contour, without treating it as a clickable region', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/map');
+    const canvas = page.getByTestId('map-canvas');
+    await expect(page.locator('.map-canvas-wrap[data-map-study="ready"]')).toBeVisible();
+    const frame = await readView(page);
+    const bounds = await canvas.boundingBox();
+    expect(bounds).not.toBeNull();
+    if (bounds === null) return;
+    const paths = studyContourPaths(contourStudy.fields[1]?.contours ?? []);
+    const before = await canvas.screenshot();
+    let found = false;
+    let contourPointer: { x: number; y: number } | null = null;
+    for (let index = 0; index < paths.length && !found; index += 1) {
+        for (const [x0, y0, x1, y1] of paths[index]?.segments ?? []) {
+            if (x0 === undefined || y0 === undefined || x1 === undefined || y1 === undefined) continue;
+            const screen = mapToScreen({ x: (x0 + x1) / 2, y: (y0 + y1) / 2 }, frame.view, frame.width, frame.height);
+            if (screen.x < 45 || screen.x > frame.width - 45 || screen.y < 50 || screen.y > frame.height - 50 ||
+                studyPointAt(points, screen, frame.view, frame.width, frame.height, 11) !== undefined) continue;
+            await page.mouse.move(bounds.x + screen.x, bounds.y + screen.y);
+            if (await canvas.getAttribute('data-map-hover-contour') === String(index)) {
+                contourPointer = screen;
+                found = true;
+                break;
+            }
+        }
+    }
+    expect(found, 'visible contour away from dots and labels').toBe(true);
+    await expect(canvas).not.toHaveAttribute('data-map-hover-point', /.+/);
+    await canvas.screenshot({ path: join(output, 'hover-contour-1440.png') });
+    expect((await canvas.screenshot()).equals(before)).toBe(false);
+    if (contourPointer !== null) {
+        await canvas.click({ position: contourPointer });
+        await expect(page.getByTestId('map-detail')).toHaveCount(0);
+        await expect(canvas).toHaveAttribute('data-map-zoom', '1.000');
+    }
+    await page.mouse.move(0, 0);
+    await expect(canvas).not.toHaveAttribute('data-map-hover-contour', /.+/);
 });
 
 test('the density underlay follows pan and zoom and survives WebGL context loss', async ({ page }) => {
@@ -178,6 +243,7 @@ test.describe('touch candidate', () => {
         await canvas.tap({ position: target });
         await expect.poll(async () => Number(await canvas.getAttribute('data-map-zoom'))).toBeGreaterThan(1.7);
         await expect(page.getByTestId('map-detail')).toHaveCount(0);
+        await expect(canvas).not.toHaveAttribute('data-map-hover-point', /.+/);
     });
 });
 

@@ -3309,6 +3309,12 @@ Slice / task IDs：
 - 浏览器证据：`.private/review/maintenance/m04/interactive/` 为世界/交易区域 1440/390/320px、重叠点预选、320px 无 GPU 回退和 720px context-loss 截图；Pages 式研究对照仍在 `.private/review/maintenance/m04/surface/`。`npm run test:map:interactive` Chromium 7/7 覆盖锚点放大、独立点详情及返回焦点、重叠点双步确认、拖动/缩放底色重绘、GPU 退路、触屏事件、键盘/列表路径与 reduced-motion；点/标签没有被底层吞掉。程序生成的截图只是视觉证据，Henry 的实际体验 Gate 尚未通过。
 - 实际命令：`npm run map:terrain:study`、`npm run check:local` 316/316、`npm run build`、`npm run isolation:public`、`npm run publication:verify`、候选 Chromium 7/7 及现有本机地图/标签回归 15/15 通过。最初直接用默认 5173 跑本机地图回归，遇到该端口已经运行公开 Vite，测试误读 3,462 而非 4,663 条数据，9/15 失败；将 `RW_E2E_PORT=5188` 接到本机专用服务器后 15/15 通过。正式构建 JS/CSS hash 变化但地图视觉保持旧版，候选没有被发布；iOS/Safari/低端 GPU 持续性能、浏览器 200% 与读屏未验证；详见 `docs/53-LOCAL-INTERACTIVE-MAP-CANDIDATE.md`。
 
+## M-04 本机地图点与轮廓悬停精修（2026-09-25）
+- Henry 认可地图候选底图，但认为密集点先预选再点一次不自然；本机候选沿用世界视图桌面约 3x/手机约 4x 的缩放门槛，进入可选尺度后 13px 内匹配最近真实点并一次进入原详情，稳定 ID 在同位置时打破并列。取消预选环和第二次点选，不加面板；保留真实标签优先、拖动/双指操作和列表无障碍路径。普通地图及公开快照不改。
+- 鼠标/笔悬停点时用柔和暖光晕与增亮圆芯区别于已打开详情的硬描边；悬停轮廓时按同一层内相接端点分组，只提亮一圈，不把同层全部高亮、不点击轮廓。点与线的命中均在屏幕像素空间计算；标签/点优先于线；触屏无持续悬停，移出/拖动/缩放时清理。`src/domain/mapStudy.test.ts` 补充最近点、稳定 ID 同距、轮廓分组与线段命中；候选 Chromium 9/9 生成 `.private/review/maintenance/m04/interactive/hover-point-390.png`、`hover-contour-1440.png`、`one-click-overlap-390.png`。截图已复看：外层大轮廓首版亮度偏高，降低后重拍；线条仍作为密度提示而非主题边界。
+- 单元与浏览器验收：`npm run check:local` 315/315、`npm run build`、`npm run isolation:public`、`npm run publication:verify`、候选 Chromium 9/9、原本机地图与标签 15/15（独立 5188 本机模式端口）、公开 Chromium 8/8 通过；普通 E2E 仍为 130 项。最初完整单测 314/315：测试错把屏幕左上角当作远离等高线的位置，实则有一条线穿过，改用确定远离线段的屏幕中心后重跑 315/315。点/轮廓截图均已人工复看；悬停在真机/Safari/低端设备的流畅度和视觉 Gate 仍待 Henry 体验。候选服务器仍在 `127.0.0.1:5176/map`，未推送或部署。
+- 仍待 Henry 视觉 Gate 与真机/Safari/读屏、长时间平移缩放性能；没有推送、部署。候选入口与旧预选交互的历史记录见 `docs/53-LOCAL-INTERACTIVE-MAP-CANDIDATE.md`。
+
 ## V3 Public snapshot export and local release acceptance (2026-09-23)
 
 - User explicitly authorized local public export. `npm run publication:export` generated `src/data/public-snapshot.json` and 108 resized `public/covers/*.jpg`; no repository, push, workflow, or deployment action was performed.
