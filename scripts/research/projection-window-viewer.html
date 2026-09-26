@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="/viewer.css">
+    <title>Reading World · 投影研究</title>
+</head>
+<body>
+<header><h1>投影研究</h1><span id="corpus">载入中</span><span class="scope">本机实验</span></header>
+<main>
+    <form class="controls" aria-label="观察窗口">
+        <label>窗口<select id="window"><option value="published">线上坐标</option><option value="public-umap">公开 UMAP</option><option value="public-umap-raw">公开 UMAP · 原始</option><option value="pca">全局 PCA</option><option value="cpca">cPCA · 64 PC</option><option value="cpca1024">cPCA · 原向量</option></select></label>
+        <label>主题<select id="topic"></select></label>
+        <label>对比 α<select id="alpha"><option value="0">0</option><option value="1" selected>1</option><option value="3">3</option></select></label>
+        <label class="angle">平面角度 <output id="angle-value">0°</output><input id="angle" type="range" min="0" max="90" step="1" value="0" disabled></label>
+        <label class="query">查询句子<select id="query"></select></label>
+        <button id="original" type="button">原视角</button>
+    </form>
+    <div class="metrics"><span id="view-title"></span><span id="metric"></span></div>
+    <div class="workspace">
+        <section class="plot" aria-label="真实划线投影">
+            <canvas id="plot" tabindex="0" role="img" aria-label="真实划线二维位置"></canvas>
+            <div class="legend"><span class="target">目标主题</span><span class="high">原空间近邻</span><span class="low">平面近邻</span></div>
+        </section>
+        <aside aria-label="选中划线与近邻">
+            <section class="passage" aria-live="polite"><div class="identity"><strong id="selected-id" tabindex="-1"></strong><span id="source"></span></div><p id="text"></p><div id="tags"></div></section>
+            <div class="neighbor-heading"><div role="tablist" aria-label="近邻空间"><button id="high-tab" role="tab" aria-selected="true" aria-controls="neighbors">原空间</button><button id="low-tab" role="tab" aria-selected="false" aria-controls="neighbors">观察平面</button></div><span id="overlap"></span></div>
+            <ol id="neighbors" role="tabpanel" aria-labelledby="high-tab"></ol>
+        </aside>
+    </div>
+    <p id="status" role="status"></p>
+</main>
+<script type="module" src="/viewer.mjs"></script>
+</body>
+</html>

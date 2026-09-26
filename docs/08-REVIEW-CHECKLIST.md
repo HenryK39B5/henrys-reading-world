@@ -3360,6 +3360,14 @@ Slice / task IDs：
 - 实际 `node scripts/research/study-local-topic-anchors.ts` 成功；专项纯函数13/13、完整 Vitest 41文件331/331、typecheck/lint/build/diff check通过；Node JSON 再运行除时间外一致；Git确认报告忽略。默认E2E `--list` 仍130项，未重跑默认全套；没有新增依赖、独立语义真值、高维核查、真机视觉或读屏结果。5176/5198无监听，无push/deploy。
 - R1 研究结论：不整套替换中位数，不以 book diversity 代替局部含义，不强行设生产Gate；下一阶段R2固定现有embedding核查困难主题高维邻域及不同观察平面，之后再选地图/透镜/拓扑的职责。
 
+## R-01：R2-A 高维邻域与观察窗口（2026-09-26）
+
+- 新增`docs/57`预登记与实况、`projectionWindows.ts`、计算/完全复验脚本、独立只读server和观察器HTML/CSS/JS、数值单测7项、专项Playwright配置/测试。公开3462条与既有本机1024维，逐原文hash验证；没有模型/取数调用，解析全缓存但仅公开ID参与计算。显式固定原有传递依赖ml-matrix6.15.0为devDependency。
+- 108按书查询＋5独特代表点，RP96/PCA64的原空间k30保留中位值30.0%/53.3%；当前二维6.7%，公开UMAP生产归一化8.3%、原始10.0%，PC1/2为3.3%。这些是模型空间几何而非语义准确率。PCA64只留53.293%方差，新增完整1024cPCA及成员内部诊断；阶层内部70%→80%但教育例与人际例不同，恐惧45%→40%；不据单指标换地图。
+- 完整读571行固定原文包，96图片＋3浏览器记录在`.private/research/map/projection-window/`。19窗口×3宽度/5病例配对的Canvas非空、无溢出、真实二维近邻与离线逐ID一致、ID跟踪/正交PCA滑动/原视角、键盘焦点、鼠标平移滚轮、DPR2触屏仿真及server白名单专项5/5。人工看过8类关键截图，不是逐张/真机或最终视觉Gate。
+- 实跑数值生成、完全复验、Vitest42文件338/338、typecheck/lint/build/isolation/publication parity；默认E2E只list仍130项未全跑。报告除时间/资源外完全一致；最新数值53.390秒/933276KiB maxRSS，不是浏览器帧率。初次作者README路径404/Windows解析失败，经目录核查与BasicParsing纠正；没有执行远程源码。Nature全文仍未核对。
+- 公共源码/数据/terrain与生产JS/CSS指纹未变。测试5200自动停止，用户观察器只读127.0.0.1:5199（PID2960）HTTP200；无push/deploy。Henry再次要求继续，R2-B马上做固定流程PCA64→UMAP和按书留出的cPCA，R3/R4及独立语义/真机Gate尚未执行。
+
 ## v1 Gate 2 工程检查（历史清单；v2 迁移后按 docs/11 验收）
 
 - [ ] 30–50 条真实划线，原文与出处核对，访客展示范围由用户确认。
