@@ -3345,6 +3345,13 @@ Slice / task IDs：
 - Build note: the approved snapshot makes the minified JS bundle about 1.6 MB; this is a performance follow-up, not a content/isolation failure.
 - Remaining: production-oriented review of static hosting base path, 404 fallback, bundle size, and final manual public-content review; Safari, real device, screen reader, system-browser 200%, low-brightness reading and first-visitor observation remain unverified. Deployment is still a separate explicit authorization. Details: `docs/44-V3-PUBLIC-SNAPSHOT-EXPORT-AND-ACCEPTANCE.md`.
 
+## R-01 多视角地图研究：R0 讨论建档与空间代表性基线（2026-09-26）
+
+- Henry 授权研究可更换本机模型、布局算法与流程，不受当前生产实现或排期限制；正式公开内容与部署仍独立 Gate。无名区域暂不处理；主题地名应具有局部空间代表性，不能仅用目录主题的几何中心自证。详见 `docs/54-MULTIVIEW-MAP-RESEARCH-CHARTER.md`。
+- 新增研究纯函数 `scripts/research/spatialRepresentativeness.ts`、命令 `node scripts/research/audit-spatial-representativeness.ts`、测试 `tests/spatial-representativeness.test.ts` 和基线说明 `docs/55-SPATIAL-REPRESENTATIVENESS-BASELINE.md`。只读已审核 3,462 公开点，复算 56 个 baseline 锚点并与 snapshot 一致性检查；比较欧氏 medoid，记录 15/30/60 邻域的审核成员支持、未标注、半径和书籍构成。报告只写 Git 忽略的 `.private/research/map/spatial-representativeness/`，含 input SHA256/地图版本/邻居 ID，不含原文/向量/账号字段。
+- 实际观测：k=30 medoid 支持增加 28 / 减少 8 / 不变 20，成员支持中位值两种均为 2。medoid 包含自身、未标注不可视为负例、密度改变 k 邻域半径、多簇/高维/屏幕避让尚未验证；本阶段不推荐替换。
+- `node scripts/research/audit-spatial-representativeness.ts` 成功；专项 Vitest 6/6、完整 `npm run test` 40 文件 324/324，typecheck、lint 和 diff 空白检查通过；Node UTF-8 JSON 同输入复验除生成时间外完整一致。首次 PowerShell 默认编码解析报告失败，丢弃该结果；Git 确认报告被忽略。Nature 文献入口返回访问校验页，记录为待全文核对，不把 HTTP 200 当全文证据。公开 snapshot、terrain、已部署站点和消费者代码未改，无 UI 截图或视觉验收；本机服务不启动，无推送部署。下一步 R1 留出样本/局部支持/真实原文配对审阅，然后再进入可切换投影与拓扑原型。
+
 ## v1 Gate 2 工程检查（历史清单；v2 迁移后按 docs/11 验收）
 
 - [ ] 30–50 条真实划线，原文与出处核对，访客展示范围由用户确认。
