@@ -39,6 +39,26 @@ export function alignSimilarity(source: readonly Point2[], target: readonly Poin
     return reflected.rmse < direct.rmse ? reflected : direct;
 }
 
+export function applyAlignment(points: readonly Point2[], alignment: Pick<Alignment, 'scale' | 'angleRadians' | 'reflected' | 'sourceCentroid' | 'targetCentroid'>): Point2[] {
+    return points.map((point) => {
+        const sx = point[0] - alignment.sourceCentroid[0];
+        const sy = (point[1] - alignment.sourceCentroid[1]) * (alignment.reflected ? -1 : 1);
+        return [
+            alignment.targetCentroid[0] + alignment.scale * (Math.cos(alignment.angleRadians) * sx - Math.sin(alignment.angleRadians) * sy),
+            alignment.targetCentroid[1] + alignment.scale * (Math.sin(alignment.angleRadians) * sx + Math.cos(alignment.angleRadians) * sy),
+        ];
+    });
+}
+
+export function alignFromAnchors(source: readonly Point2[], target: readonly Point2[], anchorIndices: readonly number[], allowReflection = false): Alignment {
+    if (anchorIndices.length < 2 || new Set(anchorIndices).size !== anchorIndices.length || anchorIndices.some((index) => index < 0 || index >= source.length || index >= target.length)) throw new Error('alignment requires at least two valid unique anchors');
+    const sourceAnchors = anchorIndices.map((index) => source[index]!);
+    const targetAnchors = anchorIndices.map((index) => target[index]!);
+    const fitted = alignSimilarity(sourceAnchors, targetAnchors, allowReflection);
+    return { ...fitted, points: applyAlignment(source, fitted) };
+}
+
+
 export function normalizedDisplacements(left: readonly Point2[], right: readonly Point2[]) {
     validatePair(left, right);
     const scale = Math.max(rms(right), Number.EPSILON);

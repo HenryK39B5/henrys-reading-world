@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { alignSimilarity, normalizedDisplacements, pairwiseDistanceCorrelation } from '../scripts/research/alignmentStability.ts';
+import { alignFromAnchors, alignSimilarity, normalizedDisplacements, pairwiseDistanceCorrelation } from '../scripts/research/alignmentStability.ts';
 
 describe('alignment stability research contracts', () => {
     const source = [[0, 0], [1, 0], [0, 1], [2, 2]] as const;
@@ -17,6 +17,13 @@ describe('alignment stability research contracts', () => {
         expect(alignSimilarity(source, mirrored, true).normalizedRmse).toBeLessThan(1e-12);
         expect(alignSimilarity(source, mirrored).reflected).toBe(false);
     });
+    it('applies a fixed-anchor similarity transform to all points and preserves neighbor order', () => {
+        const shifted = source.map(([x, y]) => [5 + 2 * x - y, 9 + x + 2 * y] as const);
+        const aligned = alignFromAnchors(shifted, target, [0, 1, 2], false);
+        expect(aligned.normalizedRmse).toBeLessThan(1e-12);
+        expect(aligned.points).toEqual(target);
+    });
+
     it('keeps pairwise distance association under similarity transforms', () => {
         expect(pairwiseDistanceCorrelation(source, target)).toBeGreaterThan(0.999999);
         expect(pairwiseDistanceCorrelation(source, source)).toBeCloseTo(1);
