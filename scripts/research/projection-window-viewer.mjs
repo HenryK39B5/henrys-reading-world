@@ -6,6 +6,7 @@ document.querySelector('.controls').addEventListener('submit', (event) => event.
 const points = data.points;
 const byId = new Map(points.map((p, index) => [p.id, { ...p, index }]));
 const highById = new Map(data.queries.map((q) => [q.id, q.referenceNearest30]));
+const crossBookById = new Map((data.crossBookReferences ?? []).map((q) => [q.id, q.neighborIds]));
 const topicNames = new Map(data.topics.map((t) => [t.id, t.title]));
 const canvas = $('plot');
 const ctx = canvas.getContext('2d');
@@ -33,6 +34,14 @@ for (const id of orderedQueries) {
 }
 $('query').value = state.selected;
 
+function viewTitle(view) { return view.heldoutBookId === undefined ? view.title : view.title.replace(' · 留书 ', ' · 条件轴留出 '); }
+for (const view of data.views.filter((v) => v.id.startsWith('pca64-umap') || v.id.startsWith('loo-'))) {
+    const option = document.createElement('option'); option.value = view.id; option.title = viewTitle(view);
+    option.textContent = view.heldoutBookId === undefined ? (view.id.endsWith('raw') ? 'PCA64 UMAP raw' : 'PCA64 UMAP') : `留书 ${topicNames.get(view.topic)} ${view.heldoutBookId}`;
+    $('window').append(option);
+}
+function highNeighbors() { return state.mode.startsWith('loo-') ? crossBookById.get(state.selected) : highById.get(state.selected); }
+
 function updateCoordinates() {
     viewId = state.mode === 'pca' ? `pca-${state.theta}` : state.mode.startsWith('cpca') ? `${state.mode}-${state.topic}-${state.mode === 'cpca1024' ? 1 : state.alpha}` : state.mode;
     if (state.mode === 'pca') {
@@ -47,11 +56,12 @@ function updateCoordinates() {
         bounds = { x: (minX + maxX) / 2, y: (minY + maxY) / 2, span: Math.max(maxX - minX, maxY - minY, Number.EPSILON) };
     }
     $('window').value = state.mode; $('topic').value = state.topic;
-    $('alpha').disabled = state.mode !== 'cpca'; $('alpha').value = String(state.mode === 'cpca1024' ? 1 : state.alpha);
+    $('topic').disabled = state.mode.startsWith('loo-');
+    $('alpha').disabled = state.mode !== 'cpca'; $('alpha').value = String(state.mode === 'cpca1024' || state.mode.startsWith('loo-') ? 1 : state.alpha);
     $('angle').disabled = state.mode !== 'pca'; $('angle-value').textContent = `${state.theta}°`; $('angle').value = String(state.theta);
-    $('view-title').textContent = state.mode === 'pca' ? `全局 PCA · ${state.theta}°` : data.views.find((v) => v.id === viewId).title;
-    const recall = data.summary.find((s) => s.id === viewId)?.recall30;
-    $('metric').textContent = recall === undefined ? '30 点原空间近邻保留 · 未采样角度' : `108 查询 · 30 点近邻保留中位值 ${(recall * 100).toFixed(1)}%`;
+    $('view-title').textContent = state.mode === 'pca' ? `全局 PCA · ${state.theta}°` : viewTitle(data.views.find((v) => v.id === viewId));
+    const measurement = data.summary.find((s) => s.id === viewId);
+    $('metric').textContent = measurement === undefined ? '30 点原空间近邻保留 · 未采样角度' : `${measurement.sampleLabel ?? '108 查询'} · 30 点近邻保留中位值 ${(measurement.recall30 * 100).toFixed(1)}%`;
     updateSelection();
 }
 
@@ -59,7 +69,7 @@ function updateSelection() {
     const selected = byId.get(state.selected);
     const position = coordinates[selected.index];
     lowIds = points.map((p, i) => ({ id: p.id, distance: Math.hypot(coordinates[i][0] - position[0], coordinates[i][1] - position[1]) }))
-        .filter((entry) => entry.id !== state.selected).sort((a, b) => a.distance - b.distance || a.id.localeCompare(b.id)).slice(0, 30).map((entry) => entry.id);
+        .filter((entry) => entry.id !== state.selected && (!state.mode.startsWith('loo-') || byId.get(entry.id).bookId !== selected.bookId)).sort((a, b) => a.distance - b.distance || a.id.localeCompare(b.id)).slice(0, 30).map((entry) => entry.id);
     $('selected-id').textContent = selected.id;
     $('source').textContent = `${selected.source} · ${selected.author}`;
     $('text').textContent = selected.text;
@@ -72,7 +82,7 @@ function updateSelection() {
         const option = document.createElement('option'); option.value = selected.id; option.textContent = `${selected.id} · ${selected.source}`; $('query').append(option);
     }
     $('query').value = state.selected;
-    const high = highById.get(state.selected);
+    const high = highNeighbors();
     $('overlap').textContent = high === undefined ? '原空间 · 未采样' : `30 点交集 ${lowIds.filter((id) => high.includes(id)).length}`;
     updateNeighbors(); draw();
 }
@@ -84,7 +94,7 @@ function updateNeighbors() {
     $('high-tab').tabIndex = state.tab === 'high' ? 0 : -1;
     $('low-tab').tabIndex = state.tab === 'low' ? 0 : -1;
     $('neighbors').setAttribute('aria-labelledby', state.tab === 'high' ? 'high-tab' : 'low-tab');
-    const list = state.tab === 'high' ? highById.get(state.selected) ?? [] : lowIds;
+    const list = state.tab === 'high' ? highNeighbors() ?? [] : lowIds;
     $('neighbors').replaceChildren();
     if (list.length === 0) { const li = document.createElement('li'); li.textContent = '未采样'; $('neighbors').append(li); }
     for (const id of list.slice(0, 10)) {
@@ -112,7 +122,7 @@ function draw() {
     for (let i = 0; i < points.length; i += 1) circle(i, 1.4, 'rgba(190,208,208,0.32)');
     for (let i = 0; i < points.length; i += 1) if (points[i].tags.includes(state.topic)) circle(i, 2.8, '#cf8da7');
     for (const id of lowIds) circle(byId.get(id).index, 4.1, '#f2c47c', false);
-    for (const id of highById.get(state.selected) ?? []) circle(byId.get(id).index, 2.6, '#57d4d4');
+    for (const id of highNeighbors() ?? []) circle(byId.get(id).index, 2.6, '#57d4d4');
     const selected = byId.get(state.selected);
     circle(selected.index, 6.5, '#fff', false); circle(selected.index, 3.5, '#e55774');
     const p = screenPositions[selected.index];
@@ -122,7 +132,7 @@ function draw() {
 }
 
 function resetCamera() { state.panX = 0; state.panY = 0; state.zoom = 1; }
-$('window').addEventListener('change', (event) => { state.mode = event.target.value; resetCamera(); updateCoordinates(); });
+$('window').addEventListener('change', (event) => { state.mode = event.target.value; if (state.mode.startsWith('loo-')) state.topic = data.views.find((v) => v.id === state.mode).topic; resetCamera(); updateCoordinates(); });
 $('topic').addEventListener('change', (event) => { state.topic = event.target.value; resetCamera(); updateCoordinates(); });
 $('alpha').addEventListener('change', (event) => { state.alpha = Number(event.target.value); resetCamera(); updateCoordinates(); });
 $('angle').addEventListener('input', (event) => { state.theta = Number(event.target.value); resetCamera(); updateCoordinates(); });
@@ -167,6 +177,6 @@ canvas.addEventListener('keydown', (event) => {
 updateCoordinates();
 new ResizeObserver(draw).observe(canvas);
 window.__projectionStudy = {
-    get neighbors() { return { high: [...(highById.get(state.selected) ?? [])], low: [...lowIds] }; },
+    get neighbors() { return { high: [...(highNeighbors() ?? [])], low: [...lowIds] }; },
     get state() { return { ...state, viewId, pointCount: points.length, drawCount, selectedScreen: [...screenPositions[byId.get(state.selected).index]], selectedCoordinates: [...coordinates[byId.get(state.selected).index]] }; },
 };

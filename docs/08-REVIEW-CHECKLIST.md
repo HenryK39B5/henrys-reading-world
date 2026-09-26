@@ -3368,6 +3368,14 @@ Slice / task IDs：
 - 实跑数值生成、完全复验、Vitest42文件338/338、typecheck/lint/build/isolation/publication parity；默认E2E只list仍130项未全跑。报告除时间/资源外完全一致；最新数值53.390秒/933276KiB maxRSS，不是浏览器帧率。初次作者README路径404/Windows解析失败，经目录核查与BasicParsing纠正；没有执行远程源码。Nature全文仍未核对。
 - 公共源码/数据/terrain与生产JS/CSS指纹未变。测试5200自动停止，用户观察器只读127.0.0.1:5199（PID2960）HTTP200；无push/deploy。Henry再次要求继续，R2-B马上做固定流程PCA64→UMAP和按书留出的cPCA，R3/R4及独立语义/真机Gate尚未执行。
 
+## R-01：R2-B 完整流程与条件轴留书（2026-09-26）
+
+- 新增docs/58预登记/实况、bookProjectionHoldout.ts、PCA64→UMAP/整书隔离计算与完全复验脚本、4项单测和新专项浏览器测试；server同hash组合独立低维supplement，观察器新增7窗/共26，LOO窗口两边近邻同为跨书池、固定训练主题、明确条件轴而非完整表示留出。基线数据不覆写，生产入口不改。
+- 108按书同seed完整流程：PCA64→UMAP raw/归一化k30中位16.7%/13.3%，RP96→UMAP为10.0%/8.3%；三个k中位均更高但不是语义真值。52fold（20/18/14书，40/29/22主题实例）全可评估，背景也排除整书；同主题跨书top5书等权样本内→LOO23.8→9.6%、40.4→34.0%、61.9→57.5%，全池跨书top30也下降。共享PCA已含留书，是transductive条件轴检查，不能声称完整归纳泛化或已识别来源因果。
+- 完整读5病例/3表示/前5跨书邻居真实原文，保留统计/架构、孤独、冷水浴等混杂反例。新21全页图/3份像素邻居记录在.private/research/map/projection-pipeline-holdout/screenshots/；看过PCA64归一化1440、教育留书390、财富恐惧留书320，未逐图/真机验收。新增3浏览器＋原5共8/8，窗口/ID/近邻逐ID匹配、无横溢出、CSP/白名单/高维隔离继续通过。
+- 实跑生成和连续两次完全数值复验，除时间/资源之外一致；初次类型检查folds隐式any，显式类型后通过；最新20.121秒/819876KiB，不是帧率。完整43文件342/342、typecheck/lint/build/isolation/publication parity/diffcheck，默认E2E只list130项未全跑。没有新依赖、推理、取数、向量生成或传输。
+- 源snapshot/标签/terrain/covers/消费者代码及生产hash未变，报告/supplement/图像Git忽略。已核对旧serverPID2960命令后停止，同只读loopback5199重启PID26920，GET3462点/26窗/5跨书参照；计算和测试5200已停止，无push/deploy。PCA64流程只保留为下一阶段方向感/阅读任务候选，不选生产算法；R3、Mapper、多seed/严格全流程留书/独立语义/真机仍未做。
+
 ## v1 Gate 2 工程检查（历史清单；v2 迁移后按 docs/11 验收）
 
 - [ ] 30–50 条真实划线，原文与出处核对，访客展示范围由用户确认。
