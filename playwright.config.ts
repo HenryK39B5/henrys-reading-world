@@ -33,6 +33,7 @@ export default defineConfig({
         '**/pages-preflight.spec.ts',
         '**/publication/**',
         '**/tag-studio/**',
+        '**/research/**',
     ],
     fullyParallel: false,
     forbidOnly: true,

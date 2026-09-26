@@ -12,7 +12,7 @@
 
 ## 地图研究更新（2026-09-26）
 
-上线后维护/研究先读 `docs/48-MAINTENANCE-ROADMAP.md`。最新研究授权、讨论溯源与文献索引见 `docs/54-MULTIVIEW-MAP-RESEARCH-CHARTER.md`，主题空间代表性真实基线见 `docs/55-SPATIAL-REPRESENTATIVENESS-BASELINE.md`。Henry 已授权在隔离实验中更换地图算法、本机 embedding 与流程；此前保持点位/3D 暂缓是历史实验边界，不是永久禁令。线上 `7ebf2a3` 仍作为对照，实验不自动进入公开快照或部署；远程模型仍单独许可。无名区域暂不处理；地名需要真实局部支撑，标签缺失不是确认负例。每轮保存输入指纹、参数、命令、失败与未验证项，不宣称未经检验的首创或语义真值。
+上线后维护/研究先读 `docs/48-MAINTENANCE-ROADMAP.md`。最新研究授权、讨论溯源与文献索引见 `docs/54-MULTIVIEW-MAP-RESEARCH-CHARTER.md`，主题空间代表性真实基线见 `docs/55-SPATIAL-REPRESENTATIVENESS-BASELINE.md`，局部锚点/原文/配对图研究实况见 `docs/56-LOCAL-TOPIC-ANCHOR-STUDY.md`（R1完成，无赢家；下一步R2）。Henry 已授权在隔离实验中更换地图算法、本机 embedding 与流程；此前保持点位/3D 暂缓是历史实验边界，不是永久禁令。线上 `7ebf2a3` 仍作为对照，实验不自动进入公开快照或部署；远程模型仍单独许可。无名区域暂不处理；地名需要真实局部支撑，标签缺失不是确认负例。每轮保存输入指纹、参数、命令、失败与未验证项，不宣称未经检验的首创或语义真值。
 
 ## 执行规则
 

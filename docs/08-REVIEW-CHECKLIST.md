@@ -3352,6 +3352,14 @@ Slice / task IDs：
 - 实际观测：k=30 medoid 支持增加 28 / 减少 8 / 不变 20，成员支持中位值两种均为 2。medoid 包含自身、未标注不可视为负例、密度改变 k 邻域半径、多簇/高维/屏幕避让尚未验证；本阶段不推荐替换。
 - `node scripts/research/audit-spatial-representativeness.ts` 成功；专项 Vitest 6/6、完整 `npm run test` 40 文件 324/324，typecheck、lint 和 diff 空白检查通过；Node UTF-8 JSON 同输入复验除生成时间外完整一致。首次 PowerShell 默认编码解析报告失败，丢弃该结果；Git 确认报告被忽略。Nature 文献入口返回访问校验页，记录为待全文核对，不把 HTTP 200 当全文证据。公开 snapshot、terrain、已部署站点和消费者代码未改，无 UI 截图或视觉验收；本机服务不启动，无推送部署。下一步 R1 留出样本/局部支持/真实原文配对审阅，然后再进入可切换投影与拓扑原型。
 
+## R-01 多视角地图研究：R1 局部锚点、真实原文与配对图（2026-09-26）
+
+- 预先固定 8 开发/8 hash 留出主题、半径 250/500/750、默认 500 和 4 方法，再跑真实公开点诊断。新增 `localTopicAnchors.ts`、`study-local-topic-anchors.ts`、7 个纯函数单测、独立 Playwright capture config 和 `e2e/research/local-topic-anchors.spec.ts`；只在测试浏览器替换标签坐标，消费者代码、snapshot、terrain、封面不改。过程/定性/参数/命令见 `docs/56-LOCAL-TOPIC-ANCHOR-STUDY.md`。
+- R1 排除自身/重合点并包含 k 边界 ties，未标注不是负例；全局 medoid k=30 增加/减少/相同 9/23/24，局部密集 40/2/14，按书封顶 37/7/12。后两者计数优化是样本内结果，不是语义验证。原文阅读发现“恐惧”的金钱/内心语境和“货币”的单书/跨书取舍；恐惧跨书候选尺度位移达 5,247，不适合宣布单一位置正确。偶数样本汇总由上中位数改为标准中位数重跑，锚点/截图不变。
+- 阅读完整开发近邻包（每主题/每方法 6 条真实邻居，包括未知/其他标签），不是全邻域人工审核。4 方法 × 9 视图 × 3 宽度 108 张图片＋9 张 390px 对照与 fillText/相机/像素 manifest 在 `.private/research/map/local-anchors/screenshots/`；视觉看过世界/恐惧/意义 390、技术设计 320、交易 1440，其余仅自动化证据。camera 一致、画布非空、无横溢出，selected label 距理论位置 <0.2px；恐惧390四法文字点击/顶部返回通过。初次全页同名“回到世界总览”locator strict-mode 失败，限定顶部 nav 后完整 capture 5/5。总览320按书封顶9词，其他10词，表明 label relocation 会影响避让选择。
+- 实际 `node scripts/research/study-local-topic-anchors.ts` 成功；专项纯函数13/13、完整 Vitest 41文件331/331、typecheck/lint/build/diff check通过；Node JSON 再运行除时间外一致；Git确认报告忽略。默认E2E `--list` 仍130项，未重跑默认全套；没有新增依赖、独立语义真值、高维核查、真机视觉或读屏结果。5176/5198无监听，无push/deploy。
+- R1 研究结论：不整套替换中位数，不以 book diversity 代替局部含义，不强行设生产Gate；下一阶段R2固定现有embedding核查困难主题高维邻域及不同观察平面，之后再选地图/透镜/拓扑的职责。
+
 ## v1 Gate 2 工程检查（历史清单；v2 迁移后按 docs/11 验收）
 
 - [ ] 30–50 条真实划线，原文与出处核对，访客展示范围由用户确认。
