@@ -1,0 +1,30 @@
+# R4-D: book-and-cover-controlled semantic review
+
+Date: 2026-09-26. Status: sampling and masked-text packet completed; independent semantic ratings pending. Follows R4-C (`62`), no production integration.
+
+Research question: are selected R4-C cross-book passages meaningfully related, beyond the clustering objective and repeated words? Avoid claiming human semantic validation from cosine scores. Fix all 5 previously revealed R2 case IDs x 4 R4-C configurations (PC1/PC2, target 32/64). For each case choose the smallest surviving node containing that ID (tie: node ID); do not choose by cohesion or outcome. Within it select the cosine-nearest and cosine-farthest member from a *different book*, tie by stable highlight ID. For each selected partner draw one negative/control from that partner's exact book, in the same PCA lens cover, outside that node and different from anchor/partner; sort candidate IDs, select with seeded PRNG `mulberry32(1296126005 + case/config/role stable hash)`. If no candidate exists, mark unavailable; never silently change books/windows or borrow another case. Exclude same-book positive pairs. Verify snapshot/cache/R4-A lens/R4-C report input fingerprints and each vector text hash before use.
+
+Generate a private masked-review packet: anchor + two alternatives in deterministic shuffled A/B order; no book/ID/tag/score/group identity in packet. Keep answer key in a separate private file with source IDs/books, chosen node, near/far role, pool count and cosine values. Blank rubric for independent reader: `A/B/tie/neither`, whether relation is shared meaning vs superficial word/genre, and uncertainty/context. Agent can inspect unblinded passages for counterexamples but must not fill independent ratings or claim a blinded human study. Preserve every attempted comparison, including unavailable controls.
+
+Numerical diagnostic: count eligible/failed pairs and paired in-node vs matched-control cosine differences by config and near/far role, including losses. A positive result is *expected by construction* for nearest in a cosine-fitted cluster and cannot be called semantic accuracy. No label-based truth, no significance test from repeated cases and overlapping covers; paired ratings cannot establish generalization. Do not promote nodes or change public map from this packet. Verify deterministic sampling, book/cover exclusion and A/B key isolation in unit tests; full test/typecheck/lint/build/public isolation/repro as usual. No remote calls, public export, deployment or push.
+
+## Actual run
+
+The frozen R4-C report, R4-A lens artifact and all text hashes matched the current public snapshot/cache. There were 40 preregistered attempts (5 cases x 4 configurations x nearest/farthest). Each configuration yielded 9 matched comparisons; the other 4 were retained as `no-matched-control`, not repaired by changing books or windows. There were no missing case nodes or missing cross-book partners. Of 36 complete comparisons, 21 placed the cluster member in A and 15 in B; A/B is masked, not formally balanced.
+
+| Configuration | Paired / attempted | Median (member - control) cosine | Member not above control |
+| --- | ---: | ---: | ---: |
+| PC1 / 32 | 9 / 10 | .058 | 3 |
+| PC1 / 64 | 9 / 10 | .020 | 3 |
+| PC2 / 32 | 9 / 10 | .091 | 3 |
+| PC2 / 64 | 9 / 10 | .122 | 3 |
+
+The clusterer itself optimizes cosine affinity; even a uniformly positive score difference would be a construction check, not human semantic accuracy. These cases were already exposed in R2 and the same anchors are repeated across configurations. The four unmatched cases and all 12 nonpositive differences remain in the private audit. The agent's limited unblinded spot check found plausible and weaker alternatives for both fear/wealth and interpersonal class; those impressions are not independent ratings. A passage's own wording may reveal its book or genre even after IDs are removed, and repeated anchors can reveal the paired design. Thus the packet is **identity-masked**, not a rigorous double-blind study. Do not compute a win rate or significance test until an independent reader uses the blank rubric; even then the sample is illustrative, not representative.
+
+Private artifacts: `.private/research/map/mapper-book-control/study.json` (all attempts and metrics), `blind-packet.md` (36 unanswered comparisons), `answer-key.json` (kept separate), `reproducibility.json` (numeric match and byte-identical packet/key). No private artifact is in the public build.
+
+## Validation and next gate
+
+`node scripts/research/study-mapper-book-control.ts` twice; `node scripts/research/verify-mapper-book-control.ts` checks each book, node exclusion, lens interval and A/B source text; `npx vitest run tests/mapper-book-control.test.ts` 3/3. Full `npm run test` 48 files/360 tests; `npm run typecheck`, `npm run lint`, `npm run build`, `npm run isolation:public`, `npm run publication:verify` passed. Reproducibility report confirms matching numerical data (excluding generatedAt/runtime) and byte-identical packet/key. Public snapshot, terrain and production asset hashes remained unchanged. Independent reading, multiple readers, book-context checks and product/browser tests **not performed**. R4-D is complete as an audit *instrument*, not as semantic validation; R4 product Gate remains closed. No remote model, publication export, push or deploy.
+
+Method context: Mapper uses a lens cover, clustering on inverse-image/original data and edges from member overlap; see primary KeplerMapper API https://kepler-mapper.scikit-tda.org/en/latest/reference/stubs/kmapper.KeplerMapper.html . Book-matched controls and the masked review protocol are project-specific diagnostics, not a cited standard.

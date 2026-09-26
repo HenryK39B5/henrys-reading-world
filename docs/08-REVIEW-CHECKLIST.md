@@ -3410,6 +3410,12 @@ Slice / task IDs：
 - 目标32对64的最佳成员Jaccard中位PC1 `.233`、PC2 `.224`，多数节点低于.5；跨书比例与节点大小不能证明可读语义。固定5病例与最大/最小/低凝聚节点的真实原文包保留“饭后”共享字面、比喻相邻等反例；并非独立盲审。不选生产候选，不生成公开拓扑。
 - 新增`mapperPartition.ts`、研究脚本、4项单测；`.private/research/map/mapper-partition/`保存完整图、摘要、原文、两轮数值一致记录；完整47文件357/357、typecheck/lint/build/isolation/publication parity通过；浏览器和人工语义Gate未执行，无push/deploy。下一步固定书籍控制基线与独立原文审阅。
 
+## R4-D：同书同窗口原文对照包（2026-09-26）
+
+- 新增`docs/63`、`mapperBookControl.ts`、运行/校验脚本与3项纯函数测试；锁定R4-C输入和5真实病例×4布局×近/远成员的40次尝试，对照来自成员的同一本书、同一lens窗口且不属于所选节点。36组可比较，4组无合格对照如实保留；无缺节点或缺跨书成员。
+- 模型cosine差中位为PC1/32 `.058`、PC1/64 `.020`、PC2/32 `.091`、PC2/64 `.122`；每组3次聚类成员分数不高于对照。因为算法本来就优化cosine，不能把数值提升当成人类语义判断。私有`blind-packet.md`只有真实锚点和A/B原文，`answer-key.json`独立保留，重现记录在`.private/research/map/mapper-book-control/`；重复锚点/原文字面提示限制严格盲性。
+- 专项单测3/3、完整48文件360/360、typecheck/lint/build/isolation/publication parity、报告数值复验与匿名包/答案键逐字节复验通过；校验脚本还检查真实书籍、节点外控制、lens区间及原文A/B对应。独立读者评分未发生，不伪造审阅结果，不选算法或发布候选。浏览器/真机与权利Gate仍开放，无push/deploy。
+
 ## v1 Gate 2 工程检查（历史清单；v2 迁移后按 docs/11 验收）
 
 - [ ] 30–50 条真实划线，原文与出处核对，访客展示范围由用户确认。

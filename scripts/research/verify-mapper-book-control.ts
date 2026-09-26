@@ -1,0 +1,45 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { isDeepStrictEqual } from 'node:util';
+import { sha256 } from '../embeddings/core.ts';
+import type { PartitionGraph } from './mapperPartition.ts';
+
+const path = '.private/research/map/mapper-book-control/';
+const report = JSON.parse(await readFile(`${path}study.json`, 'utf8')) as { inputSha256: string; r4cArtifactSha256: string; attempts: { status: string; itemId?: string }[] };
+const key = JSON.parse(await readFile(`${path}answer-key.json`, 'utf8')) as { itemId: string; configuration: string; caseId: string; nodeId: string; memberId: string; memberBookId: string; controlId: string; controlBookId: string; memberOption: 'A' | 'B'; controlPoolSize: number }[];
+const packet = await readFile(`${path}blind-packet.md`, 'utf8');
+const snapshotText = await readFile('src/data/public-snapshot.json', 'utf8');
+const previousText = await readFile('.private/research/map/mapper-partition/study.json', 'utf8');
+const lens = JSON.parse(await readFile('.private/research/map/mapper-baseline/study.json', 'utf8')) as { lens: { pc1Scores: number[]; pc2Scores: number[] } };
+const previous = JSON.parse(previousText) as { graphs: Record<string, PartitionGraph> };
+const snapshot = JSON.parse(snapshotText) as { highlights: { id: string; bookId: string; text: string }[] };
+assert.equal(sha256(snapshotText), report.inputSha256);
+assert.equal(sha256(previousText), report.r4cArtifactSha256);
+const byId = new Map(snapshot.highlights.map((highlight) => [highlight.id, highlight]));
+const blocks = new Map([...packet.matchAll(/^## (R4D-\d+)\r?\n([\s\S]*?)(?=^## R4D-|$(?![\s\S]))/gm)].map((match) => [match[1], match[2]]));
+assert.equal(blocks.size, key.length, 'one packet block per answer');
+assert.equal(report.attempts.filter((attempt) => attempt.status === 'ready').length, key.length);
+assert.equal(new Set(key.map((entry) => entry.itemId)).size, key.length);
+for (const item of key) {
+    const node = previous.graphs[item.configuration]?.nodes.find((candidate) => candidate.id === item.nodeId);
+    const anchor = byId.get(item.caseId); const member = byId.get(item.memberId); const control = byId.get(item.controlId);
+    assert.ok(node && anchor && member && control && node.memberIds.includes(item.caseId) && node.memberIds.includes(item.memberId));
+    assert.equal(node.memberIds.includes(item.controlId), false);
+    assert.equal(member.bookId, control.bookId);
+    assert.notEqual(anchor.bookId, member.bookId);
+    assert.equal(item.memberBookId, member.bookId);
+    assert.equal(item.controlBookId, control.bookId);
+    assert.ok(item.controlPoolSize > 0);
+    const scores = item.configuration.startsWith('pc1') ? lens.lens.pc1Scores : lens.lens.pc2Scores;
+    const raw = scores[snapshot.highlights.findIndex((highlight) => highlight.id === item.controlId)]!;
+    const normalized = (raw - Math.min(...scores)) / Math.max(Math.max(...scores) - Math.min(...scores), Number.EPSILON);
+    assert.ok(normalized >= node.lensRange[0] - 1e-12 && normalized <= node.lensRange[1] + 1e-12, 'control outside lens cover');
+    const block = blocks.get(item.itemId)!;
+    const choices = item.memberOption === 'A' ? [member.text, control.text] : [control.text, member.text];
+    assert.ok(block.includes(`锚点：${anchor.text}`));
+    assert.ok(block.includes(`A：${choices[0]}`));
+    assert.ok(block.includes(`B：${choices[1]}`));
+}
+assert.equal(/\bh-\d+\b|bookId|nodeId|memberOption|member-first|control-first|pc[12]-c8/.test(packet), false, 'blind packet exposes answer metadata');
+assert.ok(isDeepStrictEqual(key.map((item) => item.itemId), [...blocks.keys()]));
+console.log(`PASS ${key.length} blind pairs, source/books/node exclusion, and A/B correspondence`);
