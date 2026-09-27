@@ -9,6 +9,10 @@ const routes = new Map([
     ['/viewer.css', { path: 'scripts/research/route-viewer.css', contentType: 'text/css; charset=utf-8' }],
     ['/viewer.mjs', { path: 'scripts/research/route-viewer.mjs', contentType: 'text/javascript; charset=utf-8' }],
     ['/viewer-data.json', { path: '.private/research/map/route-first/viewer-data.json', contentType: 'application/json; charset=utf-8' }],
+    ['/next', { path: 'scripts/research/route-next.html', contentType: 'text/html; charset=utf-8' }],
+    ['/next.css', { path: 'scripts/research/route-next.css', contentType: 'text/css; charset=utf-8' }],
+    ['/next.mjs', { path: 'scripts/research/route-next.mjs', contentType: 'text/javascript; charset=utf-8' }],
+    ['/route-next-rule.mjs', { path: 'scripts/research/routeNext.mjs', contentType: 'text/javascript; charset=utf-8' }],
 ]);
 const server = createServer(async (request, response) => {
     response.setHeader('Cache-Control', 'no-store');

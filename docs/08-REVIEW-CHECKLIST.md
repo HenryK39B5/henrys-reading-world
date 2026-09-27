@@ -3410,6 +3410,12 @@ Slice / task IDs：
 - 目标32对64的最佳成员Jaccard中位PC1 `.233`、PC2 `.224`，多数节点低于.5；跨书比例与节点大小不能证明可读语义。固定5病例与最大/最小/低凝聚节点的真实原文包保留“饭后”共享字面、比喻相邻等反例；并非独立盲审。不选生产候选，不生成公开拓扑。
 - 新增`mapperPartition.ts`、研究脚本、4项单测；`.private/research/map/mapper-partition/`保存完整图、摘要、原文、两轮数值一致记录；完整47文件357/357、typecheck/lint/build/isolation/publication parity通过；浏览器和人工语义Gate未执行，无push/deploy。下一步固定书籍控制基线与独立原文审阅。
 
+## R4-K：单步续读、自选岔路与图文共视（2026-09-27；待Henry新样板体验）
+
+- 先写`docs/70`固定R4-J本机真实`viewer-data.json`字节指纹、R4-G同一有向前16/跨书/首轮新书优先/近侧远节奏与完整路线ID定种PRNG，预先写出推荐落入假相似、地图仍与原文分离、真死路生成假句等判败。新增`routeNext.mjs`纯函数与类型声明、真实图单测/`study-route-next.ts`、原服务器仅加白名单`/next`和三静态资源，独立HTML/CSS/JS与Playwright配置/测试；不用新依赖、远程模型或生产消费者。浏览器公开点Canvas不建3462 DOM按钮；自动需要读者主动按下一句，展开分支才能读三张预览；切换走法不重置trail，文字列表保留可访问返回。
+- 11原固定起点中10个走满6步，已知零步死路h-043仍0步；60实际边有4次段回退、14次无新书回退，均如实记录。原文Agent非独立复看：h-3501虽跨书却逐步窄化到股票/期货两书，h-2288从读书问题漂到官场业务，h-4504可讨论的真理/表达转折伴二维49.4%对角线长跳（模型rank7、二维第2319近）。非语义准确率/访客兴趣统计。私有报告两次重跑除时/资源完全一致、固定例真原文/失败记录在`.private/research/map/route-first/next-step/`。
+- 1440/720/390/320 Chromium新入口6/6含实际源文本/前16模型rank、地图终点像素、键盘Arrow/Enter、分支默认目标/异路返回与确定性重走、死路、Host/Origin/POST白名单、无横向溢出/外部请求；旧R4-J入口11/11回归。移动端390×850小图y463–623、真句y719开始、续读按钮区y1121；图文不再隔整张地图，但需滚动至按钮。截图/坐标JSON保留。初次新Playwright因测试太早读异步本机数据1/5；测试等待真实书名后6/6，未改产品选路。`npm run test`53文件375/375、typecheck/lint/build/isolation/publication parity与报告完全复验通过，正式JS/CSS/terrain/snapshot hash未改。Henry新样板主观反馈、真200%/Safari/iOS/读屏/低端性能、权利和产品/发布Gate未做；不push/deploy。
+
 ## R4-J：Henry知情单人试用的三视图入口（2026-09-27；反馈已记录，产品Gate待定）
 
 - 预登记`docs/69`固定原viewer-data SHA256 `f95cfa8bb830a9e2600fceeb69a7101910c85906f452d207dde04431f99fca6d`、旧真实原文/起点/前16模型候选/已发布地图点。仅本机`route-viewer.html/.mjs/.css`加入原生单选纯文字、阅读＋地图、地图优先：同一trail、同一真书/全文/3候选与回溯，切换只移动/隐藏现有atlas节点，不调用路线重选/不增加模型服务或自动日志。用户Henry明确充当知情项目使用者而非独立首次访客，不制造评分或其反馈。

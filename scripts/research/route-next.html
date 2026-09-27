@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><link rel="icon" href="data:,"><link rel="stylesheet" href="/next.css"><title>Reading World · 单步漫游研究</title></head>
+<body>
+<header class="site-head"><span>◎ READING WORLD / LOCAL RESEARCH</span><span>本机 · 未发布</span></header>
+<main>
+    <div class="introduction"><p class="eyebrow">R4-K · 一步一步读下去</p><h1>继续读，或自己选路。</h1><p>下一句来自真实划线的局部模型近邻。你可以不预览候选而继续，也可以打开岔路；地图只记录已走顺序，不判定两句是否同一主题。</p></div>
+    <div class="controls"><label for="seed">真实起点</label><select id="seed" aria-label="选择真实起点"></select><button id="back" type="button">← 返回上一句</button><button id="restart" type="button">从起点重走 ↺</button></div>
+    <nav class="trail" aria-label="已读过的句子"><p id="progress">正在载入</p><ol id="trail"></ol></nav>
+    <section class="co-view" aria-label="同屏阅读和地图坐标">
+        <div class="map-pane"><h2>此刻在地图上</h2><div class="map-shell"><canvas id="atlas" role="img" aria-label="已发布地图坐标的已读路线；书籍和顺序见上方文字列表"></canvas></div><p class="map-caption">全图等比例参照。实线＝阅读顺序；展开岔路后，虚线＝可选跳转。都不是地形道路。</p></div>
+        <article class="reading-pane" aria-labelledby="passage-label"><div class="source"><span id="book"></span><span id="point-id"></span></div><h2 id="passage-label" tabindex="-1">当前划线</h2><blockquote id="text"></blockquote><p id="edge-note" class="edge-note"></p>
+            <div class="walk-controls"><fieldset class="mode-picker"><legend>接下来怎么走</legend><label><input name="mode" type="radio" value="auto" checked>直接续读</label><label><input name="mode" type="radio" value="choose">自己选路</label></fieldset>
+                <div id="auto-mode"><button id="next" type="button">再读一句 →</button><p>无需提前读完三段候选。每次只在你按下时前进。</p></div>
+                <div id="choose-mode" hidden><p id="choice-status"></p><div id="choices" class="choices"></div></div><p id="end-status" role="status"></p>
+            </div></article>
+    </section>
+    <details><summary>这些句子为什么相连？</summary><p>只在当前划线的原始模型空间前16个有向近邻中选择，排除已读过和同书句子；自动续读按近端、侧边、外缘的固定节奏，优先没读过的书。当前段位没有合格候选时回退到前16个合格句子；固定种子仅决定段内抽取，绝不是从所有书摘任意抽一句。线不是相似、同意、因果或地图上的路；你可以随时返回。向量不进入网页。</p></details>
+    <p id="load-status" role="status"></p>
+</main><script type="module" src="/next.mjs"></script>
+</body></html>

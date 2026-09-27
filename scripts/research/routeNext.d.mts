@@ -1,0 +1,13 @@
+export type Neighbor = { id: string; score: number };
+export type NextData = { points: Record<string, { bookId: string }>; neighbors: Record<string, Neighbor[]> };
+export type RankedNeighbor = Neighbor & { rank: number };
+export type BandName = 'inner' | 'side' | 'outer';
+export type NextResult = { status: 'ready' | 'dead-end' | 'limit'; candidate: RankedNeighbor | null; expectedBand: BandName | null;
+    bandFallback: boolean; bookFallback: boolean; available: number };
+export type Fork = { band: BandName; title: string; count: number; candidate: RankedNeighbor | null; isDefault: boolean };
+export declare const routeBands: readonly { name: BandName; title: string; start: number; end: number }[];
+export declare function mulberry32(seed: number): () => number;
+export declare function historySeed(trail: readonly string[]): number;
+export declare function chooseNext(data: NextData, trail: readonly string[], rng: () => number): NextResult;
+export declare function deterministicNext(data: NextData, trail: readonly string[]): NextResult;
+export declare function visibleForks(data: NextData, trail: readonly string[], automatic?: NextResult): Fork[];
