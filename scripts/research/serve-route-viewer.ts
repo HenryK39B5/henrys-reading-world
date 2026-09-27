@@ -13,6 +13,10 @@ const routes = new Map([
     ['/next.css', { path: 'scripts/research/route-next.css', contentType: 'text/css; charset=utf-8' }],
     ['/next.mjs', { path: 'scripts/research/route-next.mjs', contentType: 'text/javascript; charset=utf-8' }],
     ['/route-next-rule.mjs', { path: 'scripts/research/routeNext.mjs', contentType: 'text/javascript; charset=utf-8' }],
+    ...['published', 'stars', 'islands'].map((name) => [`/atlas/${name}`, { path: 'scripts/research/atlas-forms.html', contentType: 'text/html; charset=utf-8' }] as const),
+    ['/atlas-forms.css', { path: 'scripts/research/atlas-forms.css', contentType: 'text/css; charset=utf-8' }],
+    ['/atlas-forms.mjs', { path: 'scripts/research/atlas-forms.mjs', contentType: 'text/javascript; charset=utf-8' }],
+    ['/atlas-geometry.mjs', { path: 'scripts/research/atlasForms.mjs', contentType: 'text/javascript; charset=utf-8' }],
 ]);
 const server = createServer(async (request, response) => {
     response.setHeader('Cache-Control', 'no-store');

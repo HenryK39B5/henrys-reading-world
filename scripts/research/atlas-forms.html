@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><link rel="icon" href="data:,"><link rel="stylesheet" href="/atlas-forms.css"><title>Reading World · 固定地图图形研究</title></head>
+<body>
+<header><span>◎ READING WORLD / LOCAL RESEARCH</span><span>本机 · 未发布</span></header>
+<main>
+    <div class="intro"><p class="eyebrow">R4-L · 同一段真实漫游，三种固定图</p><h1 id="chart-title">正在载入</h1><p id="chart-explain"></p></div>
+    <div class="controls"><label for="seed">真实起点</label><select id="seed" aria-label="选择真实起点"></select><button id="back" type="button">← 上一句</button><button id="reset" type="button">从起点重走</button></div>
+    <section class="walk" aria-label="固定地图与真实划线共读">
+        <aside class="map-pane" aria-label="固定位置的图形参照"><div class="map-row"><div class="map-frame"><canvas id="atlas" role="img" aria-label="固定地图上的实际阅读轨迹，完整文字顺序见下方路线列表"></canvas></div><div class="caption"><p id="map-caption"></p><p id="map-current"></p></div></div></aside>
+        <article class="passage" aria-labelledby="passage-label"><p id="progress" class="progress"></p><div class="source"><span id="book"></span><span id="point-id"></span></div><h2 id="passage-label" tabindex="-1">当前划线</h2><blockquote id="text"></blockquote><p id="edge-note" class="edge-note"></p>
+            <div class="actions"><button id="next" type="button">再读一句 →</button><p id="end-status" role="status"></p><p class="help">按一次才前进；返回后可沿相同路径重走。本页不提供“选模式”任务。</p></div>
+            <nav class="history" aria-label="已走路线"><p>已走路线（点选返回）</p><ol id="trail"></ol></nav>
+        </article>
+    </section>
+    <details><summary>图上距离和连线代表什么？</summary><p>三张图使用相同真实全文与本机模型前16有向近邻、相同六步规则。点云和星座采用已发布二维坐标；书岛是按书中真实划线数量/稳定ID构造的书籍索引，岛间距离不表示相似。细线仅标出星座当前点的少量前列模型邻居，粗线只表示已经走过的顺序，不是天然道路、同主题证据或因果；当前点可能不在细线标出的少数邻居中。点位与镜头不会随续读重排。</p></details><p id="load-status" role="status"></p>
+</main><script type="module" src="/atlas-forms.mjs"></script>
+</body></html>
