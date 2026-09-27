@@ -1,0 +1,31 @@
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { highlightTextHash, sha256, type EmbeddingCache } from '../embeddings/core.ts';
+import { validateSnapshot } from '../../src/domain/validate.ts';
+import type { NeighborGraph } from './graphIslands.ts';
+
+const dir = '.private/research/map/route-first';
+const snapshotText = await readFile('src/data/public-snapshot.json', 'utf8');
+const parsed = validateSnapshot(JSON.parse(snapshotText) as unknown, { expectedVisibility: 'public' });
+if (!parsed.ok) throw new Error(parsed.errors.join('; '));
+const snapshot = parsed.snapshot;
+const cacheText = await readFile('.private/embeddings/vectors/local--xenova-bge-large-zh-v1.5-a48549b-q8-cls--1024.json', 'utf8');
+const cache = JSON.parse(cacheText) as EmbeddingCache;
+const graphText = await readFile('.private/research/map/graph-islands/study.json', 'utf8');
+const graphArtifact = JSON.parse(graphText) as { snapshotSha256: string; embeddingCacheSha256: string; graphs: Record<'16', NeighborGraph> };
+const routeText = await readFile(`${dir}/study.json`, 'utf8');
+const route = JSON.parse(routeText) as { snapshotSha256: string; embeddingCacheSha256: string; graphArtifactSha256: string; parameters: { reviewIds: string[] } };
+const inputSha = sha256(snapshotText); const cacheSha = sha256(cacheText); const graphSha = sha256(graphText);
+if (route.snapshotSha256 !== inputSha || graphArtifact.snapshotSha256 !== inputSha || route.embeddingCacheSha256 !== cacheSha || graphArtifact.embeddingCacheSha256 !== cacheSha || route.graphArtifactSha256 !== graphSha) throw new Error('research inputs changed');
+const sorted = [...snapshot.highlights].sort((a, b) => a.id.localeCompare(b.id));
+const books = new Map(snapshot.books.map((book) => [book.id, book.title]));
+for (const highlight of sorted) if (cache.vectors[highlight.id]?.textHash !== highlightTextHash(highlight)) throw new Error(`stale highlight text ${highlight.id}`);
+const graph = graphArtifact.graphs['16'];
+if (sorted.length !== graph.ids.length || sorted.some((highlight, index) => highlight.id !== graph.ids[index] || highlight.bookId !== graph.books[highlight.id] || graph.nominations[highlight.id]?.length !== 16)) throw new Error('graph point mismatch');
+const points = Object.fromEntries(sorted.map((highlight) => [highlight.id, { id: highlight.id, bookId: highlight.bookId, bookTitle: books.get(highlight.bookId), text: highlight.text }]));
+const deadEndFixture = 'h-043';
+if (!points[deadEndFixture] || route.parameters.reviewIds.includes(deadEndFixture) || graph.nominations[deadEndFixture]?.some((neighbor) => points[neighbor.id]?.bookId !== points[deadEndFixture]?.bookId)) throw new Error('dead-end fixture changed');
+const data = { schemaVersion: 1, inputSha256: inputSha, graphArtifactSha256: graphSha, routeArtifactSha256: sha256(routeText), seeds: [...route.parameters.reviewIds, deadEndFixture], predeclaredReviewCount: route.parameters.reviewIds.length,
+    scope: 'local research only; model ranks are not verified semantic relations', points, neighbors: graph.nominations };
+await mkdir(dir, { recursive: true });
+await writeFile(`${dir}/viewer-data.json`, JSON.stringify(data) + '\n');
+console.log(`route viewer data: ${sorted.length} true passages, ${data.seeds.length} fixed seeds, no raw vectors`);

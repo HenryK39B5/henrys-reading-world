@@ -3410,6 +3410,12 @@ Slice / task IDs：
 - 目标32对64的最佳成员Jaccard中位PC1 `.233`、PC2 `.224`，多数节点低于.5；跨书比例与节点大小不能证明可读语义。固定5病例与最大/最小/低凝聚节点的真实原文包保留“饭后”共享字面、比喻相邻等反例；并非独立盲审。不选生产候选，不生成公开拓扑。
 - 新增`mapperPartition.ts`、研究脚本、4项单测；`.private/research/map/mapper-partition/`保存完整图、摘要、原文、两轮数值一致记录；完整47文件357/357、typecheck/lint/build/isolation/publication parity通过；浏览器和人工语义Gate未执行，无push/deploy。下一步固定书籍控制基线与独立原文审阅。
 
+## R4-H：本机真实岔路交互观察器（2026-09-27）
+
+- 在`docs/67`先约定隔离只读观察器；导出器用快照/向量/图指纹核对3,462真实划线，输出仅本机3.55MB原文/书籍/top16近邻（无原向量），11个固定入口含结果已知的h-043零步死路**事后负例**。独立端口5201只准GET/HEAD四个白名单路径，CSP同源，未接`src/`或正式Vite路由；浏览器测试自启动自关闭，未留常驻服务。
+- 已做`e2e/research/route-viewer.spec.ts`与专用Playwright配置：Chromium6/6，1440/720/390/320宽、reduced motion、逐ID原图候选/跨书、键盘Enter/焦点滚动入视口、返回/重走/6步回溯、已知死路、无横向溢出、非法路由404/POST405/外来Host-Origin403/无外部请求。真实截图见 `.private/research/map/route-first/screenshots/` 四宽＋`deep-route-390.png`；初见聚焦标题却未滚动的问题已修复。720为视口代理非真200%缩放。
+- 原始viewer-data重跑字节哈希一致；完整51文件369/369、typecheck/lint/build/isolation/publication parity通过。研究者视觉判断为可读的岔路卡而非完整世界地图；长手机原文需下滚、部分书/词面偏置明显。未获真实访客/真机Safari/读屏/低端性能与产品视觉Gate，不合入生产地图，不push/deploy。
+
 ## R4-G：路线先于统一地图（2026-09-27）
 
 - 先写`docs/66`锁定公开3462条/108书、R4-E前16有向原空间邻居、108每书首条+5固定案例（1例重合，112个唯一种子）、6跳跨书且不复句、近端/侧边/外缘排名与显式回退，同约束下最近跨书路线作对照。新增`routeFirst.ts`、本机运行脚本、3项单测；用户R4-D填写未作为标签。

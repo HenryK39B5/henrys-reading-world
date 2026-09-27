@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="data:,"><link rel="stylesheet" href="/viewer.css"><title>Reading World · 路线研究</title>
+</head>
+<body>
+<header><div class="brand"><span class="mark" aria-hidden="true">◎</span><span>READING WORLD / LOCAL RESEARCH</span></div><span class="scope">本机 · 未发布试验</span></header>
+<main>
+    <section class="intro" aria-labelledby="title"><p class="eyebrow">路线先于地图 · R4-H</p><h1 id="title">一段文字之后，<br>还可以走向哪里？</h1><p>这里的岔路来自模型空间的局部近邻，不是确定的共同主题。三种位置只是<span class="accent">排名区间</span>，不是观点判断。沿真实原文走，随时回头。</p></section>
+    <div class="controls"><label for="seed">从一句真实划线开始</label><select id="seed" aria-label="选择起点"></select><div class="actions"><button id="back" type="button">← 返回上一步</button><button id="restart" type="button">从起点重走 ↺</button></div></div>
+    <section class="workspace" aria-label="当前阅读路线"><div class="trail-head"><span id="step-count">载入中</span><span class="trail-label">书与书之间 · 只展示确实走过的边</span></div><ol id="trail" aria-label="已走过的划线"></ol>
+    <article class="passage" aria-labelledby="passage-title"><div class="passage-top"><span id="source"></span><span id="passage-id"></span></div><h2 id="passage-title" tabindex="-1">当前划线</h2><p id="text"></p></article>
+    <section class="crossroads" aria-labelledby="crossroads-title"><div class="section-head"><div><p class="eyebrow">下一步 · 由你选择</p><h2 id="crossroads-title">岔路</h2></div><span id="available"></span></div><div id="options" class="options"></div><p id="dead-end" role="status"></p></section></section>
+    <details class="notes"><summary>这些连线是什么？</summary><p>边只表示“从当前划线出发，这句在原始 embedding 向量的前16个近邻里”；还要求来自另一本书且未访问。近端1–4、侧边5–10、外缘11–16。不是二维地图距离、语义真值、AI搜索或反对意见。候选可能偏题；没有跨书未见近邻时就停下，不假造连接。所有原文来自已审核公开快照；向量没有进入网页数据。</p></details>
+    <p id="load-status" role="status"></p>
+</main>
+<script type="module" src="/viewer.mjs"></script>
+</body>
+</html>
