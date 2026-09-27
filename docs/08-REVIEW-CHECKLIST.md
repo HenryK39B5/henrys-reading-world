@@ -3410,11 +3410,12 @@ Slice / task IDs：
 - 目标32对64的最佳成员Jaccard中位PC1 `.233`、PC2 `.224`，多数节点低于.5；跨书比例与节点大小不能证明可读语义。固定5病例与最大/最小/低凝聚节点的真实原文包保留“饭后”共享字面、比喻相邻等反例；并非独立盲审。不选生产候选，不生成公开拓扑。
 - 新增`mapperPartition.ts`、研究脚本、4项单测；`.private/research/map/mapper-partition/`保存完整图、摘要、原文、两轮数值一致记录；完整47文件357/357、typecheck/lint/build/isolation/publication parity通过；浏览器和人工语义Gate未执行，无push/deploy。下一步固定书籍控制基线与独立原文审阅。
 
-## R4-J：Henry知情单人试用的三视图入口（2026-09-27；待Henry验收）
+## R4-J：Henry知情单人试用的三视图入口（2026-09-27；反馈已记录，产品Gate待定）
 
 - 预登记`docs/69`固定原viewer-data SHA256 `f95cfa8bb830a9e2600fceeb69a7101910c85906f452d207dde04431f99fca6d`、旧真实原文/起点/前16模型候选/已发布地图点。仅本机`route-viewer.html/.mjs/.css`加入原生单选纯文字、阅读＋地图、地图优先：同一trail、同一真书/全文/3候选与回溯，切换只移动/隐藏现有atlas节点，不调用路线重选/不增加模型服务或自动日志。用户Henry明确充当知情项目使用者而非独立首次访客，不制造评分或其反馈。
-- E2E扩至Chromium11/11，1440/720/390/320宽，reduced motion、键盘单选与箭头、切换后真实ID/候选/书名/原文完全不变、Canvas显隐与重绘、返回改选/死路、只读服务器白名单/无外部请求/无横向溢出。截图放`.private/research/map/route-first/three-view/screenshots/`，不覆盖R4-I截图；`metrics-*.json`显示390×850 h-1955岔路标题页面Y为1256（纯文字）/1861（读后地图）/1857（地图优先），320×850为1501/2087/2083；地图对手机下滚有实际代价，Henry体验Gate未通过也未失败，仍待亲自试用。测试日志首次重定向到不存在的目录未执行，创建目录后11/11；lint未用变量及隐藏canvas伪坐标均修正、重跑通过。
+- E2E扩至Chromium11/11，1440/720/390/320宽，reduced motion、键盘单选与箭头、切换后真实ID/候选/书名/原文完全不变、Canvas显隐与重绘、返回改选/死路、只读服务器白名单/无外部请求/无横向溢出。截图放`.private/research/map/route-first/three-view/screenshots/`，不覆盖R4-I截图；`metrics-*.json`显示390×850 h-1955岔路标题页面Y为1256（纯文字）/1861（读后地图）/1857（地图优先），320×850为1501/2087/2083；地图对手机下滚有实际代价，当时Henry体验Gate尚未发生，后续反馈见下条；不据位置测量宣布胜负。测试日志首次重定向到不存在的目录未执行，创建目录后11/11；lint未用变量及隐藏canvas伪坐标均修正、重跑通过。
 - 实际`npm run test`52文件372/372、`npm run typecheck`、`npm run lint`、`npx playwright test --config e2e/config/playwright.route-viewer.config.ts`11/11、`npm run build`、`npm run isolation:public`与`npm run publication:verify`通过；公开资源指纹未变。真实Safari/iOS、读屏、真200%缩放、低端性能、独立首次访客与权利判断均未验证；不改`src/`/`public/`、线上地图/快照/部署；下一步只邀请Henry从真实起点随意走两步、在同站切换视图，用自己的话反馈是否想继续、点线含义和阅读/找岔路/返回是否吃力，不要求批量语义标注。
+- 后续Henry作为知情项目使用者主动反馈：惊喜于本机页面、文字岔路和地图轨迹，认为可探索移用于主题路径；担心三候选预读/纠结/惦记未选项，提出单步自动漫步以减轻负担；地图与文字上下分离、手机往返滚动割裂，应易于对照；同时认为现有线上地图按点探索时，距离和主题标签确有阅读联系。原话保存在忽略目录`.private/research/map/route-first/three-view/henry-feedback-2026-09-27.md`，归纳`docs/69`。未追认他完成试用卡全步骤；不是独立访客/语义准确率/三视图赢家/发布许可。此次仅补文档和可逆停服，无新浏览器运行、模型/快照/线上地图修改或push/deploy；下一阶段的自动续读与自主岔路、图文共视仍须隔离对照和产品决定。
 
 ## R4-I：真实阅读路线与发布地图坐标（2026-09-27）
 
