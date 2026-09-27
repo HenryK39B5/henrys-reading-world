@@ -3410,6 +3410,12 @@ Slice / task IDs：
 - 目标32对64的最佳成员Jaccard中位PC1 `.233`、PC2 `.224`，多数节点低于.5；跨书比例与节点大小不能证明可读语义。固定5病例与最大/最小/低凝聚节点的真实原文包保留“饭后”共享字面、比喻相邻等反例；并非独立盲审。不选生产候选，不生成公开拓扑。
 - 新增`mapperPartition.ts`、研究脚本、4项单测；`.private/research/map/mapper-partition/`保存完整图、摘要、原文、两轮数值一致记录；完整47文件357/357、typecheck/lint/build/isolation/publication parity通过；浏览器和人工语义Gate未执行，无push/deploy。下一步固定书籍控制基线与独立原文审阅。
 
+## R4-I：真实阅读路线与发布地图坐标（2026-09-27）
+
+- 预登记/结果见`docs/68`；`scripts/research/routeMapGeometry.ts`、`study-route-map-trace.ts`与`tests/route-map-geometry.test.ts`锁定公开3462点、旧原空间R4-G路线/图/缓存哈希及目标书PRNG对照。108书各638实际跨书边；软节奏发布图二维top30为105/638，中位距离.071、P90 .282；最近跨书128/638、中位.071、P90 .233；目标同书随机对照中位分别.152/.151。固定5例另记、1例与书种子重叠；h-898软节奏第3跳二维排名3148/3461，跨度42.8%。这些是空间错位/模型诊断，不是语义准确率。私有逐边报告两轮除时间/资源字段外数值完全一致。
+- R4-H本机白名单只读观察器增加发布地图Canvas（3462真点、轮廓、已走实线/候选虚线、坐标rank/距离说明），保留键盘全文路线；viewer-data约3.71MB重跑逐字节相同，无原向量。浏览器测试首次把交互第一个候选错误等同于R4-G随机步，1440/720/390/320四处失败；改为对真实点击ID重新从地图坐标独立验算，不改算法或路线。最终Chromium7/7、包括后验挑选的真实35.9%长跳截图、reduced motion、键盘/回溯/6跳/死路/无溢出/白名单。私人截图`route-first/screenshots/`；研究者所见地图方位增强但手机滚动更长、线段仍可能像地形道路；不是访客视觉Gate。
+- 命令：`node scripts/research/study-route-map-trace.ts`双跑、`node scripts/research/build-route-viewer-data.ts`双跑、`npm run test`52文件372/372、`npm run typecheck`、`npm run lint`、`npx playwright test --config e2e/config/playwright.route-viewer.config.ts`7/7、`npm run build`、`npm run isolation:public`、`npm run publication:verify`、`git diff --check`均通过；构建生产资源哈希不变。未验证真200%浏览器缩放、独立访客、真机Safari/iOS、读屏/低端持续性能、权利与产品Gate。`src/`/`public/`、公开快照/地图与线上站点未改，未push/deploy；下一步仅研究地图与阅读两层是否需要切换，而非直接上线线条。
+
 ## R4-H：本机真实岔路交互观察器（2026-09-27）
 
 - 在`docs/67`先约定隔离只读观察器；导出器用快照/向量/图指纹核对3,462真实划线，输出仅本机3.55MB原文/书籍/top16近邻（无原向量），11个固定入口含结果已知的h-043零步死路**事后负例**。独立端口5201只准GET/HEAD四个白名单路径，CSP同源，未接`src/`或正式Vite路由；浏览器测试自启动自关闭，未留常驻服务。

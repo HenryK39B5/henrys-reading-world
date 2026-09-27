@@ -22,10 +22,13 @@ for (const highlight of sorted) if (cache.vectors[highlight.id]?.textHash !== hi
 const graph = graphArtifact.graphs['16'];
 if (sorted.length !== graph.ids.length || sorted.some((highlight, index) => highlight.id !== graph.ids[index] || highlight.bookId !== graph.books[highlight.id] || graph.nominations[highlight.id]?.length !== 16)) throw new Error('graph point mismatch');
 const points = Object.fromEntries(sorted.map((highlight) => [highlight.id, { id: highlight.id, bookId: highlight.bookId, bookTitle: books.get(highlight.bookId), text: highlight.text }]));
+const publicMap = snapshot.map;
+if (!publicMap || publicMap.points.length !== sorted.length || new Set(publicMap.points.map((point) => point.highlightId)).size !== sorted.length || publicMap.points.some((point) => !points[point.highlightId])) throw new Error('public map coordinates do not cover highlights');
 const deadEndFixture = 'h-043';
 if (!points[deadEndFixture] || route.parameters.reviewIds.includes(deadEndFixture) || graph.nominations[deadEndFixture]?.some((neighbor) => points[neighbor.id]?.bookId !== points[deadEndFixture]?.bookId)) throw new Error('dead-end fixture changed');
 const data = { schemaVersion: 1, inputSha256: inputSha, graphArtifactSha256: graphSha, routeArtifactSha256: sha256(routeText), seeds: [...route.parameters.reviewIds, deadEndFixture], predeclaredReviewCount: route.parameters.reviewIds.length,
-    scope: 'local research only; model ranks are not verified semantic relations', points, neighbors: graph.nominations };
+    scope: 'local research only; model ranks are not verified semantic relations', points, neighbors: graph.nominations,
+    publishedMap: { version: publicMap.version, points: publicMap.points, contours: publicMap.contours } };
 await mkdir(dir, { recursive: true });
 await writeFile(`${dir}/viewer-data.json`, JSON.stringify(data) + '\n');
 console.log(`route viewer data: ${sorted.length} true passages, ${data.seeds.length} fixed seeds, no raw vectors`);

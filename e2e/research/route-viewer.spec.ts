@@ -2,9 +2,11 @@ import { mkdir, readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 
 const folder = '.private/research/map/route-first';
-const data = JSON.parse(await readFile(`${folder}/viewer-data.json`, 'utf8')) as { seeds: string[]; points: Record<string, { text: string; bookTitle: string; bookId: string }>; neighbors: Record<string, { id: string; score: number }[]> };
+const data = JSON.parse(await readFile(`${folder}/viewer-data.json`, 'utf8')) as { seeds: string[]; points: Record<string, { text: string; bookTitle: string; bookId: string }>;
+    neighbors: Record<string, { id: string; score: number }[]>; publishedMap: { points: { highlightId: string; x: number; y: number }[]; contours: { segments: number[][] }[] } };
+const spatial = JSON.parse(await readFile(`${folder}/spatial-trace.json`, 'utf8')) as { inputSha256: string; edges: { seedId: string; kind: string; stepIndex: number; toId: string; target2dRank: number; normalizedDistance: number }[] };
 const study = JSON.parse(await readFile(`${folder}/study.json`, 'utf8')) as { snapshotSha256: string; parameters: { reviewIds: string[] } };
-if (data.seeds.slice(0, 10).join('|') !== study.parameters.reviewIds.join('|') || data.seeds[10] !== 'h-043') throw new Error('viewer seeds drifted');
+if (data.seeds.slice(0, 10).join('|') !== study.parameters.reviewIds.join('|') || data.seeds[10] !== 'h-043' || data.publishedMap.points.length !== 3462 || spatial.inputSha256 !== study.snapshotSha256) throw new Error('viewer inputs drifted');
 await mkdir(`${folder}/screenshots`, { recursive: true });
 
 test('route viewer is strictly local and read-only', async ({ request }) => {
@@ -33,6 +35,13 @@ for (const width of [1440, 720, 390, 320]) {
         const state = () => page.evaluate(() => (window as unknown as { __routeStudy: { state: { trail: string[]; currentId: string; options: { band: string; id: string | null; rank: number | null }[] } } }).__routeStudy.state);
         let current = await state(); expect(current.trail).toEqual([data.seeds[0]]);
         expect(await page.locator('#text').textContent()).toBe(data.points[current.currentId]!.text);
+        const atlasPixels = await page.locator('#atlas').evaluate((element) => {
+            const canvas = element as HTMLCanvasElement; const pixels = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data;
+            let visible = 0; for (let index = 3; index < pixels.length; index += 4) if (pixels[index]! > 0) visible += 1;
+            return visible;
+        });
+        expect(atlasPixels).toBeGreaterThan(1000);
+        await expect(page.locator('#map-summary')).toContainText('起点已定位');
         await page.screenshot({ path: `${folder}/screenshots/crossroads-${width}.png`, fullPage: true });
         const choice = current.options.find((entry) => entry.id !== null);
         expect(choice).toBeTruthy();
@@ -47,9 +56,18 @@ for (const width of [1440, 720, 390, 320]) {
         expect(await page.locator('#text').textContent()).toBe(data.points[choice!.id!]!.text);
         await expect(page.locator('#passage-title')).toBeFocused();
         expect(await page.locator('#passage-title').evaluate((node) => { const y = node.getBoundingClientRect(); return y.top >= 0 && y.top < innerHeight; })).toBe(true);
+        const map = new Map(data.publishedMap.points.map((point) => [point.highlightId, point]));
+        const from = map.get(data.seeds[0]!)!; const to = map.get(choice!.id!)!;
+        const squared = (from.x - to.x) ** 2 + (from.y - to.y) ** 2;
+        const rank2d = 1 + data.publishedMap.points.filter((point) => point.highlightId !== data.seeds[0] &&
+            ((point.x - from.x) ** 2 + (point.y - from.y) ** 2 < squared ||
+            ((point.x - from.x) ** 2 + (point.y - from.y) ** 2 === squared && point.highlightId < choice!.id!))).length;
+        await expect(page.locator('#map-summary')).toContainText(`发布平面第 ${rank2d} 近`);
+        await expect(page.locator('#map-summary')).toContainText(`${(Math.sqrt(squared) / (10_000 * Math.SQRT2) * 100).toFixed(1)}%`);
         await page.screenshot({ path: `${folder}/screenshots/step1-${width}.png`, fullPage: true });
         await page.locator('#back').click();
         expect((await state()).trail).toEqual([data.seeds[0]]);
+        await expect(page.locator('#map-summary')).toContainText('起点已定位');
         await page.locator('#seed').selectOption('h-4504');
         expect((await state()).trail).toEqual(['h-4504']);
         await page.screenshot({ path: `${folder}/screenshots/education-${width}.png`, fullPage: true });
@@ -62,6 +80,20 @@ for (const width of [1440, 720, 390, 320]) {
         expect(errors).toEqual([]); expect(external).toEqual([]);
     });
 }
+
+test('post-result long-jump diagnostic shows a real interactive choice as a spatial jump, not a road', async ({ page }) => {
+    for (const width of [1440, 390]) {
+        await page.setViewportSize({ width, height: 900 }); await page.goto('/');
+        await page.locator('#seed').selectOption('h-898');
+        const candidate = await page.evaluate(() => window.__routeStudy.state.options.find((option) => option.band === '侧边'));
+        expect(candidate?.id).toBe('h-3515'); // Largest first-hop map distance among the 11 seeds × visible choices; post-result diagnostic.
+        await page.getByRole('button', { name: /侧边：到/ }).click();
+        expect((await page.evaluate(() => window.__routeStudy.state.trail))).toEqual(['h-898', 'h-3515']);
+        await expect(page.locator('#map-summary')).toContainText('35.9%');
+        await expect(page.locator('#map-summary')).toContainText('这些不是同一种距离');
+        await page.screenshot({ path: `${folder}/screenshots/long-jump-${width}.png`, fullPage: true });
+    }
+});
 
 test('a mobile visitor can follow actual cross-book edges for several choices and retrace the trail', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 850 });
