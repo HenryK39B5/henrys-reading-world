@@ -4,7 +4,7 @@ const groups = [
     { title: '侧边', start: 5, end: 10 },
     { title: '外缘', start: 11, end: 16 },
 ];
-let data; let trail = []; let mapPointById;
+let data; let trail = []; let mapPointById; let view = 'text';
 
 function current() { return trail.at(-1); }
 function passage(id) { const point = data.points[id]; if (!point) throw new Error(`unknown passage ${id}`); return point; }
@@ -23,7 +23,7 @@ function element(tag, className, text) {
     return node;
 }
 function drawMap() {
-    if (!data?.publishedMap || !trail.length) return;
+    if (view === 'text' || !data?.publishedMap || !trail.length) return;
     const canvas = $('atlas'); const width = canvas.clientWidth; const height = canvas.clientHeight;
     if (!width || !height) return;
     const ratio = Math.min(2, window.devicePixelRatio || 1);
@@ -72,6 +72,14 @@ function updateMapSummary() {
     }).length;
     const modelRank = data.neighbors[before].findIndex((item) => item.id === now) + 1;
     $('map-summary').textContent = `上一跳：原向量空间第 ${modelRank} 近；发布平面第 ${rank} 近（共 3461 点），跨度约占平面对角线 ${((Math.sqrt(squared) / (10_000 * Math.SQRT2)) * 100).toFixed(1)}%。这些不是同一种距离。`;
+}
+function setView(next) {
+    if (!['text', 'alongside', 'map-first'].includes(next)) throw new Error('unknown reading view');
+    const workspace = $('view-content'); const atlas = workspace.querySelector('.atlas-area');
+    if (next === 'map-first') workspace.insertBefore(atlas, workspace.firstElementChild);
+    else workspace.querySelector('.passage').after(atlas);
+    view = next; workspace.dataset.view = view; atlas.hidden = view === 'text';
+    if (view !== 'text') requestAnimationFrame(drawMap);
 }
 function render(focusPassage = false) {
     const id = current(); const point = passage(id);
@@ -123,9 +131,10 @@ async function start() {
         picker.addEventListener('change', reset);
         $('restart').addEventListener('click', reset);
         $('back').addEventListener('click', () => { if (trail.length > 1) { trail.pop(); render(true); } });
-        render();
+        document.querySelectorAll('input[name="view"]').forEach((input) => input.addEventListener('change', () => { if (input.checked) setView(input.value); }));
+        setView('text'); render();
         new ResizeObserver(drawMap).observe($('atlas'));
-        window.__routeStudy = { get state() { return { trail: [...trail], currentId: current(), options: options().map((entry) => ({ band: entry.group.title, id: entry.candidate?.id ?? null, rank: entry.candidate?.rank ?? null })) }; }, get data() { return data; } };
+        window.__routeStudy = { get state() { return { view, trail: [...trail], currentId: current(), options: options().map((entry) => ({ band: entry.group.title, id: entry.candidate?.id ?? null, rank: entry.candidate?.rank ?? null })) }; }, get data() { return data; } };
     } catch (error) { $('load-status').textContent = error instanceof Error ? error.message : '观察器无法载入'; }
 }
 start();

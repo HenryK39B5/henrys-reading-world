@@ -3410,6 +3410,12 @@ Slice / task IDs：
 - 目标32对64的最佳成员Jaccard中位PC1 `.233`、PC2 `.224`，多数节点低于.5；跨书比例与节点大小不能证明可读语义。固定5病例与最大/最小/低凝聚节点的真实原文包保留“饭后”共享字面、比喻相邻等反例；并非独立盲审。不选生产候选，不生成公开拓扑。
 - 新增`mapperPartition.ts`、研究脚本、4项单测；`.private/research/map/mapper-partition/`保存完整图、摘要、原文、两轮数值一致记录；完整47文件357/357、typecheck/lint/build/isolation/publication parity通过；浏览器和人工语义Gate未执行，无push/deploy。下一步固定书籍控制基线与独立原文审阅。
 
+## R4-J：Henry知情单人试用的三视图入口（2026-09-27；待Henry验收）
+
+- 预登记`docs/69`固定原viewer-data SHA256 `f95cfa8bb830a9e2600fceeb69a7101910c85906f452d207dde04431f99fca6d`、旧真实原文/起点/前16模型候选/已发布地图点。仅本机`route-viewer.html/.mjs/.css`加入原生单选纯文字、阅读＋地图、地图优先：同一trail、同一真书/全文/3候选与回溯，切换只移动/隐藏现有atlas节点，不调用路线重选/不增加模型服务或自动日志。用户Henry明确充当知情项目使用者而非独立首次访客，不制造评分或其反馈。
+- E2E扩至Chromium11/11，1440/720/390/320宽，reduced motion、键盘单选与箭头、切换后真实ID/候选/书名/原文完全不变、Canvas显隐与重绘、返回改选/死路、只读服务器白名单/无外部请求/无横向溢出。截图放`.private/research/map/route-first/three-view/screenshots/`，不覆盖R4-I截图；`metrics-*.json`显示390×850 h-1955岔路标题页面Y为1256（纯文字）/1861（读后地图）/1857（地图优先），320×850为1501/2087/2083；地图对手机下滚有实际代价，Henry体验Gate未通过也未失败，仍待亲自试用。测试日志首次重定向到不存在的目录未执行，创建目录后11/11；lint未用变量及隐藏canvas伪坐标均修正、重跑通过。
+- 实际`npm run test`52文件372/372、`npm run typecheck`、`npm run lint`、`npx playwright test --config e2e/config/playwright.route-viewer.config.ts`11/11、`npm run build`、`npm run isolation:public`与`npm run publication:verify`通过；公开资源指纹未变。真实Safari/iOS、读屏、真200%缩放、低端性能、独立首次访客与权利判断均未验证；不改`src/`/`public/`、线上地图/快照/部署；下一步只邀请Henry从真实起点随意走两步、在同站切换视图，用自己的话反馈是否想继续、点线含义和阅读/找岔路/返回是否吃力，不要求批量语义标注。
+
 ## R4-I：真实阅读路线与发布地图坐标（2026-09-27）
 
 - 预登记/结果见`docs/68`；`scripts/research/routeMapGeometry.ts`、`study-route-map-trace.ts`与`tests/route-map-geometry.test.ts`锁定公开3462点、旧原空间R4-G路线/图/缓存哈希及目标书PRNG对照。108书各638实际跨书边；软节奏发布图二维top30为105/638，中位距离.071、P90 .282；最近跨书128/638、中位.071、P90 .233；目标同书随机对照中位分别.152/.151。固定5例另记、1例与书种子重叠；h-898软节奏第3跳二维排名3148/3461，跨度42.8%。这些是空间错位/模型诊断，不是语义准确率。私有逐边报告两轮除时间/资源字段外数值完全一致。
