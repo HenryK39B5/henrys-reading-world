@@ -17,6 +17,11 @@ const routes = new Map([
     ['/atlas-forms.css', { path: 'scripts/research/atlas-forms.css', contentType: 'text/css; charset=utf-8' }],
     ['/atlas-forms.mjs', { path: 'scripts/research/atlas-forms.mjs', contentType: 'text/javascript; charset=utf-8' }],
     ['/atlas-geometry.mjs', { path: 'scripts/research/atlasForms.mjs', contentType: 'text/javascript; charset=utf-8' }],
+    ['/reading-story', { path: 'scripts/research/reading-story.html', contentType: 'text/html; charset=utf-8' }],
+    ['/reading-story.css', { path: 'scripts/research/reading-story.css', contentType: 'text/css; charset=utf-8' }],
+    ['/reading-story.mjs', { path: 'scripts/research/reading-story.mjs', contentType: 'text/javascript; charset=utf-8' }],
+    ['/reading-story-rule.mjs', { path: 'scripts/research/readingStory.mjs', contentType: 'text/javascript; charset=utf-8' }],
+    ['/reading-story-data.json', { path: '.private/research/map/route-first/reading-story/tag-overlay.json', contentType: 'application/json; charset=utf-8' }],
 ]);
 const server = createServer(async (request, response) => {
     response.setHeader('Cache-Control', 'no-store');

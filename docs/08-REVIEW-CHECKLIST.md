@@ -3410,6 +3410,12 @@ Slice / task IDs：
 - 目标32对64的最佳成员Jaccard中位PC1 `.233`、PC2 `.224`，多数节点低于.5；跨书比例与节点大小不能证明可读语义。固定5病例与最大/最小/低凝聚节点的真实原文包保留“饭后”共享字面、比喻相邻等反例；并非独立盲审。不选生产候选，不生成公开拓扑。
 - 新增`mapperPartition.ts`、研究脚本、4项单测；`.private/research/map/mapper-partition/`保存完整图、摘要、原文、两轮数值一致记录；完整47文件357/357、typecheck/lint/build/isolation/publication parity通过；浏览器和人工语义Gate未执行，无push/deploy。下一步固定书籍控制基线与独立原文审阅。
 
+## R4-M：地图透镜×阅读织锦×对读接缝的真实信息小样（2026-09-27；待Henry信息/审美Gate）
+
+- 在做页面前写`docs/72`：真实输入公开snapshot SHA`ccef39…`/R4-K frozen viewer SHA`f95cfa…`，1,432条带已审核Topic Tag、2,030条未知；左图仅照亮当前Tag交集真点/书本数（缺失不负例），已走织线区分同名/两端已标无同名/未知，按需展开上一句/当前句全文与书名/各标签/模型rank、明确不是语义证明；唯一主动作主动点一次续读，保留回退、真死路，不给读者模式开关，不用未审核标签或新增模型。独立本机`/reading-story`及`tag-overlay.json`白名单，旧R4-H～L/正式站点原样。
+- `build-reading-story-data.ts`逐句核对hash锁定公开快照和viewer全文/书籍，导出56词表及3,462个标签数组（1,432已标/2,030未知），不带私有note/embedding；`readingStory.mjs`纯函数3/3同ID三态/lens与多标签公平测试；固定11起点×最多六步得到60真实边：26同审核标签、10双方已标却无同名、24至少一端未知。两轮`study-reading-story.ts`byte-identical报告在`.private/research/map/route-first/reading-story/`；h-3501书籍与交易Tag反复回旋，h-2288第3步未知、h-4504第4步地图49.4%长跳/标签未知、h-043死路均保留。不是语义正确率/访客体验计分。
+- Chromium新样板6/6：1440/720/390/320现成真实全文与标签、图点稳定、一次续读、键盘/回退重走、死路、双全文和证据差异、long jump/缺标、白名单/无外部请求或横向溢出、reduced motion；旧R4-J观察器11/11。手机实际截图发现图注字号过小/冗长：精简为明确同名+暗点未知、字体调至12px后重新6/6，截图保留在本机。`npm run test`55文件380/380、typecheck/lint/build/isolation/publication parity通过，正式资产hash未变。未增加依赖、未改公开数据/线上点位、无push/deploy。研究者非独立风险：2,030条标签未知导致透镜空白、手机点过密、横向织线需滑动、展开两个长真段可能推远路线；信息增量、美感、继续读意愿只有Henry本人可给知情反馈，首次访客/真机Safari/iOS/真实200%/读屏/低端性能与权利仍未验。
+
 ## R4-L：固定视框星座/书岛图形语法本机对照（2026-09-27；待Henry体验、无产品Gate）
 
 - 先写`docs/71`冻结真实公开3462条/108本、已核验viewer-data哈希、R4-K相同前16选句、11起点、后验坏例及失败标准，不换模型或正式路线。新增`atlasForms.mjs`/声明/纯函数测试、`atlas-forms.html/.css/.mjs`和`study-atlas-forms.ts`，白名单loopback仅追加三研究页；发布坐标简图/同坐标星座少量真实近邻/数量与ID书岛索引三种**不同图形语法**，均无运行时AI或新依赖，Canvas绘3462点而非DOM。书岛不冒充Topic/Book Theme区域、不把岛间距离当语义；所有图读同原文、单一主动续读和同一真实ID路线，六步仍有h-043零步死路、h-3501金融走廊、h-4504长跳。

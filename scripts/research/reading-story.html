@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><link rel="icon" href="data:,"><link rel="stylesheet" href="/reading-story.css"><title>Reading World · 阅读中的真实信息</title></head>
+<body><header><span>◎ READING WORLD / LOCAL RESEARCH</span><span>本机 · 未发布</span></header>
+<main><div class="intro"><p class="eyebrow">R4-M · 一句话，沿着世界读下去</p><h1>我从哪里来，又读到了什么？</h1><p>一个动作，三层真实信息：固定地图看位置，沿途针脚看已走的书与已审核主题，两句原文由你自己对读。标签缺失表示未知。</p></div>
+<div class="controls"><label for="seed">真实起点</label><select id="seed" aria-label="选择真实起点"></select><button id="back" type="button">← 上一句</button><button id="reset" type="button">重走</button></div>
+<section class="experience" aria-label="地图与原文共同阅读"><aside class="world-pane" aria-label="始终固定的已发布地图坐标"><div class="world-row"><div class="map-frame"><canvas id="atlas" role="img" aria-label="已走路线与真实审核主题点位，全文和路线见右侧文字"></canvas></div><div class="world-caption"><p id="lens-caption"></p><p class="map-note">亮点＝同名审核标签；暗点含未标注者。金线＝已读顺序，非道路。</p></div></div></aside>
+<article class="reading" aria-labelledby="passage-label"><p id="progress" class="progress"></p><p class="source"><span id="book"></span><span id="point-id"></span></p><h2 id="passage-label" tabindex="-1">当前真实划线</h2><blockquote id="text"></blockquote><div id="tags" class="tags" aria-label="当前已审核主题标签"></div>
+<div id="arrival" class="arrival" role="status"></div><div class="actions"><button id="next" type="button">再读一句 →</button><p id="end-status" role="status"></p></div>
+<details id="evidence"><summary>对读上一句与这一句</summary><p class="evidence-note">完整原文和标签供你判断是否呼应；同标签、模型邻近、地图近都不能替你判定观点相同。</p><div class="pair"><div><p id="from-book" class="pair-book"></p><blockquote id="from-text"></blockquote><p id="from-tags" class="pair-tags"></p></div><div><p id="to-book" class="pair-book"></p><blockquote id="to-text"></blockquote><p id="to-tags" class="pair-tags"></p></div></div><p id="edge-note" class="evidence-note"></p></details>
+<section class="thread" aria-labelledby="thread-title"><h2 id="thread-title">已经走过的线</h2><p>跨书是真的；相同主题只在两句都有已审核标签时显示。点选某一站可以回到那里。</p><ol id="trail"></ol></section>
+</article></section><p id="load-status" role="status"></p></main><script type="module" src="/reading-story.mjs"></script></body></html>
