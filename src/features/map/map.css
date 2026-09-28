@@ -912,6 +912,158 @@ body:has(.shell--dark-map) {
     }
 }
 
+/* The reading window lives in the real map room: the geography keeps its coordinates while
+   actual books and one complete passage emerge beside the area outlined on the Canvas. */
+.map-reading-window {
+    min-width: 0;
+    padding: clamp(22px, 3vw, 38px);
+    border-left: 1px solid var(--rule);
+    background: #222e2a;
+    color: var(--ink);
+}
+
+.map-reading-window[hidden] { display: none; }
+
+.map-reading-window h2 {
+    margin: 5px 0 10px;
+    font-family: var(--stage-font);
+    font-size: clamp(23px, 2.2vw, 30px);
+    font-weight: 400;
+}
+
+.map-reading-window h3 {
+    margin: 26px 0 8px;
+    font-family: var(--stage-font);
+    font-size: 17px;
+    font-weight: 400;
+}
+
+.map-reading-explainer,
+.map-reading-count,
+.map-reading-empty {
+    margin: 0 0 12px;
+    color: var(--ink-soft);
+    font-size: 12px;
+    line-height: 1.65;
+}
+
+.map-reading-passage {
+    margin: 16px 0 12px;
+    padding: 15px 0 0;
+    border-top: 1px solid var(--rule);
+}
+
+.map-reading-passage p {
+    margin: 0;
+    font-family: var(--stage-font);
+    font-size: 18px;
+    line-height: 1.85;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.map-reading-passage footer {
+    margin: 11px 0 0;
+    color: var(--ink-soft);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.map-reading-focus {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+}
+
+.map-reading-books,
+.map-reading-all ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.map-reading-books li,
+.map-reading-all li {
+    border-bottom: 1px solid var(--rule);
+}
+
+.map-reading-books a,
+.map-reading-all a {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 48px;
+    padding: 10px 0;
+    color: inherit;
+    text-decoration: none;
+}
+
+.map-reading-books a:hover,
+.map-reading-all a:hover,
+.map-reading-books a:focus-visible,
+.map-reading-all a:focus-visible {
+    color: var(--accent);
+}
+
+.map-reading-books a > span,
+.map-reading-all a > span { min-width: 0; overflow-wrap: anywhere; }
+.map-reading-books small,
+.map-reading-all small { flex: 0 0 auto; color: var(--ink-soft); font-size: 11px; }
+.map-reading-all a { display: block; }
+.map-reading-all a > span { display: block; font-family: var(--stage-font); line-height: 1.7; }
+.map-reading-all small { display: block; margin-top: 5px; }
+.map-reading-rest summary,
+.map-reading-all summary {
+    min-height: 44px;
+    padding-top: 12px;
+    color: var(--ink-soft);
+    cursor: pointer;
+}
+.map-reading-all { margin-top: 12px; border-top: 1px solid var(--rule-strong); }
+.map-reading-all .room-exit { margin-top: 14px; cursor: pointer; }
+
+@media (min-width: 1050px) {
+    .room-map[data-map-level='reading'] .map-stage {
+        display: grid;
+        grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.9fr);
+        align-items: start;
+        overflow: visible;
+    }
+    .room-map[data-map-level='reading'] .map-canvas-wrap {
+        position: sticky;
+        top: 16px;
+        min-width: 0;
+    }
+    .room-map[data-map-level='reading'] .map-reading-window {
+        max-height: min(80svh, 800px);
+        overflow-y: auto;
+    }
+}
+
+@media (max-width: 1049px) {
+    .room-map[data-map-level='reading'] .map-stage { min-height: 0; }
+    .room-map[data-map-level='reading'] .map-canvas-wrap {
+        height: clamp(220px, 36svh, 320px);
+        min-height: 220px;
+    }
+    .room-map[data-map-level='reading'] .map-reading-window {
+        border-top: 1px solid var(--rule);
+        border-left: 0;
+        padding: 20px clamp(24px, 6vw, 48px) 32px;
+    }
+}
+
+@media (max-width: 700px) {
+    .room-map[data-map-level='reading'] .map-canvas-wrap {
+        height: 190px;
+        min-height: 190px;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .map-icon-button,
     .map-book-trigger,

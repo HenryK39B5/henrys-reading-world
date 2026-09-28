@@ -12,6 +12,7 @@ import {
 } from '../../domain/map.ts';
 import { studyContourAt, studyContourPaths, studyPointAt, studyPointZoomThreshold } from '../../domain/mapStudy.ts';
 import { MAP_COORDINATE_MAX } from '../../domain/types.ts';
+import { MAP_READING_RADIUS, MAP_READING_ZOOM } from '../../domain/mapReading.ts';
 import type { SnapshotIndex } from '../../domain/snapshot.ts';
 import { placeMapLabels, visibleMapLabels, type LabelPlacement } from './labelPlacement.ts';
 import { MapStudyTerrain, type MapStudyData } from './MapStudyTerrain.tsx';
@@ -24,6 +25,8 @@ export type MapCanvasProps = {
     activeTagId: string | null;
     activeBookId: string | null;
     activeHighlightId: string | null;
+    readingHighlightId: string | null;
+    onSizeChange: (size: Size) => void;
     bookAccent: string;
     highlightAccent: string;
     onSelectTag: (tagId: string) => void;
@@ -66,6 +69,8 @@ export function MapCanvas({
     activeTagId,
     activeBookId,
     activeHighlightId,
+    readingHighlightId,
+    onSizeChange,
     bookAccent,
     highlightAccent,
     onSelectTag,
@@ -129,11 +134,13 @@ export function MapCanvas({
         if (canvas === null) return;
         const observer = new ResizeObserver(([entry]) => {
             if (entry === undefined) return;
-            setSize({ width: Math.max(1, entry.contentRect.width), height: Math.max(1, entry.contentRect.height) });
+            const nextSize = { width: Math.max(1, entry.contentRect.width), height: Math.max(1, entry.contentRect.height) };
+            setSize(nextSize);
+            onSizeChange(nextSize);
         });
         observer.observe(canvas);
         return () => observer.disconnect();
-    }, []);
+    }, [onSizeChange]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -328,6 +335,28 @@ export function MapCanvas({
             }
         }
 
+        if (!__MAP_STUDY_ENDPOINT__ && activeTagId === null && activeBookId === null && view.zoom >= MAP_READING_ZOOM) {
+            ctx.beginPath();
+            ctx.arc(size.width / 2, size.height / 2, Math.min(size.width, size.height) * MAP_READING_RADIUS, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(209, 217, 187, 0.34)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 8]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        if (readingHighlightId !== null && activeHighlightId === null) {
+            const preview = layout.points.find((point) => point.highlightId === readingHighlightId);
+            if (preview !== undefined) {
+                const screen = mapToScreen(preview, view, size.width, size.height);
+                ctx.beginPath();
+                ctx.arc(screen.x, screen.y, 5.5, 0, Math.PI * 2);
+                ctx.strokeStyle = '#e3d7ac';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+        }
+
         if (activeHighlightId !== null) {
             const active = layout.points.find((point) => point.highlightId === activeHighlightId);
             if (active !== undefined) {
@@ -403,7 +432,7 @@ export function MapCanvas({
             }
         }
         labelHits.current = visibleLabels;
-    }, [activeBookId, activeHighlightId, activeTagId, bookAccent, highlightAccent, bookPointIds, bookPoints, contourPaths, hoverTarget, index, labels, layout, size, study, tagPointIds, tagPoints, view]);
+    }, [activeBookId, activeHighlightId, activeTagId, bookAccent, highlightAccent, bookPointIds, bookPoints, contourPaths, hoverTarget, index, labels, layout, readingHighlightId, size, study, tagPointIds, tagPoints, view]);
 
     const pointerPosition = (event: React.PointerEvent<HTMLCanvasElement>): { x: number; y: number } => {
         const rect = event.currentTarget.getBoundingClientRect();
@@ -447,7 +476,7 @@ export function MapCanvas({
                 data-map-hover-contour={__MAP_STUDY__ && hoverTarget?.kind === 'contour' ? String(hoverTarget.index) : undefined}
                 role="img"
                 tabIndex={0}
-                aria-label="阅读世界地图。可拖动、滚轮缩放或双指缩放；键盘访客可使用地图下方的主题区域与划线列表。"
+                aria-label="阅读世界地图。轻点地图靠近任意位置并查看圆内的真实书与划线；可拖动、滚轮或双指缩放，键盘可用方向键与加减键；下方仍有主题区域列表。"
                 onPointerDown={(event) => {
                     if (zoomFrame.current !== null) cancelAnimationFrame(zoomFrame.current);
                     if (__MAP_STUDY__) setHoverTarget(null);
@@ -519,8 +548,8 @@ export function MapCanvas({
                         event.currentTarget.style.cursor = 'pointer';
                         return;
                     }
-                    const points = __MAP_STUDY__ && study !== null && activeTagId === null && activeBookId === null
-                        ? layout?.points ?? [] : interactivePoints;
+                    const worldPoints = activeTagId === null && activeBookId === null;
+                    const points = worldPoints ? layout?.points ?? [] : interactivePoints;
                     const point = __MAP_STUDY__ && study !== null
                         ? studyPointAt(points, position, view, size.width, size.height)
                         : nearestPoint(points, position, view, size.width, size.height, 11);
@@ -531,7 +560,7 @@ export function MapCanvas({
                         const highlight = index.highlightsById.get(point.highlightId);
                         const book = highlight === undefined ? undefined : index.booksById.get(highlight.bookId);
                         setHoverText(book === undefined ? '一处划线' : `《${book.title}》的一处划线`);
-                        event.currentTarget.style.cursor = __MAP_STUDY__ && study !== null && activeTagId === null && activeBookId === null && view.zoom < studyPointZoomThreshold(size.width)
+                        event.currentTarget.style.cursor = worldPoints && view.zoom < (__MAP_STUDY_ENDPOINT__ && study !== null ? studyPointZoomThreshold(size.width) : MAP_READING_ZOOM)
                             ? 'zoom-in' : 'pointer';
                     } else {
                         const contour = __MAP_STUDY__ && study !== null
@@ -543,7 +572,7 @@ export function MapCanvas({
                             if (__MAP_STUDY__) setHoverTarget(null);
                             setHoverText('');
                         }
-                        event.currentTarget.style.cursor = 'grab';
+                        event.currentTarget.style.cursor = !__MAP_STUDY_ENDPOINT__ && activeTagId === null && activeBookId === null && view.zoom < MAP_READING_ZOOM ? 'zoom-in' : 'grab';
                     }
                 }}
                 onPointerUp={(event) => {
@@ -573,7 +602,7 @@ export function MapCanvas({
                         onSelectTag(label.summary.tagId);
                         return;
                     }
-                    if (__MAP_STUDY__ && study !== null && activeTagId === null && activeBookId === null && layout !== undefined) {
+                    if (__MAP_STUDY_ENDPOINT__ && study !== null && activeTagId === null && activeBookId === null && layout !== undefined) {
                         const point = studyPointAt(layout.points, position, view, size.width, size.height);
                         if (point === undefined) { setHoverTarget(null); setHoverText(''); return; }
                         if (view.zoom < studyPointZoomThreshold(size.width)) {
@@ -583,6 +612,17 @@ export function MapCanvas({
                         }
                         setHoverTarget(null);
                         onSelectHighlight(point.highlightId);
+                        return;
+                    }
+                    if (activeTagId === null && activeBookId === null && layout !== undefined) {
+                        const at = screenToMap(position, view, size.width, size.height);
+                        if (view.zoom < MAP_READING_ZOOM) {
+                            onViewChange(clampMapView({ centerX: at.x, centerY: at.y, zoom: Math.max(4, view.zoom * 1.8) }));
+                            return;
+                        }
+                        const point = nearestPoint(layout.points, position, view, size.width, size.height, 13);
+                        if (point !== undefined) onSelectHighlight(point.highlightId);
+                        else onViewChange(clampMapView({ ...view, centerX: at.x, centerY: at.y }));
                         return;
                     }
                     const point = nearestPoint(interactivePoints, position, view, size.width, size.height, 13);

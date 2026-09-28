@@ -3414,6 +3414,13 @@ Slice / task IDs：
 
 Henry在知道背景后认可已审核同标签亮点的信息增量，但指出没有背景的访客可能只看见点和一块图，不知道亮点/当前点的含义；要求优雅自然、不成为只能开发者理解的自娱产品。尤其Henry自然说成“相似度”，本研究亮点实际为已审核逐条Topic Tag同名，不是cosine/已证明语义相似，这一歧义说明R4-M未过首次访客自然理解Gate。Henry抛出“一群一群”和3D/Three.js作为研究灵感，未选定线上分群算法、3D功能或部署。原话在`.private/research/map/route-first/reading-story/henry-feedback-2026-09-27.md`、归纳见`docs/72`；`docs/73`只登记下一轮真实点直接抵达原文、团可开真成员/保留全量、3D需说明深度而非装饰的无讲解任务。Henry为知情单人，不伪称独立首访验证。本轮只更新研究文档/本机反馈，不运行新算法/浏览器，不改公开快照、地图点位、地形、标签或线上站点；只执行`git diff --check`。访客首轮理解任务、真机、200%与视觉Gate均待做。
 
+### 可阅读地貌 · 阶段B：现有网站地图完整首版（2026-09-28；待Henry看demo）
+
+- **范围/文件**：`MapCanvas.tsx`、`MapRoom.tsx`、`useMapView.ts`、`map.css`与`src/domain/mapReading.ts`：保留已发布3,462点/108本/56标签、2D地形和既有路径；在无书/主题筛选的世界图上，点任意无名位置可直接靠近至4倍，真实点及圆形局部范围可视化；旁边显示实际书目、按最近真点去重的书入口、最近真点对应**完整真实原文**；可在原点详情读、Back还原地图与焦点，刷新恢复本标签页的世界视框，复位清除记忆。无Tag亦参与局部完整分页列表（初8、再增16），不声称二维近邻语义相似；独立`map-study`研究模式仍按原交互运行。新增公开数据专用Playwright `e2e/map-reading.spec.ts`和独立配置，默认`dev:local`套件不混入此测试。无新依赖、远程服务、公开数据/坐标/地形改变。
+- **实际命令**：先纯函数3/3与typecheck；UI完成后`npx playwright test --config e2e/config/playwright.map-reading.config.ts` 6/6（1440/390/320、720等效重排＋reduced-motion、真实计数/原文、刷新/Back/焦点/无横向溢出、无标签文本入口/键盘平移）。既有`npx playwright test e2e/map.spec.ts` 14/14，隔离`map-interactive-study.spec.ts` 11/11，`npm run test` 56文件383/383，lint/typecheck、`npm run check`（含build）、`npm run isolation:public`均通过；build仍只含获准公开数据。新页截图 `.private/review/map-readable/reading-{1440,390,320}.png`及`reading-720-reduced.png`（真实全站，不是独立样板）；1440的一次视框171处/27本，390的一次视框114处/18本，说明仅按书去重不能保证跨书内容有趣。
+- **失败/修正**：首轮浏览器4/4均未进入局部模式，状态停180%：原有正式版也设置`__MAP_STUDY__=true`，旧M-04触点优先分支截获事件；改以仅研究端点`__MAP_STUDY_ENDPOINT__`保护旧路径后浏览器通过，研究11/11回归不变。新测试首次Node JSON ESM导入缺属性、随后lint拒绝`import()`类型写法，均改为只读公开JSON/普通type import。误用不存在的`npm run test:unit`及`npm run check:public-isolation`没有当作通过，改为实际`npm run test`与`npm run isolation:public`；TypeScript可选索引最初报错后收紧书组非空类型，重跑通过。初版2.5倍过于拥挤且手机图文分开，改为4倍、手机190px定位框后重新截图/复测。
+- **尚未验证**：此局部片区的真实跨书可读价值、Henry视觉判断、空角落极端/多手势连续性能、Safari/iOS/读屏、真实200%缩放、低端设备与权利未验；现有书本/主题继续动作仍需跨模块收口。局部书名在阅读栏而非Canvas新地名；主动审核Tag透镜未新增。此提交不推送/不部署，不把自验等同访客/产品Gate。下一步Henry在**完整本机站点**实际体验后对照这些缺口再迭代。
+
 ### 可阅读地貌 · 阶段A：真实点位的局部阅读索引（2026-09-28；纯函数）
 
 Henry明确授权按`docs/77`直接推进现有网站，本阶段先添加独立于React的`src/domain/mapReading.ts`与`src/domain/mapReading.test.ts`：从当前地图视框中心标示的圆形范围内读取所有真实已公开点位（含无审核Tag），按实际二维屏幕距离排序并以书分组；二维远近只用于局部索引，不宣称主题相似。真实公开快照单测3/3，含无Tag真句仍可进入、点位在确切圆内/各书计数守恒、空画布退路；`npm run typecheck`通过。未变原快照/地图坐标/地形；阶段A没有新浏览器截图或产品Gate，不把它称成可见的设计成果。下一阶段在现有MapCanvas/MapRoom完成缩放→局部书与原文→返回的真实界面，补浏览器证据后再做整体验收。

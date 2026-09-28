@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { mapReadingWindow, MAP_READING_ZOOM } from '../../domain/mapReading.ts';
 import { coverUrl, useCoverAccent } from '../../app/covers.ts';
 import { sitePath } from '../../app/sitePath.ts';
 import { DEFAULT_ACCENT } from '../../domain/accent.ts';
@@ -113,6 +114,14 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
     const primaryRelatedTagIds = relatedTagIds.slice(0, 6);
     const remainingRelatedTagIds = relatedTagIds.slice(6);
     const [expandedLists, setExpandedLists] = useState<Set<string>>(() => new Set());
+    const [mapSize, setMapSize] = useState({ width: 1, height: 1 });
+    const [readingListLimit, setReadingListLimit] = useState(8);
+    const readingWorld = !__MAP_STUDY_ENDPOINT__ && effectiveTagId === null && effectiveBookId === null && view.view.zoom >= MAP_READING_ZOOM;
+    const readingWindow = useMemo(
+        () => mapReadingWindow(index, view.view, mapSize.width, mapSize.height),
+        [index, mapSize.height, mapSize.width, view.view],
+    );
+    const firstReadingEntry = readingWindow.entries[0];
     const detailHeading = useRef<HTMLHeadingElement>(null);
     const returnTo = useRef<{ element: HTMLElement; scrollY: number } | null>(null);
     const previousDetailId = useRef<string | null>(highlight?.id ?? null);
@@ -194,11 +203,11 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
 
     const pointCount = layout.points.length;
     const namedCount = index.coverage.taggedHighlightCount;
-    const level = highlight === undefined ? (tag === undefined ? 'world' : 'region') : 'detail';
+    const level = highlight === undefined ? (readingWorld ? 'reading' : tag === undefined ? 'world' : 'region') : 'detail';
     const selectedBookPoints = book === undefined ? [] : mapPointsForBook(index, book.id);
 
     return (
-        <section className={`room room-map${tag === undefined && highlight === undefined ? ' map-opening-world' : ''}`} aria-labelledby="map-heading" data-room="map" data-map-level={level}>
+        <section className={`room room-map${tag === undefined && highlight === undefined ? ' map-opening-world' : ''}${readingWorld && highlight === undefined ? ' map-reading-world' : ''}`} aria-labelledby="map-heading" data-room="map" data-map-level={level}>
             <header className="map-head">
                 <div>
                     <p className="room-kicker">{tag === undefined ? '全部真实划线形成的地形' : '正在查看主题区域'}</p>
@@ -278,8 +287,8 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
 
             <div className="map-stage" data-testid="map-stage">
                 <div className="map-stage-status" aria-hidden="true">
-                    <span>{tag === undefined ? '世界总览' : `主题区域 · ${tag.title}`}</span>
-                    <span>拖动 · 滚轮 / 双指缩放</span>
+                    <span>{readingWorld ? '正在看这片地方' : tag === undefined ? '世界总览' : `主题区域 · ${tag.title}`}</span>
+                    <span>{readingWorld ? '移动地图，看看别处的书' : '拖动 · 滚轮 / 双指缩放'}</span>
                 </div>
                 <MapCanvas
                     index={index}
@@ -288,6 +297,8 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                     activeTagId={effectiveTagId}
                     activeBookId={effectiveBookId}
                     activeHighlightId={highlight?.id ?? null}
+                    readingHighlightId={readingWorld ? readingWindow.entries[0]?.highlight.id ?? null : null}
+                    onSizeChange={setMapSize}
                     bookAccent={bookAccent || DEFAULT_ACCENT}
                     highlightAccent={detailAccent || DEFAULT_ACCENT}
                     onSelectTag={(nextTagId) => {
@@ -301,6 +312,82 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                         onNavigate(mapHref({ tagId: effectiveTagId, bookId: effectiveBookId, highlightId: nextHighlightId }));
                     }}
                 />
+                {readingWorld ? (
+                    <section className="map-reading-window" aria-labelledby="map-reading-heading" data-testid="map-reading-window" hidden={highlight !== undefined}>
+                        <p className="room-kicker">地图上的这一片</p>
+                        <h2 id="map-reading-heading">这里的书与划线</h2>
+                        <p className="map-reading-explainer">圆内是当前地图范围中的真实划线，未标主题的也在这里；位置相近不代表观点相同。</p>
+                        {firstReadingEntry === undefined ? (
+                            <p className="map-reading-empty">这片暂时没有收录的划线。移动地图，看看别处。</p>
+                        ) : (
+                            <>
+                                <p className="map-reading-count">
+                                    {String(readingWindow.entries.length)} 处划线 · 来自 {String(readingWindow.books.length)} 本书
+                                </p>
+                                <blockquote className="map-reading-passage">
+                                    <p>{firstReadingEntry.highlight.text}</p>
+                                    <footer>——《{firstReadingEntry.book.title}》{firstReadingEntry.book.author}</footer>
+                                </blockquote>
+                                <a className="map-reading-focus" href={sitePath(mapHref({ highlightId: firstReadingEntry.highlight.id }))}
+                                    onClick={(event) => {
+                                        if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) rememberOpener(event.currentTarget);
+                                    }}>
+                                    在图上读这一处
+                                </a>
+                                <h3>从这里遇见的书</h3>
+                                <ol className="map-reading-books">
+                                    {readingWindow.books.slice(0, 5).map((group) => (
+                                        <li key={group.book.id}>
+                                            <a href={sitePath(mapHref({ highlightId: group.entries[0]?.highlight.id }))}
+                                                onClick={(event) => {
+                                                    if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) rememberOpener(event.currentTarget);
+                                                }}>
+                                                <span>《{group.book.title}》</span><small>{String(group.entries.length)} 处</small>
+                                            </a>
+                                        </li>
+                                    ))}
+                                </ol>
+                                {readingWindow.books.length <= 5 ? null : (
+                                    <details className="map-reading-rest">
+                                        <summary>展开这里其余 {String(readingWindow.books.length - 5)} 本书</summary>
+                                        <ol className="map-reading-books">
+                                            {readingWindow.books.slice(5).map((group) => (
+                                                <li key={group.book.id}>
+                                                    <a href={sitePath(mapHref({ highlightId: group.entries[0]?.highlight.id }))}
+                                                        onClick={(event) => {
+                                                            if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) rememberOpener(event.currentTarget);
+                                                        }}>
+                                                        <span>《{group.book.title}》</span><small>{String(group.entries.length)} 处</small>
+                                                    </a>
+                                                </li>
+                                            ))}
+                                        </ol>
+                                    </details>
+                                )}
+                                <details className="map-reading-all" data-testid="map-reading-all">
+                                    <summary>查看这片的全部划线</summary>
+                                    <ol>
+                                        {readingWindow.entries.slice(0, readingListLimit).map((entry) => (
+                                            <li key={entry.highlight.id}>
+                                                <a href={sitePath(mapHref({ highlightId: entry.highlight.id }))}
+                                                    onClick={(event) => {
+                                                        if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) rememberOpener(event.currentTarget);
+                                                    }}>
+                                                    <span>{entry.highlight.text}</span><small>《{entry.book.title}》{entry.book.author}</small>
+                                                </a>
+                                            </li>
+                                        ))}
+                                    </ol>
+                                    {readingWindow.entries.length > readingListLimit ? (
+                                        <button type="button" className="room-exit" onClick={() => setReadingListLimit((limit) => limit + 16)}>
+                                            再看这片的划线
+                                        </button>
+                                    ) : null}
+                                </details>
+                            </>
+                        )}
+                    </section>
+                ) : null}
                 {highlight === undefined ? null : (
                     <MapDetail
                         index={index}

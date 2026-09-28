@@ -3,7 +3,7 @@ import type { Book, Highlight, MapPoint } from './types.ts';
 import { mapToScreen, type MapViewport } from './map.ts';
 
 /** A screen-space reading window, not a semantic cluster or a topic boundary. */
-export const MAP_READING_ZOOM = 2.25;
+export const MAP_READING_ZOOM = 3.5;
 export const MAP_READING_RADIUS = 0.39;
 
 export type MapReadingEntry = {
@@ -15,7 +15,7 @@ export type MapReadingEntry = {
 export type MapReadingBook = {
     book: Book;
     /** Points from this book inside the current window, nearest the viewport centre first. */
-    entries: MapReadingEntry[];
+    entries: [MapReadingEntry, ...MapReadingEntry[]];
 };
 
 export type MapReadingWindow = {
@@ -50,10 +50,11 @@ export function mapReadingWindow(
     for (const { entry } of entries) {
         let group = books.get(entry.book.id);
         if (group === undefined) {
-            group = { book: entry.book, entries: [] };
+            group = { book: entry.book, entries: [entry] };
             books.set(entry.book.id, group);
+        } else {
+            group.entries.push(entry);
         }
-        group.entries.push(entry);
     }
     return { entries: entries.map(({ entry }) => entry), books: [...books.values()] };
 }
