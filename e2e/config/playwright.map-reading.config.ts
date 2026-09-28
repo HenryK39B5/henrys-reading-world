@@ -9,7 +9,10 @@ export default defineConfig({
     timeout: 90_000,
     reporter: [['list']],
     use: { baseURL: `http://127.0.0.1:${String(port)}`, trace: 'off', screenshot: 'off', video: 'off' },
-    projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+    projects: [
+        { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+        { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    ],
     webServer: {
         command: `npm run dev -- --host 127.0.0.1 --port ${String(port)} --strictPort`,
         cwd: fileURLToPath(new URL('../..', import.meta.url)),

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { mapToScreen, WORLD_MAP_VIEW, type MapViewport } from '../src/domain/map.ts';
-import { mapReadingWindow } from '../src/domain/mapReading.ts';
+import { compareWithBook, mapReadingWindow, otherBooksInWindow, sharedReviewedTags } from '../src/domain/mapReading.ts';
 import { indexSnapshot } from '../src/domain/snapshot.ts';
 import type { Snapshot } from '../src/domain/types.ts';
 
@@ -30,7 +30,7 @@ async function openAnUnnamedPart(page: Page) {
 }
 
 for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }, { width: 320, height: 720 }]) {
-    test(`reading a real unnamed part of the published map at ${viewport.width}`, async ({ page }) => {
+    test(`reading a real unnamed part of the published map at ${viewport.width}`, async ({ page }, testInfo) => {
         await page.setViewportSize(viewport);
         await page.goto('/map');
         const canvas = await openAnUnnamedPart(page);
@@ -46,8 +46,10 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         expect(contents.entries.length).toBeGreaterThan(0);
         await expect(page.locator('.map-reading-passage p')).toHaveText(contents.entries[0]?.highlight.text ?? '');
         await expect(page.locator('.map-reading-window .map-reading-count')).toContainText(`${contents.entries.length} 处划线 · 来自 ${contents.books.length} 本书`);
-        await expect(page.locator('.map-reading-books').first().locator('li').first()).toContainText(contents.books[0]?.book.title ?? '');
-        await page.screenshot({ path: `.private/review/map-readable/reading-${viewport.width}.png`, fullPage: false });
+        const anotherBook = contents.entries[0] === undefined ? undefined : otherBooksInWindow(contents, contents.entries[0])[0];
+        expect(anotherBook).toBeDefined();
+        await expect(page.locator('.map-reading-books').first().locator('li').first()).toContainText(anotherBook?.book.title ?? '');
+        await page.screenshot({ path: `.private/review/map-readable/reading-${viewport.width}-${testInfo.project.name}.png`, fullPage: false });
 
         const firstId = contents.entries[0]?.highlight.id;
         expect(firstId).toBeDefined();
@@ -68,7 +70,100 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
     });
 }
 
-test('keyboard zoom and reduced-motion keep local text accessible at a 720px reflow', async ({ page }) => {
+for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }, { width: 320, height: 720 }]) {
+    test(`a chosen other book reveals a second full genuine passage and its map point at ${viewport.width}`, async ({ page }, testInfo) => {
+        await page.setViewportSize(viewport);
+        if (viewport.width === 390) await page.emulateMedia({ reducedMotion: 'reduce' });
+        await page.goto('/map');
+        const canvas = await openAnUnnamedPart(page);
+        const bounds = await canvas.boundingBox();
+        if (bounds === null) throw Error('Missing real map canvas');
+        const view = {
+            centerX: Number(await canvas.getAttribute('data-map-center-x')),
+            centerY: Number(await canvas.getAttribute('data-map-center-y')),
+            zoom: Number(await canvas.getAttribute('data-map-zoom')),
+        };
+        const local = mapReadingWindow(index, view, bounds.width, bounds.height);
+        const anchor = local.entries[0];
+        if (anchor === undefined) throw Error('Missing real anchor');
+        const otherBooks = otherBooksInWindow(local, anchor);
+        const group = otherBooks[0];
+        if (group === undefined) throw Error('Missing other real book');
+        const other = compareWithBook(local, anchor.highlight.id, group.book.id);
+        if (other === null) throw Error('Missing nearest real other-book passage');
+        const choose = page.getByRole('button', { name: `读《${group.book.title}》在这里的一句` });
+        if (viewport.width === 390) {
+            await choose.focus();
+            await page.keyboard.press('Enter');
+        } else await choose.click();
+        await expect(choose).toHaveAttribute('aria-expanded', 'true');
+        await expect(canvas).toHaveAttribute('data-map-compare-highlight', other.highlight.id);
+        await expect(page.locator('.map-reading-window > .map-reading-passage p')).toHaveText(anchor.highlight.text);
+        await expect(page.getByTestId('map-reading-comparison').locator('blockquote p')).toHaveText(other.highlight.text);
+        await expect(page.getByTestId('map-reading-comparison')).toContainText(group.book.title);
+        const shared = sharedReviewedTags(anchor, other);
+        if (shared.length === 0) await expect(page.locator('.map-reading-evidence')).toContainText('只因落在同一地图范围');
+        else await expect(page.locator('.map-reading-evidence')).toContainText('共同的已审核主题');
+        await expect(page.getByTestId('map-reading-comparison')).toBeVisible();
+        await page.screenshot({ path: `.private/review/map-readable/compare-${viewport.width}-${testInfo.project.name}.png`, fullPage: false });
+        await page.getByRole('link', { name: '在图上读②的详情' }).click();
+        await expect(page.locator('.map-detail-passage')).toHaveText(other.highlight.text);
+        expect(new URL(page.url()).searchParams.get('h')).toBe(other.highlight.id);
+        await page.goBack();
+        await expect(canvas).toHaveAttribute('data-map-compare-highlight', other.highlight.id);
+        await expect(page.getByTestId('map-reading-comparison')).toBeVisible();
+        await expect(page.getByRole('link', { name: '在图上读②的详情' })).toBeFocused();
+        await choose.click();
+        await expect(canvas).not.toHaveAttribute('data-map-compare-highlight', /.+/);
+        await expect(page.getByTestId('map-reading-comparison')).toHaveCount(0);
+        if (viewport.width === 1440) {
+            await choose.click();
+            await canvas.focus();
+            await page.keyboard.press('ArrowRight');
+            await expect(canvas).not.toHaveAttribute('data-map-compare-highlight', /.+/);
+            await expect(page.getByTestId('map-reading-comparison')).toHaveCount(0);
+        }
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    });
+}
+
+test('shared reviewed tags are labelled as classification, never as similarity or agreement', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/map');
+    const canvas = page.getByTestId('map-canvas');
+    const bounds = await canvas.boundingBox();
+    const point = layout?.points.find((entry) => entry.highlightId === 'h-025');
+    if (bounds === null || point === undefined) throw Error('Public point for real reviewed-tag countercheck is missing');
+    const screen = mapToScreen(point, WORLD_MAP_VIEW, bounds.width, bounds.height);
+    await canvas.click({ position: screen });
+    await expect(page.getByTestId('map-reading-window')).toBeVisible();
+    const readingBounds = await canvas.boundingBox();
+    if (readingBounds === null) throw Error('Missing reading canvas');
+    const local = mapReadingWindow(index, {
+        centerX: Number(await canvas.getAttribute('data-map-center-x')),
+        centerY: Number(await canvas.getAttribute('data-map-center-y')),
+        zoom: Number(await canvas.getAttribute('data-map-zoom')),
+    }, readingBounds.width, readingBounds.height);
+    const anchor = local.entries[0];
+    expect(anchor?.highlight.id).toBe('h-025');
+    if (anchor === undefined) return;
+    const group = otherBooksInWindow(local, anchor).find((entry) => entry.book.id === 'b-055');
+    if (group === undefined) throw Error('Real second book no longer falls inside the published local window');
+    const other = compareWithBook(local, anchor.highlight.id, group.book.id);
+    expect(other?.highlight.id).toBe('h-4169');
+    if (other === null) return;
+    const choice = page.getByRole('button', { name: `读《${group.book.title}》在这里的一句` });
+    if (await choice.count() === 0) await page.locator('.map-reading-rest summary').click();
+    await choice.click();
+    await expect(canvas).toHaveAttribute('data-map-compare-highlight', other.highlight.id);
+    const shared = sharedReviewedTags(anchor, other);
+    expect(shared).toEqual(['tag-054']);
+    await expect(page.locator('.map-reading-evidence')).toContainText(index.tagsById.get(shared[0] ?? '')?.title ?? '');
+    await expect(page.locator('.map-reading-evidence')).toContainText('分类线索，不是相似度或观点一致');
+    await expect(page.getByTestId('map-reading-comparison').locator('blockquote p')).toHaveText(other.highlight.text);
+});
+
+test('keyboard zoom and reduced-motion keep local text accessible at a 720px reflow', async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 720, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/map');
@@ -76,7 +171,7 @@ test('keyboard zoom and reduced-motion keep local text accessible at a 720px ref
     await expect(page.getByTestId('map-reading-window')).toBeVisible();
     await expect(page.getByRole('link', { name: '在图上读这一处' })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.screenshot({ path: '.private/review/map-readable/reading-720-reduced.png', fullPage: false });
+    await page.screenshot({ path: `.private/review/map-readable/reading-720-reduced-${testInfo.project.name}.png`, fullPage: false });
 });
 
 test('the bounded text list can open an untagged real point in the same area', async ({ page }) => {

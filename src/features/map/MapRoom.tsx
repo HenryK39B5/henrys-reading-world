@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { mapReadingWindow, MAP_READING_ZOOM } from '../../domain/mapReading.ts';
+import { compareWithBook, mapReadingWindow, otherBooksInWindow, sharedReviewedTags, MAP_READING_ZOOM, type MapReadingBook, type MapReadingEntry } from '../../domain/mapReading.ts';
 import { coverUrl, useCoverAccent } from '../../app/covers.ts';
 import { sitePath } from '../../app/sitePath.ts';
 import { DEFAULT_ACCENT } from '../../domain/accent.ts';
@@ -29,6 +29,59 @@ function mapHref(options: { tagId?: string | null; bookId?: string | null; highl
     if (options.highlightId !== null && options.highlightId !== undefined) params.set('h', options.highlightId);
     const query = params.toString();
     return query.length === 0 ? '/map' : `/map?${query}`;
+}
+
+function MapReadingBookRow({ group, anchor, comparison, index, onChoose, onOpenDetail }: {
+    group: MapReadingBook;
+    anchor: MapReadingEntry;
+    comparison: MapReadingEntry | undefined;
+    index: SnapshotIndex;
+    onChoose: (bookId: string) => void;
+    onOpenDetail: (element: HTMLElement) => void;
+}) {
+    const selected = comparison?.book.id === group.book.id;
+    const sharedNames = selected && comparison !== undefined
+        ? sharedReviewedTags(anchor, comparison).map((id) => index.tagsById.get(id)?.title).filter((title): title is string => title !== undefined)
+        : [];
+    const detailId = `map-compare-${group.book.id}`;
+    const comparisonBlock = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (!selected || window.innerWidth < 1050) return;
+        const frame = window.requestAnimationFrame(() => {
+            const block = comparisonBlock.current;
+            const panel = block?.closest('.map-reading-window');
+            if (block === null || !(panel instanceof HTMLElement)) return;
+            // Reveal the second original inside the panel, never scroll the map or change its camera.
+            const limit = Math.min(panel.getBoundingClientRect().bottom, window.innerHeight) - 180;
+            const top = block.getBoundingClientRect().top;
+            if (top > limit) panel.scrollTop += top - limit;
+        });
+        return () => window.cancelAnimationFrame(frame);
+    }, [selected, comparison?.highlight.id]);
+    return (
+        <li className={selected ? 'is-compared' : undefined}>
+            <button type="button" aria-label={`读《${group.book.title}》在这里的一句`} aria-expanded={selected}
+                aria-controls={selected ? detailId : undefined} onClick={() => onChoose(group.book.id)}>
+                <span>《{group.book.title}》</span><small>{String(group.entries.length)} 处 · 读一处</small>
+            </button>
+            {selected && comparison !== undefined ? (
+                <div id={detailId} ref={comparisonBlock} className="map-reading-comparison" data-testid="map-reading-comparison">
+                    <p className="map-reading-compare-label">② 这本书在圆内最靠近①的一处</p>
+                    <blockquote className="map-reading-passage">
+                        <p>{comparison.highlight.text}</p>
+                        <footer>——《{comparison.book.title}》{comparison.book.author}</footer>
+                    </blockquote>
+                    <p className="map-reading-evidence">{sharedNames.length > 0
+                        ? `两句都有已审核主题标签：${sharedNames.map((name) => `#${name}`).join('、')}。这只是分类线索，不是相似度或观点一致。`
+                        : '两句只因落在同一地图范围而相遇；是否有关，请读原文判断。'}</p>
+                    <a className="map-reading-focus" href={sitePath(mapHref({ highlightId: comparison.highlight.id }))}
+                        onClick={(event) => {
+                            if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) onOpenDetail(event.currentTarget);
+                        }}>在图上读②的详情</a>
+                </div>
+            ) : null}
+        </li>
+    );
 }
 
 function MapDetail({
@@ -116,12 +169,31 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
     const [expandedLists, setExpandedLists] = useState<Set<string>>(() => new Set());
     const [mapSize, setMapSize] = useState({ width: 1, height: 1 });
     const [readingListLimit, setReadingListLimit] = useState(8);
+    const [comparisonPick, setComparisonPick] = useState<{ anchorId: string; otherId: string; centerX: number; centerY: number; zoom: number } | null>(null);
     const readingWorld = !__MAP_STUDY_ENDPOINT__ && effectiveTagId === null && effectiveBookId === null && view.view.zoom >= MAP_READING_ZOOM;
     const readingWindow = useMemo(
         () => mapReadingWindow(index, view.view, mapSize.width, mapSize.height),
         [index, mapSize.height, mapSize.width, view.view],
     );
     const firstReadingEntry = readingWindow.entries[0];
+    const otherBooks = firstReadingEntry === undefined ? [] : otherBooksInWindow(readingWindow, firstReadingEntry);
+    const comparison = firstReadingEntry !== undefined && comparisonPick !== null &&
+        comparisonPick.anchorId === firstReadingEntry.highlight.id &&
+        comparisonPick.centerX === view.view.centerX && comparisonPick.centerY === view.view.centerY && comparisonPick.zoom === view.view.zoom
+        ? readingWindow.entries.find((entry) => entry.highlight.id === comparisonPick.otherId && entry.book.id !== firstReadingEntry.book.id)
+        : undefined;
+    const chooseComparison = (bookId: string): void => {
+        if (firstReadingEntry === undefined) return;
+        const next = compareWithBook(readingWindow, firstReadingEntry.highlight.id, bookId);
+        if (next === null) return;
+        setComparisonPick(comparison?.highlight.id === next.highlight.id ? null : {
+            anchorId: firstReadingEntry.highlight.id,
+            otherId: next.highlight.id,
+            centerX: view.view.centerX,
+            centerY: view.view.centerY,
+            zoom: view.view.zoom,
+        });
+    };
     const detailHeading = useRef<HTMLHeadingElement>(null);
     const returnTo = useRef<{ element: HTMLElement; scrollY: number } | null>(null);
     const previousDetailId = useRef<string | null>(highlight?.id ?? null);
@@ -298,6 +370,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                     activeBookId={effectiveBookId}
                     activeHighlightId={highlight?.id ?? null}
                     readingHighlightId={readingWorld ? readingWindow.entries[0]?.highlight.id ?? null : null}
+                    compareHighlightId={highlight === undefined ? comparison?.highlight.id ?? null : null}
                     onSizeChange={setMapSize}
                     bookAccent={bookAccent || DEFAULT_ACCENT}
                     highlightAccent={detailAccent || DEFAULT_ACCENT}
@@ -324,6 +397,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                                 <p className="map-reading-count">
                                     {String(readingWindow.entries.length)} 处划线 · 来自 {String(readingWindow.books.length)} 本书
                                 </p>
+                                <p className="map-reading-compare-label">① 当前圆心附近的一句</p>
                                 <blockquote className="map-reading-passage">
                                     <p>{firstReadingEntry.highlight.text}</p>
                                     <footer>——《{firstReadingEntry.book.title}》{firstReadingEntry.book.author}</footer>
@@ -334,35 +408,30 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                                     }}>
                                     在图上读这一处
                                 </a>
-                                <h3>从这里遇见的书</h3>
-                                <ol className="map-reading-books">
-                                    {readingWindow.books.slice(0, 5).map((group) => (
-                                        <li key={group.book.id}>
-                                            <a href={sitePath(mapHref({ highlightId: group.entries[0]?.highlight.id }))}
-                                                onClick={(event) => {
-                                                    if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) rememberOpener(event.currentTarget);
-                                                }}>
-                                                <span>《{group.book.title}》</span><small>{String(group.entries.length)} 处</small>
-                                            </a>
-                                        </li>
-                                    ))}
-                                </ol>
-                                {readingWindow.books.length <= 5 ? null : (
-                                    <details className="map-reading-rest">
-                                        <summary>展开这里其余 {String(readingWindow.books.length - 5)} 本书</summary>
+                                <h3>在这片，读另一本书</h3>
+                                {otherBooks.length === 0 ? (
+                                    <p className="map-reading-empty">这个圆内暂时只有这本书；继续移动地图，或看下面的完整划线列表。</p>
+                                ) : (
+                                    <>
+                                        <p className="map-reading-compare-label">点选另一本书，在同一圆内读另一句；关联要靠原文判断。</p>
                                         <ol className="map-reading-books">
-                                            {readingWindow.books.slice(5).map((group) => (
-                                                <li key={group.book.id}>
-                                                    <a href={sitePath(mapHref({ highlightId: group.entries[0]?.highlight.id }))}
-                                                        onClick={(event) => {
-                                                            if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) rememberOpener(event.currentTarget);
-                                                        }}>
-                                                        <span>《{group.book.title}》</span><small>{String(group.entries.length)} 处</small>
-                                                    </a>
-                                                </li>
+                                            {otherBooks.slice(0, 5).map((group) => (
+                                                <MapReadingBookRow key={group.book.id} group={group} anchor={firstReadingEntry}
+                                                    comparison={comparison} index={index} onChoose={chooseComparison} onOpenDetail={rememberOpener} />
                                             ))}
                                         </ol>
-                                    </details>
+                                        {otherBooks.length <= 5 ? null : (
+                                            <details className="map-reading-rest">
+                                                <summary>展开这里其余 {String(otherBooks.length - 5)} 本书</summary>
+                                                <ol className="map-reading-books">
+                                                    {otherBooks.slice(5).map((group) => (
+                                                        <MapReadingBookRow key={group.book.id} group={group} anchor={firstReadingEntry}
+                                                            comparison={comparison} index={index} onChoose={chooseComparison} onOpenDetail={rememberOpener} />
+                                                    ))}
+                                                </ol>
+                                            </details>
+                                        )}
+                                    </>
                                 )}
                                 <details className="map-reading-all" data-testid="map-reading-all">
                                     <summary>查看这片的全部划线</summary>

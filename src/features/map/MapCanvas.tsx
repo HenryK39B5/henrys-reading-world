@@ -26,6 +26,7 @@ export type MapCanvasProps = {
     activeBookId: string | null;
     activeHighlightId: string | null;
     readingHighlightId: string | null;
+    compareHighlightId: string | null;
     onSizeChange: (size: Size) => void;
     bookAccent: string;
     highlightAccent: string;
@@ -70,6 +71,7 @@ export function MapCanvas({
     activeBookId,
     activeHighlightId,
     readingHighlightId,
+    compareHighlightId,
     onSizeChange,
     bookAccent,
     highlightAccent,
@@ -349,11 +351,36 @@ export function MapCanvas({
             const preview = layout.points.find((point) => point.highlightId === readingHighlightId);
             if (preview !== undefined) {
                 const screen = mapToScreen(preview, view, size.width, size.height);
-                ctx.beginPath();
-                ctx.arc(screen.x, screen.y, 5.5, 0, Math.PI * 2);
-                ctx.strokeStyle = '#e3d7ac';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
+                if (compareHighlightId === null) {
+                    ctx.beginPath();
+                    ctx.arc(screen.x, screen.y, 5.5, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#e3d7ac';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                } else {
+                    const other = layout.points.find((point) => point.highlightId === compareHighlightId);
+                    if (other !== undefined) {
+                        const otherScreen = mapToScreen(other, view, size.width, size.height);
+                        // Two numbered real positions, not an inferred link or semantic boundary.
+                        for (const [position, numeral, colour] of [
+                            [screen, '1', '#e3d7ac'],
+                            [otherScreen, '2', '#b7d6bd'],
+                        ] as const) {
+                            ctx.beginPath();
+                            ctx.arc(position.x, position.y, 9, 0, Math.PI * 2);
+                            ctx.fillStyle = colour;
+                            ctx.fill();
+                            ctx.strokeStyle = '#27362e';
+                            ctx.lineWidth = 1.4;
+                            ctx.stroke();
+                            ctx.fillStyle = '#18201f';
+                            ctx.font = '600 11px system-ui, sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(numeral, position.x, position.y + 0.5);
+                        }
+                    }
+                }
             }
         }
 
@@ -432,7 +459,7 @@ export function MapCanvas({
             }
         }
         labelHits.current = visibleLabels;
-    }, [activeBookId, activeHighlightId, activeTagId, bookAccent, highlightAccent, bookPointIds, bookPoints, contourPaths, hoverTarget, index, labels, layout, readingHighlightId, size, study, tagPointIds, tagPoints, view]);
+    }, [activeBookId, activeHighlightId, activeTagId, bookAccent, compareHighlightId, highlightAccent, bookPointIds, bookPoints, contourPaths, hoverTarget, index, labels, layout, readingHighlightId, size, study, tagPointIds, tagPoints, view]);
 
     const pointerPosition = (event: React.PointerEvent<HTMLCanvasElement>): { x: number; y: number } => {
         const rect = event.currentTarget.getBoundingClientRect();
@@ -471,12 +498,13 @@ export function MapCanvas({
                 data-map-center-x={String(Math.round(view.centerX))}
                 data-map-center-y={String(Math.round(view.centerY))}
                 data-map-zoom={view.zoom.toFixed(3)}
+                data-map-compare-highlight={compareHighlightId ?? undefined}
                 data-map-hover-point={__MAP_STUDY__ && hoverTarget?.kind === 'point' ? hoverTarget.id : undefined}
                 data-map-hover-label={__MAP_STUDY__ && hoverTarget?.kind === 'label' ? hoverTarget.id : undefined}
                 data-map-hover-contour={__MAP_STUDY__ && hoverTarget?.kind === 'contour' ? String(hoverTarget.index) : undefined}
                 role="img"
                 tabIndex={0}
-                aria-label="阅读世界地图。轻点地图靠近任意位置并查看圆内的真实书与划线；可拖动、滚轮或双指缩放，键盘可用方向键与加减键；下方仍有主题区域列表。"
+                aria-label={`阅读世界地图。轻点地图靠近任意位置并查看圆内的真实书与划线；${compareHighlightId === null ? '' : '圈内数字①和②是当前句及读者选的另一句的真实位置；'}可拖动、滚轮或双指缩放，键盘可用方向键与加减键；下方仍有主题区域列表。`}
                 onPointerDown={(event) => {
                     if (zoomFrame.current !== null) cancelAnimationFrame(zoomFrame.current);
                     if (__MAP_STUDY__) setHoverTarget(null);
