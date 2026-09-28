@@ -287,6 +287,7 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
                         highlightId={route.highlightId}
                         onNavigate={router.navigate}
                         onShare={share.open}
+                        previousPath={router.previousPath}
                     />
                 );
             case 'books':

@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import type { CSSProperties } from 'react';
 import { CoverImage } from '../../app/CoverImage.tsx';
+import { sitePath } from '../../app/sitePath.ts';
 import { coverUrl, useCoverAccent } from '../../app/covers.ts';
 import type { Phase } from '../../domain/encounter.ts';
 import { lengthBand } from '../../domain/length.ts';
@@ -190,6 +191,8 @@ export function EncounterStage({
                                     查看这本书
                                 </button>
                             )}
+                            <a className="ghost-button stage-map-entry" data-testid="stage-map-entry"
+                                href={sitePath(`/map?h=${encodeURIComponent(highlight.id)}`)}>在地图看这句</a>
                             <button type="button" className="ghost-button" data-testid="close-source" onClick={handleClose}>
                                 收起
                             </button>

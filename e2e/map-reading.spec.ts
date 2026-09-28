@@ -103,7 +103,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         await expect(page.getByTestId('map-reading-comparison')).toContainText(group.book.title);
         const shared = sharedReviewedTags(anchor, other);
         if (shared.length === 0) await expect(page.locator('.map-reading-evidence')).toContainText('只因落在同一地图范围');
-        else await expect(page.locator('.map-reading-evidence')).toContainText('共同的已审核主题');
+        else await expect(page.locator('.map-reading-evidence')).toContainText('都有已审核主题标签');
         await expect(page.getByTestId('map-reading-comparison')).toBeVisible();
         await page.screenshot({ path: `.private/review/map-readable/compare-${viewport.width}-${testInfo.project.name}.png`, fullPage: false });
         await page.getByRole('link', { name: '在图上读②的详情' }).click();
@@ -113,7 +113,8 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         await expect(canvas).toHaveAttribute('data-map-compare-highlight', other.highlight.id);
         await expect(page.getByTestId('map-reading-comparison')).toBeVisible();
         await expect(page.getByRole('link', { name: '在图上读②的详情' })).toBeFocused();
-        await choose.click();
+        await page.getByRole('button', { name: '收起②，继续看这片' }).click();
+        await expect(choose).toBeFocused();
         await expect(canvas).not.toHaveAttribute('data-map-compare-highlight', /.+/);
         await expect(page.getByTestId('map-reading-comparison')).toHaveCount(0);
         if (viewport.width === 1440) {
@@ -126,6 +127,84 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     });
 }
+
+for (const viewport of [{ width: 390, height: 844 }, { width: 320, height: 720 }]) {
+    test(`a named Hall sentence enters its own map point and offers a truthful way back at ${viewport.width}`, async ({ page }, testInfo) => {
+        await page.setViewportSize(viewport);
+        const passage = index.highlightsById.get('h-025');
+        if (passage === undefined) throw Error('Public hall passage is missing');
+        await page.goto(`/?h=${passage.id}`);
+        await expect(page.getByTestId('stage-passage')).toHaveText(passage.text);
+        await page.getByTestId('source-toggle').click();
+        await page.getByTestId('stage-map-entry').click();
+        await expect(page).toHaveURL(/\/map\?h=h-025/);
+        await expect(page.locator('.map-detail-passage')).toHaveText(passage.text);
+        const canvas = page.getByTestId('map-canvas');
+        await expect.poll(async () => Number(await canvas.getAttribute('data-map-zoom'))).toBeGreaterThanOrEqual(4);
+        const point = layout?.points.find((entry) => entry.highlightId === passage.id);
+        if (point === undefined) throw Error('Actual point is missing');
+        const bounds = await canvas.boundingBox();
+        if (bounds === null) throw Error('Map canvas missing on arrival');
+        const screen = mapToScreen(point, {
+            centerX: Number(await canvas.getAttribute('data-map-center-x')),
+            centerY: Number(await canvas.getAttribute('data-map-center-y')),
+            zoom: Number(await canvas.getAttribute('data-map-zoom')),
+        }, bounds.width, bounds.height);
+        expect(screen.x).toBeGreaterThanOrEqual(0);
+        expect(screen.x).toBeLessThanOrEqual(bounds.width);
+        expect(screen.y).toBeGreaterThanOrEqual(0);
+        expect(screen.y).toBeLessThanOrEqual(bounds.height);
+        await page.screenshot({ path: `.private/review/map-readable/arrival-hall-${viewport.width}-${testInfo.project.name}.png`, fullPage: false });
+        await page.locator('.map-detail-actions').getByRole('link', { name: '回到随便看看' }).click();
+        await expect(page.getByTestId('stage-passage')).toHaveText(passage.text);
+        expect(new URL(page.url()).searchParams.get('h')).toBe(passage.id);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    });
+}
+
+test('a book sentence enters its own point, returns to the book, and the map return keeps its frame', async ({ page }, testInfo) => {
+    const book = index.booksInUse[0];
+    if (book === undefined) throw Error('No published book is available');
+    await page.goto(`/books/${book.id}`);
+    const text = await page.getByTestId('book-random-text').innerText();
+    await page.getByTestId('book-map-passage').click();
+    const mapped = new URL(page.url());
+    const id = mapped.searchParams.get('h');
+    expect(mapped.searchParams.get('book')).toBe(book.id);
+    expect(id).not.toBeNull();
+    await expect(page.locator('.map-detail-passage')).toHaveText(text);
+    const canvas = page.getByTestId('map-canvas');
+    await expect.poll(async () => Number(await canvas.getAttribute('data-map-zoom'))).toBeGreaterThanOrEqual(4);
+    const zoom = await canvas.getAttribute('data-map-zoom');
+    const centerX = await canvas.getAttribute('data-map-center-x');
+    await page.screenshot({ path: `.private/review/map-readable/arrival-book-1440-${testInfo.project.name}.png`, fullPage: false });
+    await page.locator('.map-detail-actions').getByRole('link', { name: '回到这本书' }).click();
+    await expect(page.getByTestId('book-random-text')).toHaveText(text);
+    await page.goBack();
+    await expect(page.locator('.map-detail-passage')).toHaveText(text);
+    await expect(canvas).toHaveAttribute('data-map-zoom', zoom ?? '');
+    await expect(canvas).toHaveAttribute('data-map-center-x', centerX ?? '');
+});
+
+test('a path passage enters its tag region at the same original and returns to the path', async ({ page }) => {
+    await page.goto('/paths/tag-035');
+    const text = await page.getByTestId('path-passage').innerText();
+    await page.getByTestId('path-map-passage').click();
+    await expect(page.locator('.map-detail-passage')).toHaveText(text);
+    expect(new URL(page.url()).searchParams.get('tag')).toBe('tag-035');
+    await page.locator('.map-detail-actions').getByRole('link', { name: '回到这条小径' }).click();
+    await expect(page.getByTestId('path-passage')).toHaveText(text);
+});
+
+test('the reading window can explicitly return to the world and gives focus back to the map', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 720 });
+    await page.goto('/map');
+    const canvas = await openAnUnnamedPart(page);
+    await page.getByRole('button', { name: '回到世界总览' }).click();
+    await expect(page.getByTestId('map-reading-window')).toHaveCount(0);
+    await expect(canvas).toHaveAttribute('data-map-zoom', '1.000');
+    await expect(canvas).toBeFocused();
+});
 
 test('shared reviewed tags are labelled as classification, never as similarity or agreement', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });

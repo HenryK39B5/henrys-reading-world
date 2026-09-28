@@ -143,7 +143,8 @@ export function PathRoom({ index, tagId, nowYear, room, onOpenBook, onShare }: P
             </div>
 
             <nav className="room-exits" aria-label="小径房间的出口">
-                <a className="room-exit" href={sitePath(`/map?tag=${encodeURIComponent(tag.id)}`)}>在地图中看这条小径</a>
+                <a className="room-exit" data-testid="path-map-passage"
+                    href={sitePath(`/map?tag=${encodeURIComponent(tag.id)}&h=${encodeURIComponent(current.id)}`)}>在地图看这句（{tag.title}）</a>
                 <a className="room-exit" href={sitePath('/paths')}>看看其他小径</a>
                 <a className="room-exit" href={sitePath(`/books/${encodeURIComponent(book.id)}`)}>进入这本书</a>
                 <a className="room-exit" href={sitePath('/')}>随便看看</a>

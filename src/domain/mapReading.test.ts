@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import publicSnapshot from '../data/public-snapshot.json';
 import { indexSnapshot } from './snapshot.ts';
-import { compareWithBook, mapReadingWindow, otherBooksInWindow, sharedReviewedTags, MAP_READING_RADIUS } from './mapReading.ts';
+import { compareWithBook, mapArrivalView, mapReadingWindow, otherBooksInWindow, sharedReviewedTags, MAP_READING_RADIUS } from './mapReading.ts';
 import { mapToScreen } from './map.ts';
 import type { Snapshot } from './types.ts';
 
@@ -67,6 +67,34 @@ describe('reading a real map window', () => {
         expect(compareWithBook(window, anchor.highlight.id, anchor.book.id)).toBeNull();
         expect(compareWithBook(window, 'missing-id', group.book.id)).toBeNull();
         expect(compareWithBook(window, anchor.highlight.id, 'missing-book')).toBeNull();
+    });
+
+    it('brings a real incoming passage near the centre, but never moves an already visible return', () => {
+        const point = map?.points.find((entry) => entry.x > 3500 && entry.x < 6500 && entry.y > 3500 && entry.y < 6500);
+        expect(point).toBeDefined();
+        if (point === undefined) return;
+        const world = { centerX: 5000, centerY: 5000, zoom: 1 };
+        expect(mapArrivalView(point, world, 1, 1)).toBeNull();
+        const arrived = mapArrivalView(point, world, 720, 520);
+        expect(arrived?.zoom).toBe(4);
+        expect(arrived).not.toBeNull();
+        if (arrived === null) return;
+        expect(mapArrivalView(point, arrived, 720, 520)).toBeNull();
+        const offscreen = map?.points.find((entry) => {
+            const screen = mapToScreen(entry, arrived, 720, 520);
+            return screen.x < 0 || screen.x > 720 || screen.y < 0 || screen.y > 520;
+        });
+        expect(offscreen).toBeDefined();
+        if (offscreen === undefined) return;
+        const moved = mapArrivalView(offscreen, arrived, 720, 520);
+        expect(moved).not.toBeNull();
+        if (moved !== null) {
+            const onScreen = mapToScreen(offscreen, moved, 720, 520);
+            expect(onScreen.x).toBeGreaterThanOrEqual(0);
+            expect(onScreen.x).toBeLessThanOrEqual(720);
+            expect(onScreen.y).toBeGreaterThanOrEqual(0);
+            expect(onScreen.y).toBeLessThanOrEqual(520);
+        }
     });
 
     it('has an honest empty state for a map-free scope or canvas before sizing', () => {

@@ -329,6 +329,13 @@
     transition: border-color 160ms ease-in;
 }
 
+.stage-map-entry {
+    display: inline-flex;
+    align-items: center;
+    color: var(--ink);
+    text-decoration: none;
+}
+
 @media (hover: hover) {
     .ghost-button:hover:not([aria-disabled='true']) {
         border-color: var(--accent);

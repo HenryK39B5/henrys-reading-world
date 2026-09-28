@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { compareWithBook, mapReadingWindow, otherBooksInWindow, sharedReviewedTags, MAP_READING_ZOOM, type MapReadingBook, type MapReadingEntry } from '../../domain/mapReading.ts';
+import { compareWithBook, mapArrivalView, mapReadingWindow, otherBooksInWindow, sharedReviewedTags, MAP_READING_ZOOM, type MapReadingBook, type MapReadingEntry } from '../../domain/mapReading.ts';
 import { coverUrl, useCoverAccent } from '../../app/covers.ts';
 import { sitePath } from '../../app/sitePath.ts';
+import { parseRoute, routePath } from '../../app/router.ts';
 import { DEFAULT_ACCENT } from '../../domain/accent.ts';
 import { fitMapPoints, mapPointsForBook, mapPointsForTag, summarizeMapLabels } from '../../domain/map.ts';
 import type { SnapshotIndex } from '../../domain/snapshot.ts';
@@ -20,6 +21,7 @@ export type MapRoomProps = {
     highlightId: string | null;
     onNavigate: (path: string) => void;
     onShare: (highlightId: string) => void;
+    previousPath: string | null;
 };
 
 function mapHref(options: { tagId?: string | null; bookId?: string | null; highlightId?: string | null }): string {
@@ -29,6 +31,16 @@ function mapHref(options: { tagId?: string | null; bookId?: string | null; highl
     if (options.highlightId !== null && options.highlightId !== undefined) params.set('h', options.highlightId);
     const query = params.toString();
     return query.length === 0 ? '/map' : `/map?${query}`;
+}
+
+function mapSourceExit(previousPath: string | null): { href: string; label: string } | null {
+    if (previousPath === null) return null;
+    const question = previousPath.indexOf('?');
+    const route = parseRoute(question === -1 ? previousPath : previousPath.slice(0, question), question === -1 ? '' : previousPath.slice(question));
+    if (route.name === 'map' || route.name === 'unknown') return null;
+    const label = route.name === 'hall' ? '回到随便看看' : route.name === 'book' ? '回到这本书'
+        : route.name === 'path' ? '回到这条小径' : '回到刚才的房间';
+    return { href: sitePath(routePath(route)), label };
 }
 
 function MapReadingBookRow({ group, anchor, comparison, index, onChoose, onOpenDetail }: {
@@ -45,6 +57,7 @@ function MapReadingBookRow({ group, anchor, comparison, index, onChoose, onOpenD
         : [];
     const detailId = `map-compare-${group.book.id}`;
     const comparisonBlock = useRef<HTMLDivElement>(null);
+    const choiceButton = useRef<HTMLButtonElement>(null);
     useEffect(() => {
         if (!selected || window.innerWidth < 1050) return;
         const frame = window.requestAnimationFrame(() => {
@@ -60,7 +73,7 @@ function MapReadingBookRow({ group, anchor, comparison, index, onChoose, onOpenD
     }, [selected, comparison?.highlight.id]);
     return (
         <li className={selected ? 'is-compared' : undefined}>
-            <button type="button" aria-label={`读《${group.book.title}》在这里的一句`} aria-expanded={selected}
+            <button ref={choiceButton} type="button" aria-label={`读《${group.book.title}》在这里的一句`} aria-expanded={selected}
                 aria-controls={selected ? detailId : undefined} onClick={() => onChoose(group.book.id)}>
                 <span>《{group.book.title}》</span><small>{String(group.entries.length)} 处 · 读一处</small>
             </button>
@@ -78,6 +91,10 @@ function MapReadingBookRow({ group, anchor, comparison, index, onChoose, onOpenD
                         onClick={(event) => {
                             if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) onOpenDetail(event.currentTarget);
                         }}>在图上读②的详情</a>
+                    <button type="button" className="map-reading-collapse" onClick={() => {
+                        onChoose(group.book.id);
+                        choiceButton.current?.focus({ preventScroll: true });
+                    }}>收起②，继续看这片</button>
                 </div>
             ) : null}
         </li>
@@ -92,6 +109,7 @@ function MapDetail({
     onShare,
     accent,
     headingRef,
+    sourceExit,
 }: {
     index: SnapshotIndex;
     highlight: Highlight;
@@ -100,6 +118,7 @@ function MapDetail({
     onShare: (highlightId: string) => void;
     accent: string;
     headingRef: React.Ref<HTMLHeadingElement>;
+    sourceExit: { href: string; label: string } | null;
 }) {
     const book = index.booksById.get(highlight.bookId);
     const tags = highlight.tagIds.map((tagId) => index.tagsById.get(tagId)).filter((tag) => tag !== undefined);
@@ -115,10 +134,10 @@ function MapDetail({
                 <a
                     className="map-detail-close"
                     href={sitePath(mapHref({ tagId: currentTagId, bookId }))}
-                    aria-label="关闭划线详情"
-                    title="关闭"
+                    aria-label="关闭划线详情，返回地图"
+                    title="返回这片地图"
                 >
-                    ×
+                    <span aria-hidden="true">←</span> 返回地图
                 </a>
             </div>
             <h2 id="map-detail-heading" className="map-detail-title" tabIndex={-1} ref={headingRef}>
@@ -130,6 +149,8 @@ function MapDetail({
             {book === undefined ? null : <p className="map-detail-source">——《{book.title}》{book.author}</p>}
             <TopicClues tags={tags} {...(currentTagId === null ? {} : { currentTagId })} />
             <div className="map-detail-actions">
+                <a className="room-exit" href={sitePath(mapHref({ tagId: currentTagId, bookId }))}>回到这片地图</a>
+                {sourceExit === null ? null : <a className="room-exit" href={sourceExit.href}>{sourceExit.label}</a>}
                 {book === undefined ? null : <a className="room-exit" href={sitePath(`/books/${encodeURIComponent(book.id)}`)}>进入这本书</a>}
                 {tags[0] === undefined ? null : <a className="room-exit" href={sitePath(`/paths/${encodeURIComponent(tags[0].id)}`)}>沿小径继续</a>}
                 <button type="button" className="share-trigger" onClick={() => onShare(highlight.id)}>分享</button>
@@ -149,7 +170,7 @@ function bookTagIds(index: SnapshotIndex, book: Book | undefined): string[] {
         .map(([tagId]) => tagId);
 }
 
-export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare }: MapRoomProps) {
+export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare, previousPath }: MapRoomProps) {
     const layout = index.snapshot.map;
     const tag = tagId === null ? undefined : index.tagsById.get(tagId);
     const book = bookId === null ? undefined : index.booksById.get(bookId);
@@ -168,6 +189,19 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
     const remainingRelatedTagIds = relatedTagIds.slice(6);
     const [expandedLists, setExpandedLists] = useState<Set<string>>(() => new Set());
     const [mapSize, setMapSize] = useState({ width: 1, height: 1 });
+    // Captured at room entry: internal ?h= changes must not overwrite the exit with another map URL.
+    const sourceExit = useRef(mapSourceExit(previousPath)).current;
+    const arrivalPending = useRef(highlightId !== null);
+    useEffect(() => {
+        if (!arrivalPending.current || mapSize.width <= 1 || mapSize.height <= 1 || layout === undefined) return;
+        arrivalPending.current = false;
+        const point = layout.points.find((entry) => entry.highlightId === highlightId);
+        if (point === undefined) return;
+        const next = mapArrivalView(point, view.view, mapSize.width, mapSize.height);
+        if (next !== null) view.setView(next);
+        // Only the incoming point on first mount may move the camera. A point chosen inside the map never does.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [layout, highlightId, mapSize.width, mapSize.height]);
     const [readingListLimit, setReadingListLimit] = useState(8);
     const [comparisonPick, setComparisonPick] = useState<{ anchorId: string; otherId: string; centerX: number; centerY: number; zoom: number } | null>(null);
     const readingWorld = !__MAP_STUDY_ENDPOINT__ && effectiveTagId === null && effectiveBookId === null && view.view.zoom >= MAP_READING_ZOOM;
@@ -214,7 +248,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                 if (heading !== null) {
                     const bounds = heading.getBoundingClientRect();
                     const compact = window.innerWidth < 1050;
-                    const readingTop = compact ? Math.min(168, window.innerHeight * 0.22) : 24;
+                    const readingTop = compact ? Math.min(285, window.innerHeight * 0.36) : 24;
                     // A title barely peeking above the fold is not an arrival: show the first lines too.
                     if (bounds.top < 24 || bounds.top > (compact ? window.innerHeight * 0.45 : window.innerHeight * 0.62)
                         || bounds.bottom > window.innerHeight - 24) {
@@ -290,6 +324,9 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                         {String(pointCount)} 个真实点 · {String(namedCount)} 个已命名点
                     </p>
                     {tag?.description === undefined ? null : <p className="map-region-description">{tag.description}</p>}
+                    {tag === undefined && highlight === undefined && !readingWorld ? (
+                        <p className="map-region-description">点地图上的一处或放大一片地方，读真实划线；移动地图可以换一片。</p>
+                    ) : null}
                 </div>
                 {tag === undefined ? null : (
                     <nav className="map-head-actions" aria-label="当前地图层级">
@@ -389,6 +426,13 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                     <section className="map-reading-window" aria-labelledby="map-reading-heading" data-testid="map-reading-window" hidden={highlight !== undefined}>
                         <p className="room-kicker">地图上的这一片</p>
                         <h2 id="map-reading-heading">这里的书与划线</h2>
+                        <nav className="map-reading-exits" aria-label="离开这一片地图">
+                            <button type="button" className="room-exit" onClick={() => {
+                                view.reset();
+                                window.requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-testid="map-canvas"]')?.focus({ preventScroll: true }));
+                            }}>回到世界总览</button>
+                            {sourceExit === null ? null : <a className="room-exit" href={sourceExit.href}>{sourceExit.label}</a>}
+                        </nav>
                         <p className="map-reading-explainer">圆内是当前地图范围中的真实划线，未标主题的也在这里；位置相近不代表观点相同。</p>
                         {firstReadingEntry === undefined ? (
                             <p className="map-reading-empty">这片暂时没有收录的划线。移动地图，看看别处。</p>
@@ -466,6 +510,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                         onShare={onShare}
                         accent={detailAccent || DEFAULT_ACCENT}
                         headingRef={detailHeading}
+                        sourceExit={sourceExit}
                     />
                 )}
             </div>
@@ -548,6 +593,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
             )}
 
             <nav className="room-exits" aria-label="地图房间的出口">
+                {sourceExit === null ? null : <a className="room-exit" href={sourceExit.href}>{sourceExit.label}</a>}
                 {tag === undefined ? null : <a className="room-exit" href={sitePath(mapHref({ bookId: effectiveBookId }))}>回到世界总览</a>}
                 <a className="room-exit" href={sitePath('/paths')}>主题小径</a>
                 <a className="room-exit" href={sitePath('/')}>随便看看</a>

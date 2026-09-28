@@ -427,13 +427,15 @@
 }
 
 .map-detail-close {
-    display: inline-grid;
-    width: 44px;
-    height: 44px;
-    place-items: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 44px;
+    padding: 0 2px;
     color: var(--ink-soft);
-    font-size: 24px;
-    line-height: 1;
+    font-size: 13px;
+    white-space: nowrap;
     text-decoration: none;
 }
 
@@ -924,6 +926,13 @@ body:has(.shell--dark-map) {
 
 .map-reading-window[hidden] { display: none; }
 
+.map-reading-exits {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 20px;
+    margin: 0 0 12px;
+}
+
 .map-reading-window h2 {
     margin: 5px 0 10px;
     font-family: var(--stage-font);
@@ -1068,6 +1077,13 @@ body:has(.shell--dark-map) {
 }
 
 .map-reading-comparison .map-reading-focus { margin-top: 4px; }
+.map-reading-books .map-reading-collapse {
+    width: auto;
+    min-height: 44px;
+    padding: 7px 0;
+    color: var(--ink-soft);
+    font-size: 12px;
+}
 
 @media (min-width: 1050px) {
     .room-map[data-map-level='reading'] .map-stage {

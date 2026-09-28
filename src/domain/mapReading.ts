@@ -1,10 +1,29 @@
 import type { SnapshotIndex } from './snapshot.ts';
 import type { Book, Highlight, MapPoint } from './types.ts';
-import { mapToScreen, type MapViewport } from './map.ts';
+import { clampMapView, mapToScreen, type MapViewport } from './map.ts';
 
 /** A screen-space reading window, not a semantic cluster or a topic boundary. */
 export const MAP_READING_ZOOM = 3.5;
 export const MAP_READING_RADIUS = 0.39;
+
+/**
+ * A passage carried into the map from another room must arrive at its real position, not at the old
+ * world overview. An already readable point stays put when returning from the book/detail: the map
+ * must not fly again merely because a React room remounted. No claim about semantic neighbours.
+ */
+export function mapArrivalView(
+    point: MapPoint,
+    view: MapViewport,
+    width: number,
+    height: number,
+): MapViewport | null {
+    if (width <= 1 || height <= 1) return null;
+    const screen = mapToScreen(point, view, width, height);
+    const margin = Math.min(24, Math.min(width, height) * 0.1);
+    if (view.zoom >= MAP_READING_ZOOM && screen.x >= margin && screen.x <= width - margin &&
+        screen.y >= margin && screen.y <= height - margin) return null;
+    return clampMapView({ centerX: point.x, centerY: point.y, zoom: Math.max(4, view.zoom) });
+}
 
 export type MapReadingEntry = {
     point: MapPoint;

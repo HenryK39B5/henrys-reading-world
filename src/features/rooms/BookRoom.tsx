@@ -124,6 +124,12 @@ export function BookRoom({ index, bookId, nowYear, room, onBack, onShare }: Book
                         </button>
                     )}
                     {current === undefined ? null : (
+                        <a className="room-exit" data-testid="book-map-passage"
+                            href={sitePath(`/map?book=${encodeURIComponent(book.id)}&h=${encodeURIComponent(current.id)}`)}>
+                            在地图找这句
+                        </a>
+                    )}
+                    {current === undefined ? null : (
                         <button
                             type="button"
                             className="share-trigger"

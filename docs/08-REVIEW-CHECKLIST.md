@@ -2,6 +2,15 @@
 
 上线后的未完成任务与状态统一维护在 `docs/48-MAINTENANCE-ROADMAP.md`；本文件继续按阶段追加实际执行证据，不作为第二份待办清单。2026-09-24 起，历史截图与专项审计 Playwright 配置位于 `e2e/config/`；下文更早的根目录调用命令保留为当时执行记录，重新运行时须改用新路径。
 
+## 2026-09-28 · 地图真句进出与对读退路（全站本机迭代）
+
+- **起点与决定**：Henry在真实全站体验两句对读后说「还行」，希望继续完善，特别要求访客有清楚的进/出。延续`docs/77`的自选地图阅读与原站点，不增第二个自动漫步、不把二维近邻当相似、不碰公开坐标/地形/快照、无远程模型。
+- **实现**：`src/domain/mapReading.ts`新增只用于首入地图真句的视框定位（已有真点在当前放大视框内则不动），真实公开点位单测；`MapRoom.tsx`首挂载时才允许定位，现有地图里选择新句或Back不会因URL变化重新居中。首页/主题书架出处展开新增原句地图入口、书房在保留点亮整书入口的同时新增当前句入口、小径把当前真句带入主题区域。地图世界提示、局部阅读栏返回总览/来处、②显式收起并恢复焦点、详情可见「返回地图」和原房间出口。进入时保存同标签页的返回路径；直接深链无来处时仍有地图/主导航退路。手机详情滚动落点修正，使真点与全文更容易同时看到；没有手机黏顶地图。
+- **修改文件**：`src/domain/mapReading.ts`及单测、`src/features/map/{MapRoom.tsx,map.css}`、`src/app/ReadingWorld.tsx`、`src/features/encounter/{EncounterStage.tsx,stage.css}`、`src/features/rooms/BookRoom.tsx`、`src/features/paths/PathRoom.tsx`、`e2e/map-reading.spec.ts`与专用配置、`docs/08/48/77`。
+- **实际检查**：`npm run check` 56文件385/385、真实公开数据校验/地形校验/lint/typecheck/build通过；`npm run isolation:public`通过（公开108本3462句56词/108封面，未扩展发布范围）；`npx playwright test --config=e2e/config/playwright.map-reading.config.ts` 使用已核对属本项目Vite的5212服务（`REUSE_MAP_DEMO=1`），最终Chromium15/15、Playwright WebKit15/15（含390/320真句进图）；旧地图Chromium14/14、隔离研究模式Chromium11/11；`git diff --check`通过。截图`.private/review/map-readable/arrival-hall-390-*`、`arrival-book-1440-*`、`reading-320-*`与`compare-390-*`；肉眼核对修正后390屏地图真点与详情同场，320屏局部退回可读。
+- **失败及修复**：首次专项浏览器跑到22/28时超时，中途书房新测试误用不在公开范围的`b-013`，改用快照实际收录书；退出世界后断言把Canvas的`1.000`错写为`1`，修正为渲染格式。第一次390抵达截图只有约97px地图露出，改详情滚动落点并在Chromium/WebKit复测。两条测试错误不计为功能验收通过，不隐去首次失败。
+- **保留边界/下一步**：手机滚到第二句时地图仍离开视口；退出返回进度只保证同一SPA会话，未改变书房/小径刷新后从当前原句开始的旧契约。真实近邻可随机拼贴；工程按钮可用≠信息价值成立。Henry新交互、无背景首访、真机Safari/iOS、读屏、真浏览器200%与低端持续性能/权利复核仍待验证；不自动push/deploy。
+
 ## 当前真实状态
 
 | 项目 | 状态 | 说明 |

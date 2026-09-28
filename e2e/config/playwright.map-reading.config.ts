@@ -17,7 +17,7 @@ export default defineConfig({
         command: `npm run dev -- --host 127.0.0.1 --port ${String(port)} --strictPort`,
         cwd: fileURLToPath(new URL('../..', import.meta.url)),
         url: `http://127.0.0.1:${String(port)}/map`,
-        reuseExistingServer: false,
+        reuseExistingServer: process.env.REUSE_MAP_DEMO === '1',
         timeout: 60_000,
     },
 });
