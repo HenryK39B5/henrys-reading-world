@@ -2,6 +2,13 @@
 
 上线后的未完成任务与状态统一维护在 `docs/48-MAINTENANCE-ROADMAP.md`；本文件继续按阶段追加实际执行证据，不作为第二份待办清单。2026-09-24 起，历史截图与专项审计 Playwright 配置位于 `e2e/config/`；下文更早的根目录调用命令保留为当时执行记录，重新运行时须改用新路径。
 
+## 2026-09-28 · 同书同圆跨书相遇研究（冻结数据；不接产品算法）
+
+- 按Henry授权，先查其提供的两段数学动画源代码与原始检索/空间方法；不因对称性、E8/特征向量/PageRank等可视动画推论书摘的真实关系。`docs/78`**在跑数据之前**登记实验：读者选另一书、同一真地图圆内比较现行二维最近 A、原向量最大cos B、同书随机 C。`scripts/research/localEncounterEvidence.ts`纯逻辑、`scripts/research/study-local-encounters.ts`仅读冻结公开快照/已有本机向量，`tests/local-encounter-evidence.test.ts`用真实公开点做几何/择句/固定种子测试。输出`.private/research/map/local-encounters/{canonical.json,run.json,review.md,researcher-reading-2026-09-28.md}`不入public/dist；不改变发布点位、地形、快照或运行时。
+- 实跑108本199锚点/398组选书对，26组书内只有1句；有效372组。A对C的cos差均值+0.0070/中位0，不足以单从模型指标证明空间关系；B换句308组，模型cos增加是定义所致，二维距离中位增加397地图单位、293组超过A的2倍。共同已审标签比较A/C 15/14（同55组），A/B 24/24（同72组）；未知不算负例。12槽私有真实原文非盲核对同时保留B可能改善和同人名/同词诱导的负例，结论不选新算法。24锚点×两尺寸48次成员/前三本不变；规范输出SHA256 `35570d2d57b5fd55f254ee299f70921fec8d7c89597f561a50fae9e383671c6e`，二次运行字节一致。完整参数/输入/过程与未验证项见`docs/78`，Henry个人认可当前交互不是独立访客验收。
+- 实际命令：`node scripts/research/study-local-encounters.ts`两次；`npm exec vitest run tests/local-encounter-evidence.test.ts` 3/3；`npm run check`类型/lint、57文件388/388单测、公开快照/地形校验、build通过；`npm run isolation:public`干净。`npx playwright test --config=e2e/config/playwright.map-reading.config.ts`最终**36/36**（Chromium18+Playwright WebKit18），1440/390/320及删文案后的真图浏览器截图在`.private/review/map-readable/`。首次浏览器命令因5212端口正在被占用而被配置拒绝；检查监听node/Vite、服务实际响应与`MapRoom.tsx?raw`包含新代码后显式`REUSE_MAP_DEMO=1`复用；再一次完整浏览器命令在31/36时撞上240秒工具超时，剩余WebKit 5/5定点补跑，放宽至440秒后完整重跑36/36（约4.6分钟）。首次PowerShell命令用了不适用的Bash `{a,b}`列表语法，已按PowerShell显式路径重跑。失败/超时均不隐去；没有把Playwright WebKit当成物理Safari或研究算法的浏览器/访客验证。
+- 遗留：本阶段没有新视觉研究图，独立首次访客、实体iOS/Safari、读屏、真实浏览器200%缩放、长②导致地图离屏、内容权益仍待独立Gate；正式公开升级、push/部署未获许可。现行本机完整站点可作为下一次上线**候选**而非已经获准上线；若以后为更有据的择句实验，也先定不同于模型cos/辅助标签的真实阅读效用依据。
+
 ## 2026-09-28 · 地图阅读现场文案减法（新研究之前）
 
 - Henry肯定本机地图注记与附近书→另一书最近原句的增量信息，但指出“未标主题的也在这里；位置相近不代表观点相同”等反复免责声明干扰浏览。这是**移除页面解释**，不撤销研究的真实性边界。`src/features/map/MapRoom.tsx`删掉局部阅读栏整句叠甲、将已审核共有标签仅写为“两句都标有：#…”、无共有标签不展示臆测说明，并将邀请文案缩为读另一句；`src/features/map/map.css`去无引用选择器，`e2e/map-reading.spec.ts`验证空/共有标签两种情况。书/句/点/算法不变。

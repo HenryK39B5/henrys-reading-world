@@ -46,6 +46,8 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         expect(contents.entries.length).toBeGreaterThan(0);
         await expect(page.locator('.map-reading-passage p')).toHaveText(contents.entries[0]?.highlight.text ?? '');
         await expect(page.locator('.map-reading-window .map-reading-count')).toContainText(`${contents.entries.length} 处划线 · 来自 ${contents.books.length} 本书`);
+        await expect(page.getByTestId('map-reading-window')).not.toContainText('未标主题的也在这里');
+        await expect(page.getByTestId('map-reading-window')).not.toContainText('位置相近不代表观点相同');
         const anotherBook = contents.entries[0] === undefined ? undefined : otherBooksInWindow(contents, contents.entries[0])[0];
         expect(anotherBook).toBeDefined();
         await expect(page.locator('.map-reading-books').first().locator('li').first()).toContainText(anotherBook?.book.title ?? '');
