@@ -960,7 +960,6 @@ body:has(.shell--dark-map) {
     font-weight: 400;
 }
 
-.map-reading-explainer,
 .map-reading-count,
 .map-reading-empty {
     margin: 0 0 12px;

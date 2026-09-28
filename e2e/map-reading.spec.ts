@@ -102,8 +102,8 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         await expect(page.getByTestId('map-reading-comparison').locator('blockquote p')).toHaveText(other.highlight.text);
         await expect(page.getByTestId('map-reading-comparison')).toContainText(group.book.title);
         const shared = sharedReviewedTags(anchor, other);
-        if (shared.length === 0) await expect(page.locator('.map-reading-evidence')).toContainText('只因落在同一地图范围');
-        else await expect(page.locator('.map-reading-evidence')).toContainText('都有已审核主题标签');
+        if (shared.length === 0) await expect(page.locator('.map-reading-evidence')).toHaveCount(0);
+        else await expect(page.locator('.map-reading-evidence')).toContainText('两句都标有');
         await expect(page.getByTestId('map-reading-comparison')).toBeVisible();
         await page.screenshot({ path: `.private/review/map-readable/compare-${viewport.width}-${testInfo.project.name}.png`, fullPage: false });
         await page.getByRole('link', { name: '在图上读②的详情' }).click();
@@ -270,7 +270,7 @@ test('shared reviewed tags are labelled as classification, never as similarity o
     const shared = sharedReviewedTags(anchor, other);
     expect(shared).toEqual(['tag-054']);
     await expect(page.locator('.map-reading-evidence')).toContainText(index.tagsById.get(shared[0] ?? '')?.title ?? '');
-    await expect(page.locator('.map-reading-evidence')).toContainText('分类线索，不是相似度或观点一致');
+    await expect(page.locator('.map-reading-evidence')).toContainText('两句都标有');
     await expect(page.getByTestId('map-reading-comparison').locator('blockquote p')).toHaveText(other.highlight.text);
 });
 

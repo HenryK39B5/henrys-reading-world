@@ -84,9 +84,9 @@ function MapReadingBookRow({ group, anchor, comparison, index, onChoose, onOpenD
                         <p>{comparison.highlight.text}</p>
                         <footer>——《{comparison.book.title}》{comparison.book.author}</footer>
                     </blockquote>
-                    <p className="map-reading-evidence">{sharedNames.length > 0
-                        ? `两句都有已审核主题标签：${sharedNames.map((name) => `#${name}`).join('、')}。这只是分类线索，不是相似度或观点一致。`
-                        : '两句只因落在同一地图范围而相遇；是否有关，请读原文判断。'}</p>
+                    {sharedNames.length === 0 ? null : (
+                        <p className="map-reading-evidence">两句都标有：{sharedNames.map((name) => `#${name}`).join('、')}</p>
+                    )}
                     <a className="map-reading-focus" href={sitePath(mapHref({ highlightId: comparison.highlight.id }))}
                         onClick={(event) => {
                             if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) onOpenDetail(event.currentTarget);
@@ -433,7 +433,6 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                             }}>回到世界总览</button>
                             {sourceExit === null ? null : <a className="room-exit" href={sourceExit.href}>{sourceExit.label}</a>}
                         </nav>
-                        <p className="map-reading-explainer">圆内是当前地图范围中的真实划线，未标主题的也在这里；位置相近不代表观点相同。</p>
                         {firstReadingEntry === undefined ? (
                             <p className="map-reading-empty">这片暂时没有收录的划线。移动地图，看看别处。</p>
                         ) : (
@@ -457,7 +456,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                                     <p className="map-reading-empty">这个圆内暂时只有这本书；继续移动地图，或看下面的完整划线列表。</p>
                                 ) : (
                                     <>
-                                        <p className="map-reading-compare-label">点选另一本书，在同一圆内读另一句；关联要靠原文判断。</p>
+                                        <p className="map-reading-compare-label">点选另一本书，在同一圆内读另一句。</p>
                                         <ol className="map-reading-books">
                                             {otherBooks.slice(0, 5).map((group) => (
                                                 <MapReadingBookRow key={group.book.id} group={group} anchor={firstReadingEntry}
