@@ -23,6 +23,32 @@ export type MapReadingWindow = {
     books: MapReadingBook[];
 };
 
+/** Books other than the current passage's book, in the window's existing centre-first order. */
+export function otherBooksInWindow(window: MapReadingWindow, anchor: MapReadingEntry): MapReadingBook[] {
+    return window.books.filter((group) => group.book.id !== anchor.book.id);
+}
+
+/**
+ * Choose the point from a deliberately selected *other book* nearest the anchor on the existing
+ * two-dimensional map. This is navigation geometry only; it cannot judge whether the texts relate.
+ */
+export function compareWithBook(window: MapReadingWindow, anchorId: string, bookId: string): MapReadingEntry | null {
+    const anchor = window.entries.find((entry) => entry.highlight.id === anchorId);
+    if (anchor === undefined || anchor.book.id === bookId) return null;
+    const group = window.books.find((candidate) => candidate.book.id === bookId);
+    if (group === undefined) return null;
+    return [...group.entries].sort((left, right) => {
+        const distance = (entry: MapReadingEntry): number =>
+            (entry.point.x - anchor.point.x) ** 2 + (entry.point.y - anchor.point.y) ** 2;
+        return distance(left) - distance(right) || left.highlight.id.localeCompare(right.highlight.id);
+    })[0] ?? null;
+}
+
+/** A reviewed classification overlap, not textual similarity, agreement, or a negative for missing tags. */
+export function sharedReviewedTags(anchor: MapReadingEntry, other: MapReadingEntry): string[] {
+    return anchor.highlight.tagIds.filter((tagId) => other.highlight.tagIds.includes(tagId));
+}
+
 /**
  * The circle drawn over the map is exactly the set queried here. Each entry is a real approved point,
  * regardless of whether it has reviewed Topic Tags. Distance orders a *local index*, not similarity.

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import publicSnapshot from '../data/public-snapshot.json';
 import { indexSnapshot } from './snapshot.ts';
-import { mapReadingWindow, MAP_READING_RADIUS } from './mapReading.ts';
+import { compareWithBook, mapReadingWindow, otherBooksInWindow, sharedReviewedTags, MAP_READING_RADIUS } from './mapReading.ts';
 import { mapToScreen } from './map.ts';
 import type { Snapshot } from './types.ts';
 
@@ -39,6 +39,34 @@ describe('reading a real map window', () => {
         }
         expect(new Set(result.books.map((group) => group.book.id)).size).toBe(result.books.length);
         expect(result.books[0]?.entries[0]?.point.highlightId).toBe(point.highlightId);
+    });
+
+    it('lets the reader choose an actual other book and pairs two real points without declaring them related', () => {
+        const point = map?.points[0];
+        expect(point).toBeDefined();
+        if (point === undefined) return;
+        const window = mapReadingWindow(index, { centerX: point.x, centerY: point.y, zoom: 4 }, 720, 520);
+        const anchor = window.entries[0];
+        expect(anchor).toBeDefined();
+        if (anchor === undefined) return;
+        const others = otherBooksInWindow(window, anchor);
+        expect(others.length).toBeGreaterThan(0);
+        expect(others.every((group) => group.book.id !== anchor.book.id)).toBe(true);
+        const group = others[0];
+        expect(group).toBeDefined();
+        if (group === undefined) return;
+        const selected = compareWithBook(window, anchor.highlight.id, group.book.id);
+        expect(selected?.book.id).toBe(group.book.id);
+        expect(selected?.highlight.text).toBe(index.highlightsById.get(selected?.highlight.id ?? '')?.text);
+        if (selected !== null) {
+            const square = (x: number, y: number) => (x - anchor.point.x) ** 2 + (y - anchor.point.y) ** 2;
+            const nearestDistance = Math.min(...group.entries.map((entry) => square(entry.point.x, entry.point.y)));
+            expect(square(selected.point.x, selected.point.y)).toBe(nearestDistance);
+            expect(sharedReviewedTags(anchor, selected)).toEqual(anchor.highlight.tagIds.filter((id) => selected.highlight.tagIds.includes(id)));
+        }
+        expect(compareWithBook(window, anchor.highlight.id, anchor.book.id)).toBeNull();
+        expect(compareWithBook(window, 'missing-id', group.book.id)).toBeNull();
+        expect(compareWithBook(window, anchor.highlight.id, 'missing-book')).toBeNull();
     });
 
     it('has an honest empty state for a map-free scope or canvas before sizing', () => {
