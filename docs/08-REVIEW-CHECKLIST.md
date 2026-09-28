@@ -2,6 +2,13 @@
 
 上线后的未完成任务与状态统一维护在 `docs/48-MAINTENANCE-ROADMAP.md`；本文件继续按阶段追加实际执行证据，不作为第二份待办清单。2026-09-24 起，历史截图与专项审计 Playwright 配置位于 `e2e/config/`；下文更早的根目录调用命令保留为当时执行记录，重新运行时须改用新路径。
 
+## 2026-09-28 · 第二次上线准备：站点图标与地图新地形首帧（待Henry验收、无部署）
+
+- **范围与依据**：Henry明确希望准备第二次上线、给网页Tab一枚站点图标、考虑产品气质及排查「旧图闪成新图」；Blogverse skill与博客配置/木屋图标仅作只读参考。本机公开站点自设计深夜纸页＋一点暖光的SVG图标；PNG32/180由现有Playwright生成，`index.html`添加项目子路径正确的三条图标引用、深色主题色和与现行体验一致的短描述；README补克制技术栈badge及线上/本机第二版状态。`src/features/map/MapCanvas.tsx`公开模式首次渲染时同步采用已验证的公开地形数据，不再先画旧快照的网格轮廓后因异步fetch切换；隔离研究和私有地形的loopback入口仍维持各自的异步回退。`scripts/preview-pages.ts`补图标MIME；`e2e/pages-preflight.spec.ts`新增深层书页图标与冷启动不读旧地形的回归。详情与发布Gate见`docs/79-SECOND-RELEASE-PREPARATION.md`。
+- **冷启动现场证据**：公开Vite的独立Chromium上下文延迟地形请求1.2s，先得`data-map-study=null`，新地形到达后为`ready`，旧线条肉眼可见：是前端双阶段渲染，不是经验证的浏览器缓存。修正后同探针`ready → ready`、独立fetch 0次；生产Pages式浏览器在中断旧地形独立请求的条件下仍于首次地图出现时就`ready`。新构建JS由约353.24KB/gzip108.62KB增为470.17KB/gzip142.92KB，旧按需JSON117.40KB/gzip32.08KB不再独立请求；**所有页面要多取约34KB gzip JS**，未验证低端冷启动性能。公开快照/地形原文件SHA不变，无坐标重算。
+- **实跑**：`npm run icons:generate`两次PNG字节一致，16/32/64px实图与180pxPNG肉眼检查；`npm run check` 57文件388/388、类型/lint/公开快照与地形校验/build通过；`npm run isolation:public`干净；`npm run publication:verify`通过108本／3462句／108封面、固定地图、184个静态房间。Pages式`npx playwright test --config playwright.pages.config.ts`最后完整 Chromium10/10＋Playwright WebKit10/10（地图1440/390/320、图标200+MIME、图标在书房深链接正确、冷首帧）；公开地图阅读专项Chromium18/18＋WebKit18/18；本机地图14/14；隔离研究地图Chromium14/14＋WebKit稳定性1/1、WebKit context-loss按设计skip。地图和图标截图保留在`.private/review/release-b/`。
+- **失败/未验证**：PowerShell中一次Node `-e` 引号出错，改可重跑图标脚本；脚本第一版在`.mjs`中误用TS的`as const`，修正后生成成功。首次完整Pages式WebKit地图在载入公开快照的5秒内仍显示真实数据加载状态，19/20通过；单独WebKit地图重跑通过，调长仅三次冷启动的等待并保留导航/地图断言后再完整20/20通过，不称已改善性能。最早的旧图截图被探针复跑覆盖，不谎称有保留的配对原图；现场状态与新图截图见`docs/79`。手机长②可能使地图离屏，真机Safari/iOS/读屏、独立首访、真实200%缩放、低端启动性能及内容/封面权利仍待确认；Henry未授权推送`master`（会自动部署），因此不push、不部署。建议先由Henry看本机完整站点的Tab图标和地图首帧，再定发布。
+
 ## 2026-09-28 · 同书同圆跨书相遇研究（冻结数据；不接产品算法）
 
 - 按Henry授权，先查其提供的两段数学动画源代码与原始检索/空间方法；不因对称性、E8/特征向量/PageRank等可视动画推论书摘的真实关系。`docs/78`**在跑数据之前**登记实验：读者选另一书、同一真地图圆内比较现行二维最近 A、原向量最大cos B、同书随机 C。`scripts/research/localEncounterEvidence.ts`纯逻辑、`scripts/research/study-local-encounters.ts`仅读冻结公开快照/已有本机向量，`tests/local-encounter-evidence.test.ts`用真实公开点做几何/择句/固定种子测试。输出`.private/research/map/local-encounters/{canonical.json,run.json,review.md,researcher-reading-2026-09-28.md}`不入public/dist；不改变发布点位、地形、快照或运行时。

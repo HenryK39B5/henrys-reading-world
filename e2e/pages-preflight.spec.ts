@@ -81,19 +81,54 @@ test('public room documents return 200; missing rooms still use the 404 fallback
     await expect(page).toHaveURL(`${site}/`);
 });
 
-test('built project-site map loads its approved terrain asset and stays readable at desktop and mobile widths', async ({ page }) => {
+test('built project-site map renders approved terrain at desktop and mobile widths', async ({ page }) => {
+    test.setTimeout(90_000); // Three cold navigations include public-snapshot fetch/parse in WebKit.
     const folder = join(process.cwd(), '.private/review/maintenance/m04/production');
     await mkdir(folder, { recursive: true });
     for (const width of [1440, 390, 320]) {
         await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
         const response = await page.goto(`${site}/map/`);
         expect(response?.status()).toBe(200);
-        await expect(page.getByTestId('map-summary')).toContainText('3462 个真实点');
+        await expect(page.getByTestId('map-summary')).toContainText('3462 个真实点', { timeout: 20_000 });
         await expect(page.locator('.map-canvas-wrap[data-map-study="ready"]')).toBeVisible();
         await expect(page.getByTestId('map-study-terrain')).toHaveAttribute('data-renderer', /webgl2|bands/);
         await page.getByTestId('map-stage').screenshot({ path: join(folder, `world-${String(width)}-${test.info().project.name}.png`) });
         expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
     }
+});
+
+test('tab and touch icons resolve from the project root even on a deep book route', async ({ page }) => {
+    await page.goto(`${site}/books/${encodeURIComponent(book.id)}/`);
+    const icon = await page.locator('link[rel="icon"][type="image/svg+xml"]').getAttribute('href');
+    const fallback = await page.locator('link[rel="icon"][type="image/png"]').getAttribute('href');
+    const touch = await page.locator('link[rel="apple-touch-icon"]').getAttribute('href');
+    expect(icon).toBe(`${site}/favicon.svg`);
+    expect(fallback).toBe(`${site}/favicon-32.png`);
+    expect(touch).toBe(`${site}/apple-touch-icon.png`);
+    const favicon = await page.request.get(icon ?? '');
+    expect(favicon.status()).toBe(200);
+    expect(favicon.headers()['content-type']).toContain('image/svg+xml');
+    expect(await favicon.text()).toContain('<svg');
+    for (const path of [fallback, touch]) {
+        const pngResponse = await page.request.get(path ?? '');
+        expect(pngResponse.status()).toBe(200);
+        expect(pngResponse.headers()['content-type']).toContain('image/png');
+        const png = await pngResponse.body();
+        expect(png.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+    }
+});
+
+test('a cold public map starts with the accepted terrain, not an older snapshot while fetching it', async ({ page }) => {
+    const separateTerrainRequests: string[] = [];
+    await page.route('**/*public-map-terrain*.json', (route) => {
+        separateTerrainRequests.push(route.request().url());
+        return route.abort();
+    });
+    await page.goto(`${site}/map/`);
+    await expect(page.getByTestId('map-canvas')).toBeVisible();
+    expect(await page.locator('.map-canvas-wrap').getAttribute('data-map-study')).toBe('ready');
+    await expect(page.getByTestId('map-study-terrain')).toHaveAttribute('data-renderer', /webgl2|bands/);
+    expect(separateTerrainRequests).toEqual([]);
 });
 
 test('the finished design page remains readable and linked across widths', async ({ page }) => {

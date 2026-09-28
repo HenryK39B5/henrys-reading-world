@@ -10,6 +10,8 @@ const mime: Record<string, string> = {
     '.js': 'text/javascript; charset=utf-8',
     '.css': 'text/css; charset=utf-8',
     '.jpg': 'image/jpeg',
+    '.png': 'image/png',
+    '.svg': 'image/svg+xml',
 };
 
 createServer(async (request, response) => {

@@ -2,9 +2,13 @@
 
 一个由真实微信读书划线组成的个人阅读空间。从一句话出发，可以按书、主题书架、跨书主题小径或世界地图继续阅读。
 
+![React](https://img.shields.io/badge/React-24362e?style=flat-square&logo=react&logoColor=dae6d4) ![TypeScript](https://img.shields.io/badge/TypeScript-24362e?style=flat-square&logo=typescript&logoColor=dae6d4) ![Vite](https://img.shields.io/badge/Vite-24362e?style=flat-square&logo=vite&logoColor=dae6d4) ![Playwright](https://img.shields.io/badge/Playwright-24362e?style=flat-square&logo=playwright&logoColor=dae6d4)
+
 - 网站：https://henryk39b5.github.io/henrys-reading-world/
 - 站内说明：https://henryk39b5.github.io/henrys-reading-world/design/
-- [上线后维护任务](docs/48-MAINTENANCE-ROADMAP.md) · [发布验收记录](docs/47-PUBLIC-RELEASE-CLOSEOUT.md)
+- [上线后维护任务](docs/48-MAINTENANCE-ROADMAP.md) · [首次发布验收记录](docs/47-PUBLIC-RELEASE-CLOSEOUT.md)
+
+第二次上线正在本机准备：可阅读的地图、跨书真句对读与新站点图标**尚未推送到线上**。公开内容范围和坐标保持不变；新交互的实况见 [地图方向](docs/77-READABLE-TERRAIN-MAP-DIRECTION.md) 与 [第二次上线准备](docs/79-SECOND-RELEASE-PREPARATION.md)。
 
 ## 公开范围
 
@@ -50,7 +54,7 @@ npm run test:e2e          # 完整本机 Chromium 回归
 
 ## 仓库结构与部署
 
-- `src/`：阅读体验、领域逻辑和已批准的公开快照；`public/covers/`：公开封面。
+- `src/`：阅读体验、领域逻辑和已批准的公开快照；`public/covers/`：公开封面；`public/favicon.svg`：独立设计的站点图标源文件。`npm run icons:generate` 从它再生成 `public/favicon-32.png` 与 `public/apple-touch-icon.png`，不要手工修改生成图。
 - `scripts/`：数据校验、离线内容生产、公开投影与构建检查；私有输入只来自本机。
 - `e2e/`、`tests/`：浏览器与纯函数回归；专项截图/审计配置在 `e2e/config/`，日常测试配置留在根目录；`docs/`：产品决策、实现记录及维护清单。
 - `.github/workflows/deploy-pages.yml`：`master` 推送后以 `npm ci`、`npm run build` 生成 Pages artifact 并部署。网站托管在 `/henrys-reading-world/` 子路径下。

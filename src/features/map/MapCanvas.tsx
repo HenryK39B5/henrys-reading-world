@@ -16,7 +16,7 @@ import { MAP_READING_RADIUS, MAP_READING_ZOOM } from '../../domain/mapReading.ts
 import type { SnapshotIndex } from '../../domain/snapshot.ts';
 import { placeMapLabels, visibleMapLabels, type LabelPlacement } from './labelPlacement.ts';
 import { MapStudyTerrain, type MapStudyData } from './MapStudyTerrain.tsx';
-import publicMapTerrainUrl from '../../data/public-map-terrain.json?url';
+import publicMapTerrain from '../../data/public-map-terrain.json';
 
 export type MapCanvasProps = {
     index: SnapshotIndex;
@@ -94,7 +94,10 @@ export function MapCanvas({
     const gestureMoved = useRef(false);
     const [size, setSize] = useState<Size>({ width: 1, height: 1 });
     const [hoverText, setHoverText] = useState('');
-    const [study, setStudy] = useState<MapStudyData | null>(null);
+    // Public terrain is a validated build artifact: paint the accepted surface on the first frame,
+    // not the snapshot's older contours followed by a network-driven replacement.
+    const [study, setStudy] = useState<MapStudyData | null>(() =>
+        __MAP_STUDY__ && !__LOCAL_MODE__ && !__MAP_STUDY_ENDPOINT__ ? publicMapTerrain as MapStudyData : null);
     const [hoverTarget, setHoverTarget] = useState<{ kind: 'point' | 'label'; id: string } | { kind: 'contour'; index: number } | null>(null);
     const zoomFrame = useRef<number | null>(null);
     const wheelState = useRef({ view, onViewChange, size });
@@ -120,9 +123,10 @@ export function MapCanvas({
     const bookPointIds = useMemo(() => new Set(bookPoints.map((point) => point.highlightId)), [bookPoints]);
 
     useEffect(() => {
-        if (!__MAP_STUDY__) return;
+        // Local-private and isolated study terrain still come from their loopback-only endpoints.
+        if (!__MAP_STUDY__ || (!__LOCAL_MODE__ && !__MAP_STUDY_ENDPOINT__)) return;
         const controller = new AbortController();
-        const source = __MAP_STUDY_ENDPOINT__ ? '/__map_study' : __LOCAL_MODE__ ? '/__local_map_terrain' : publicMapTerrainUrl;
+        const source = __MAP_STUDY_ENDPOINT__ ? '/__map_study' : '/__local_map_terrain';
         void fetch(source, { cache: 'no-store', signal: controller.signal })
             .then((response) => {
                 if (!response.ok) throw new Error('Map terrain unavailable');
