@@ -63,6 +63,14 @@ function drawCircle(ctx: CanvasRenderingContext2D, x: number, y: number, radius:
     ctx.arc(x, y, radius, 0, Math.PI * 2);
 }
 
+function setLabelFont(ctx: CanvasRenderingContext2D, active: boolean, studyPlaceName: boolean): void {
+    // The layout and the paint must use exactly the same metrics; otherwise labels overlap or miss taps.
+    ctx.font = studyPlaceName
+        ? `${active ? '600 16px' : '400 13px'} system-ui, "Microsoft YaHei", sans-serif`
+        : `${active ? '500 16px' : '400 14px'} "Songti SC", "STSong", "SimSun", serif`;
+    ctx.letterSpacing = studyPlaceName ? '0px' : '0.7px';
+}
+
 export function MapCanvas({
     index,
     view,
@@ -400,14 +408,15 @@ export function MapCanvas({
             }
         }
 
+        const placeNames = __MAP_STUDY__ && study !== null;
         const placedLabels = placeMapLabels(labels, activeTagId, view.zoom, size, (title, active) => {
-            ctx.font = `${active ? '600 16px' : '400 13px'} system-ui, "Microsoft YaHei", sans-serif`;
+            setLabelFont(ctx, active, placeNames);
             return ctx.measureText(title).width;
-        }, __MAP_STUDY__ && study !== null);
+        }, placeNames);
         const visibleLabels = visibleMapLabels(placedLabels, view.centerX, view.centerY, view.zoom, size);
         for (const hit of visibleLabels) {
             const active = hit.summary.tagId === activeTagId;
-            const placeName = __MAP_STUDY__ && study !== null;
+            const placeName = placeNames;
             const hovered = placeName && hoverTarget?.kind === 'label' && hoverTarget.id === hit.summary.tagId;
             const width = hit.right - hit.left - 16;
             let litPointsUnderName = 0;
@@ -421,7 +430,7 @@ export function MapCanvas({
                 }
             }
             const onLitCluster = litPointsUnderName >= 5;
-            ctx.font = `${active ? '600 16px' : '400 13px'} system-ui, "Microsoft YaHei", sans-serif`;
+            setLabelFont(ctx, active, placeName);
             if (placeName) {
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
@@ -442,11 +451,24 @@ export function MapCanvas({
                     ctx.lineWidth = 0.7;
                     ctx.stroke();
                 }
-                ctx.fillStyle = active ? 'rgba(39, 55, 47, 0.96)' : 'rgba(28, 43, 38, 0.90)';
+                // A soft ink wash keeps names legible on dense terrain without turning each place into a badge.
+                const wash = ctx.createLinearGradient(hit.left, 0, hit.right, 0);
+                const middle = active ? 'rgba(24, 38, 32, 0.94)' : 'rgba(24, 38, 32, 0.78)';
+                wash.addColorStop(0, 'rgba(24, 38, 32, 0)');
+                wash.addColorStop(0.13, middle);
+                wash.addColorStop(0.87, middle);
+                wash.addColorStop(1, 'rgba(24, 38, 32, 0)');
+                ctx.fillStyle = wash;
                 ctx.fillRect(hit.left + 1, hit.top + 1, hit.right - hit.left - 2, hit.bottom - hit.top - 2);
-                ctx.fillStyle = active ? '#f2ebd8' : 'rgba(224, 232, 209, 0.92)';
+                ctx.fillStyle = active ? '#f2ebd8' : '#e6e9da';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
+                if (active) {
+                    ctx.lineJoin = 'round';
+                    ctx.lineWidth = 2.2;
+                    ctx.strokeStyle = 'rgba(18, 32, 27, 0.88)';
+                    ctx.strokeText(hit.summary.title, hit.x, hit.y);
+                }
                 ctx.fillText(hit.summary.title, hit.x, hit.y);
             }
             if (active && !placeName) {

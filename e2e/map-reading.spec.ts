@@ -206,6 +206,38 @@ test('the reading window can explicitly return to the world and gives focus back
     await expect(canvas).toBeFocused();
 });
 
+for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }, { width: 320, height: 720 }]) {
+    test(`map annotations leave no empty badge and keep real place-name hit targets at ${viewport.width}`, async ({ page }, testInfo) => {
+        await page.setViewportSize(viewport);
+        await page.goto('/map');
+        const readout = page.locator('.map-hover-readout');
+        await expect(readout).toBeEmpty();
+        expect(await readout.evaluate((element) => element.getBoundingClientRect().width)).toBeLessThanOrEqual(1);
+        await page.screenshot({ path: `.private/review/map-readable/annotation-world-${viewport.width}-${testInfo.project.name}.png`, fullPage: false });
+
+        const label = layout?.labels.find((entry) => entry.tagId === 'tag-040');
+        if (label === undefined) throw Error('Public map place name missing');
+        await page.goto('/map?tag=tag-040');
+        const canvas = page.getByTestId('map-canvas');
+        await canvas.scrollIntoViewIfNeeded();
+        const box = await canvas.boundingBox();
+        if (box === null) throw Error('Map canvas missing');
+        const screen = mapToScreen(label, {
+            centerX: Number(await canvas.getAttribute('data-map-center-x')),
+            centerY: Number(await canvas.getAttribute('data-map-center-y')),
+            zoom: Number(await canvas.getAttribute('data-map-zoom')),
+        }, box.width, box.height);
+        await page.mouse.move(box.x + screen.x, box.y + screen.y);
+        await expect(readout).toContainText('交易');
+        expect(await readout.evaluate((element) => element.getBoundingClientRect().width)).toBeGreaterThan(40);
+        await page.screenshot({ path: `.private/review/map-readable/annotation-region-${viewport.width}-${testInfo.project.name}.png`, fullPage: false });
+        await page.mouse.move(0, 0);
+        await expect(readout).toBeEmpty();
+        expect(await readout.evaluate((element) => element.getBoundingClientRect().width)).toBeLessThanOrEqual(1);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    });
+}
+
 test('shared reviewed tags are labelled as classification, never as similarity or agreement', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/map');
