@@ -1,12 +1,61 @@
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
-import { mapToScreen, WORLD_MAP_VIEW, type MapViewport } from '../src/domain/map.ts';
+import { mapToScreen, summarizeMapLabels, WORLD_MAP_VIEW, type MapViewport } from '../src/domain/map.ts';
 import { compareWithBook, mapReadingWindow, otherBooksInWindow, sharedReviewedTags } from '../src/domain/mapReading.ts';
 import { indexSnapshot } from '../src/domain/snapshot.ts';
 import type { Snapshot } from '../src/domain/types.ts';
 
 const index = indexSnapshot(JSON.parse(readFileSync(new URL('../src/data/public-snapshot.json', import.meta.url), 'utf8')) as Snapshot);
 const layout = index.snapshot.map;
+
+for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }, { width: 320, height: 720 }]) {
+    test(`map place names grow with proximity and a genuine lower-ranked place becomes reachable at ${viewport.width}`, async ({ page }, testInfo) => {
+        await page.setViewportSize(viewport);
+        const target = summarizeMapLabels(index).find((item) => item.tagId === 'tag-051');
+        expect(target).toBeDefined();
+        if (target === undefined) return;
+        const folder = '.private/review/map-label-scale';
+        mkdirSync(folder, { recursive: true });
+        await page.addInitScript(({ title }) => {
+            const paints: string[] = [];
+            (window as Window & { __mapPlaceFonts?: string[] }).__mapPlaceFonts = paints;
+            const draw = CanvasRenderingContext2D.prototype.fillText;
+            CanvasRenderingContext2D.prototype.fillText = function (this: CanvasRenderingContext2D, ...args: Parameters<typeof draw>) {
+                if (args[0] === title) paints.push(this.font);
+                return draw.apply(this, args);
+            };
+        }, { title: target.title });
+        await page.goto('/map');
+        const canvas = page.getByTestId('map-canvas');
+        const bounds = await canvas.boundingBox();
+        if (bounds === null) throw Error('Missing world map canvas');
+        await canvas.screenshot({ path: `${folder}/world-${viewport.width}-${testInfo.project.name}.png`, animations: 'disabled' });
+        const worldPoint = mapToScreen(target.label, WORLD_MAP_VIEW, bounds.width, bounds.height);
+        await canvas.click({ position: worldPoint });
+        await expect(page.getByTestId('map-reading-window')).toBeVisible();
+        const zoom = Number(await canvas.getAttribute('data-map-zoom'));
+        expect(zoom).toBeGreaterThanOrEqual(4);
+        const view = {
+            centerX: Number(await canvas.getAttribute('data-map-center-x')),
+            centerY: Number(await canvas.getAttribute('data-map-center-y')),
+            zoom,
+        };
+        const current = await canvas.boundingBox();
+        if (current === null) throw Error('Missing reading map canvas');
+        const near = mapToScreen(target.label, view, current.width, current.height);
+        await page.screenshot({ path: `${folder}/near-${viewport.width}-${testInfo.project.name}.png`, animations: 'disabled' });
+        await page.mouse.move(current.x + near.x, current.y + near.y);
+        await expect(page.locator('.map-hover-readout')).toContainText(target.title);
+        const painted = await page.evaluate(() => (window as Window & { __mapPlaceFonts?: string[] }).__mapPlaceFonts ?? []);
+        expect(painted.some((font) => {
+            const pixels = /([\d.]+)px/.exec(font);
+            return pixels !== null && Number(pixels[1]) >= (viewport.width < 520 ? 17 : 19);
+        })).toBe(true);
+        await canvas.click({ position: near });
+        await expect(page).toHaveURL(/\/map\?tag=tag-051/);
+        await page.screenshot({ path: `${folder}/selected-${viewport.width}-${testInfo.project.name}.png`, animations: 'disabled' });
+    });
+}
 
 async function openAnUnnamedPart(page: Page) {
     const canvas = page.getByTestId('map-canvas');

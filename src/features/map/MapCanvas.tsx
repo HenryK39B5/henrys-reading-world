@@ -14,7 +14,7 @@ import { studyContourAt, studyContourPaths, studyPointAt, studyPointZoomThreshol
 import { MAP_COORDINATE_MAX } from '../../domain/types.ts';
 import { MAP_READING_RADIUS, MAP_READING_ZOOM } from '../../domain/mapReading.ts';
 import type { SnapshotIndex } from '../../domain/snapshot.ts';
-import { placeMapLabels, visibleMapLabels, type LabelPlacement } from './labelPlacement.ts';
+import { mapLabelFontSize, mapLabelViewportLimit, placeMapLabels, visibleMapLabels, type LabelPlacement } from './labelPlacement.ts';
 import { MapStudyTerrain, type MapStudyData } from './MapStudyTerrain.tsx';
 import publicMapTerrain from '../../data/public-map-terrain.json';
 
@@ -63,11 +63,12 @@ function drawCircle(ctx: CanvasRenderingContext2D, x: number, y: number, radius:
     ctx.arc(x, y, radius, 0, Math.PI * 2);
 }
 
-function setLabelFont(ctx: CanvasRenderingContext2D, active: boolean, studyPlaceName: boolean): void {
+function setLabelFont(ctx: CanvasRenderingContext2D, active: boolean, studyPlaceName: boolean, zoom: number, width: number, fixedStudy: boolean): void {
     // The layout and the paint must use exactly the same metrics; otherwise labels overlap or miss taps.
+    const fontSize = mapLabelFontSize(zoom, width, active, studyPlaceName, fixedStudy);
     ctx.font = studyPlaceName
-        ? `${active ? '600 16px' : '400 13px'} system-ui, "Microsoft YaHei", sans-serif`
-        : `${active ? '500 16px' : '400 14px'} "Songti SC", "STSong", "SimSun", serif`;
+        ? `${active ? '600' : '400'} ${String(fontSize)}px system-ui, "Microsoft YaHei", sans-serif`
+        : `${active ? '500' : '400'} ${String(fontSize)}px "Songti SC", "STSong", "SimSun", serif`;
     ctx.letterSpacing = studyPlaceName ? '0px' : '0.7px';
 }
 
@@ -413,11 +414,13 @@ export function MapCanvas({
         }
 
         const placeNames = __MAP_STUDY__ && study !== null;
+        const fixedStudy = __MAP_STUDY_ENDPOINT__;
         const placedLabels = placeMapLabels(labels, activeTagId, view.zoom, size, (title, active) => {
-            setLabelFont(ctx, active, placeNames);
+            setLabelFont(ctx, active, placeNames, view.zoom, size.width, fixedStudy);
             return ctx.measureText(title).width;
-        }, placeNames);
-        const visibleLabels = visibleMapLabels(placedLabels, view.centerX, view.centerY, view.zoom, size);
+        }, placeNames, fixedStudy);
+        const visibleLabels = visibleMapLabels(placedLabels, view.centerX, view.centerY, view.zoom, size)
+            .slice(0, mapLabelViewportLimit(view.zoom, size.width, fixedStudy));
         for (const hit of visibleLabels) {
             const active = hit.summary.tagId === activeTagId;
             const placeName = placeNames;
@@ -434,7 +437,7 @@ export function MapCanvas({
                 }
             }
             const onLitCluster = litPointsUnderName >= 5;
-            setLabelFont(ctx, active, placeName);
+            setLabelFont(ctx, active, placeName, view.zoom, size.width, fixedStudy);
             if (placeName) {
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
@@ -477,8 +480,8 @@ export function MapCanvas({
             }
             if (active && !placeName) {
                 ctx.beginPath();
-                ctx.moveTo(hit.x - width / 2, hit.y + 11);
-                ctx.lineTo(hit.x + width / 2, hit.y + 11);
+                ctx.moveTo(hit.x - width / 2, hit.bottom + 2);
+                ctx.lineTo(hit.x + width / 2, hit.bottom + 2);
                 ctx.strokeStyle = '#c9ae80';
                 ctx.lineWidth = 1.5;
                 ctx.stroke();

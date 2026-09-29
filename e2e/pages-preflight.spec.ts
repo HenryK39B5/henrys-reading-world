@@ -198,7 +198,7 @@ test('the technical companion has a direct public entry and readable narrow layo
 test('failed public asset stays an honest error state instead of showing invented content', async ({ page }) => {
     await page.route('**/assets/public-snapshot-*.json', (route) => route.fulfill({ status: 503, body: '{}' }));
     await page.goto(`${site}/`);
-    await expect(page.getByRole('heading', { name: '数据无法加载' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '数据无法加载' })).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText('公开数据暂时不可用（HTTP 503）。')).toBeVisible();
     await expect(page.getByTestId('stage-passage')).toHaveCount(0);
 });

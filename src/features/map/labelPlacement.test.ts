@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MapLabelSummary } from '../../domain/map.ts';
-import { placeMapLabels, visibleMapLabels } from './labelPlacement.ts';
+import { mapLabelFontSize, mapLabelViewportLimit, placeMapLabels, visibleMapLabels } from './labelPlacement.ts';
 
 const size = { width: 400, height: 400 };
 const summary = (tagId: string, x: number, count: number, title: string): MapLabelSummary => ({
@@ -49,6 +49,53 @@ describe('map label placement', () => {
         expect(placed!.y).toBe(placed!.anchorY);
         expect(placed!.top).toBeLessThan(placed!.y - 6);
         expect(placed!.bottom).toBeGreaterThan(placeMapLabels([label], null, 1, size, measure)[0]!.bottom);
+    });
+
+    it('keeps the world type scale and gives zoomed-in places a bounded, readable hierarchy', () => {
+        expect(mapLabelFontSize(1, 1440, false)).toBe(14);
+        expect(mapLabelFontSize(1, 1440, true)).toBe(16);
+        expect(mapLabelFontSize(4, 1440, false)).toBeGreaterThan(19);
+        expect(mapLabelFontSize(4, 1440, true)).toBeGreaterThan(21);
+        expect(mapLabelFontSize(8, 1440, false)).toBeLessThanOrEqual(22);
+        expect(mapLabelFontSize(8, 390, false)).toBeLessThanOrEqual(19);
+        expect(mapLabelFontSize(8, 390, true)).toBeLessThanOrEqual(21);
+        expect(mapLabelFontSize(1, 1440, false, true)).toBe(13);
+        expect(mapLabelFontSize(4, 1440, false, true)).toBe(19);
+        expect(mapLabelFontSize(8, 390, true, true, true)).toBe(16);
+        expect(mapLabelViewportLimit(1, 390)).toBe(10);
+        expect(mapLabelViewportLimit(4, 390)).toBe(6);
+        expect(mapLabelViewportLimit(4, 1440)).toBe(12);
+        expect(mapLabelViewportLimit(4, 390, true)).toBe(10);
+        expect(placeMapLabels([summary('tag-001', 5000, 1, 'A')], null, 4, size, measure, true, true)).toHaveLength(1);
+    });
+
+    it('lets genuine lower-ranked places enter at reading scale without moving them when panned', () => {
+        const candidates: MapLabelSummary[] = Array.from({ length: 12 }, (_, number) => ({
+            tagId: `tag-${String(number + 1).padStart(3, '0')}`,
+            title: `Place ${String(number + 1)}`,
+            highlightCount: 12 - number,
+            bookCount: 1,
+            label: {
+                tagId: `tag-${String(number + 1).padStart(3, '0')}`,
+                x: 1200 + (number % 4) * 2300,
+                y: 1200 + Math.floor(number / 4) * 3000,
+            },
+        }));
+        const titleWidth = (title: string): number => title.length * 9;
+        const world = placeMapLabels(candidates, null, 1, size, titleWidth, true);
+        expect(world).toEqual(placeMapLabels(candidates, null, 1, size, titleWidth, true, true));
+        expect(world.map((entry) => entry.summary.tagId)).not.toContain('tag-012');
+        expect(placeMapLabels(candidates, null, 4, size, titleWidth, true, true)).toHaveLength(10);
+        const close = placeMapLabels(candidates, null, 4, size, titleWidth);
+        const target = candidates[11]!;
+        expect(close.map((entry) => entry.summary.tagId)).toContain(target.tagId);
+        const first = visibleMapLabels(close, target.label.x, target.label.y, 4, size)
+            .find((entry) => entry.summary.tagId === target.tagId);
+        const panned = visibleMapLabels(close, target.label.x + 100, target.label.y, 4, size)
+            .find((entry) => entry.summary.tagId === target.tagId);
+        expect(first).toBeDefined();
+        expect(panned?.x).toBeCloseTo(first!.x - 16);
+        expect(placeMapLabels(candidates, target.tagId, 4, size, titleWidth)[0]?.summary.tagId).toBe(target.tagId);
     });
 
     it('reserves the first placement for the selected region', () => {
