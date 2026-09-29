@@ -27,14 +27,6 @@ export function mapLabelFontSize(zoom: number, width: number, active: boolean, p
 
 function worldLabelLimit(width: number): number { return width < 520 ? 10 : 18; }
 
-/** Admit real, lower-ranked places gradually; only a bounded number appear on screen. */
-export function mapLabelViewportLimit(zoom: number, width: number, fixedStudy = false): number {
-    const world = worldLabelLimit(width);
-    if (fixedStudy) return world;
-    const near = width < 520 ? 6 : 12;
-    return Math.round(world - Math.min(1, Math.max(0, (zoom - 1) / 3)) * (world - near));
-}
-
 const LABEL_OFFSETS = [
     { x: 0, y: 0 },
     { x: 0, y: -22 },
@@ -49,7 +41,21 @@ function overlaps(left: LabelPlacement, right: LabelPlacement): boolean {
     return !(left.right + 8 < right.left || right.right + 8 < left.left || left.bottom + 5 < right.top || right.bottom + 5 < left.top);
 }
 
-/** Place all labels before clipping to the viewport, so panning never reflows the ones still in view. */
+function orderMapLabels(labels: readonly MapLabelSummary[], activeTagId: string | null, selected: MapLabelSummary | undefined): MapLabelSummary[] {
+    return [...labels].sort((left, right) => {
+        if (left.tagId === activeTagId) return -1;
+        if (right.tagId === activeTagId) return 1;
+        if (selected !== undefined) {
+            const distance = (entry: MapLabelSummary): number =>
+                (entry.label.x - selected.label.x) ** 2 + (entry.label.y - selected.label.y) ** 2;
+            const separation = distance(left) - distance(right);
+            if (separation !== 0) return separation;
+        }
+        return right.highlightCount - left.highlightCount || left.tagId.localeCompare(right.tagId);
+    });
+}
+
+/** Original greedy world/study layout; retained for the exactly unchanged 1× overview. */
 export function placeMapLabels(
     labels: readonly MapLabelSummary[],
     activeTagId: string | null,
@@ -61,17 +67,7 @@ export function placeMapLabels(
 ): LabelPlacement[] {
     const fixedView = { centerX: MAP_COORDINATE_MAX / 2, centerY: MAP_COORDINATE_MAX / 2, zoom };
     const selected = labels.find((entry) => entry.tagId === activeTagId);
-    const ordered = [...labels].sort((left, right) => {
-        if (left.tagId === activeTagId) return -1;
-        if (right.tagId === activeTagId) return 1;
-        if (selected !== undefined) {
-            const distance = (entry: MapLabelSummary): number =>
-                (entry.label.x - selected.label.x) ** 2 + (entry.label.y - selected.label.y) ** 2;
-            const separation = distance(left) - distance(right);
-            if (separation !== 0) return separation;
-        }
-        return right.highlightCount - left.highlightCount || left.tagId.localeCompare(right.tagId);
-    });
+    const ordered = orderMapLabels(labels, activeTagId, selected);
     const worldLimit = worldLabelLimit(size.width);
     const progress = fixedStudy ? 0 : Math.min(1, Math.max(0, (zoom - 1) / 3));
     const maximumLabels = Math.floor(worldLimit + progress * Math.max(0, labels.length - worldLimit));
@@ -103,6 +99,103 @@ export function placeMapLabels(
         }
     }
     return placed;
+}
+
+export type PlannedMapLabel = {
+    summary: MapLabelSummary;
+    offset: { x: number; y: number };
+    nearOffset?: { x: number; y: number };
+    firstZoom: number;
+};
+
+type MeasureAtZoom = (title: string, active: boolean, zoom: number) => number;
+
+function plannedPlacement(
+    entry: PlannedMapLabel,
+    zoom: number,
+    size: Size,
+    measure: MeasureAtZoom,
+    activeTagId: string | null,
+    placeNames: boolean,
+): LabelPlacement {
+    const active = entry.summary.tagId === activeTagId;
+    const fixedView = { centerX: MAP_COORDINATE_MAX / 2, centerY: MAP_COORDINATE_MAX / 2, zoom };
+    const anchor = mapToScreen(entry.summary.label, fixedView, size.width, size.height);
+    const x = anchor.x + entry.offset.x;
+    const y = anchor.y + entry.offset.y;
+    const width = measure(entry.summary.title, active, zoom);
+    const font = mapLabelFontSize(zoom, size.width, active, placeNames);
+    return {
+        summary: entry.summary,
+        left: x - width / 2 - 8,
+        right: x + width / 2 + 8,
+        top: y - Math.max(placeNames ? (active ? 16 : 13) : 0, Math.ceil(font / 2) + (active ? 8 : 6)),
+        bottom: y + Math.max(placeNames ? 15 : 0, Math.ceil(font / 2) + (active ? 4 : 2)),
+        x, y,
+        anchorX: anchor.x,
+        anchorY: anchor.y,
+    };
+}
+
+/** Fix admissions to world/near/far layouts and one-way zoom thresholds.
+ * The plan depends on data, selected region and canvas size, NEVER on the camera center.
+ */
+export function planMapLabels(
+    labels: readonly MapLabelSummary[],
+    activeTagId: string | null,
+    size: Size,
+    measure: MeasureAtZoom,
+    placeNames = false,
+): PlannedMapLabel[] {
+    const at = (zoom: number): LabelPlacement[] => placeMapLabels(labels, activeTagId, zoom, size,
+        (title, active) => measure(title, active, zoom), placeNames);
+    const world = at(1);
+    const near = at(4);
+    const far = at(8);
+    const offset = (entry: LabelPlacement): { x: number; y: number } =>
+        ({ x: entry.x - entry.anchorX, y: entry.y - entry.anchorY });
+    const nearById = new Map(near.map((entry) => [entry.summary.tagId, entry]));
+    const plan: PlannedMapLabel[] = world.map((entry) => {
+        const nearEntry = nearById.get(entry.summary.tagId);
+        return {
+            summary: entry.summary,
+            offset: offset(entry),
+            ...(nearEntry === undefined ? {} : { nearOffset: offset(nearEntry) }),
+            firstZoom: 1,
+        };
+    });
+    const used = new Set(plan.map((entry) => entry.summary.tagId));
+    const newNear = near.filter((entry) => !used.has(entry.summary.tagId));
+    // Keep the exact accepted 1× and 4× layouts, and only add names as the scale approaches
+    // the next one. Never evict a name just because a rival was admitted at a later zoom.
+    for (const [rank, entry] of newNear.entries()) {
+        plan.push({ summary: entry.summary, offset: offset(entry), firstZoom: 2 + 2 * (rank + 1) / newNear.length });
+        used.add(entry.summary.tagId);
+    }
+    const newFar = far.filter((entry) => !used.has(entry.summary.tagId));
+    for (const [rank, entry] of newFar.entries()) {
+        plan.push({ summary: entry.summary, offset: offset(entry), firstZoom: 4 + 4 * (rank + 1) / newFar.length });
+    }
+    return plan;
+}
+
+export function projectMapLabels(
+    plan: readonly PlannedMapLabel[],
+    zoom: number,
+    size: Size,
+    measure: MeasureAtZoom,
+    activeTagId: string | null,
+    placeNames = false,
+): LabelPlacement[] {
+    const progress = Math.min(1, Math.max(0, (zoom - 1) / 3));
+    return plan.filter((entry) => entry.firstZoom <= zoom).map((entry) => {
+        const toward = entry.nearOffset ?? entry.offset;
+        const offset = {
+            x: entry.offset.x + (toward.x - entry.offset.x) * progress,
+            y: entry.offset.y + (toward.y - entry.offset.y) * progress,
+        };
+        return plannedPlacement({ ...entry, offset }, zoom, size, measure, activeTagId, placeNames);
+    });
 }
 
 export function visibleMapLabels(

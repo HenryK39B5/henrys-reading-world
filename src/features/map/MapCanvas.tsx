@@ -14,7 +14,7 @@ import { studyContourAt, studyContourPaths, studyPointAt, studyPointZoomThreshol
 import { MAP_COORDINATE_MAX } from '../../domain/types.ts';
 import { MAP_READING_RADIUS, MAP_READING_ZOOM } from '../../domain/mapReading.ts';
 import type { SnapshotIndex } from '../../domain/snapshot.ts';
-import { mapLabelFontSize, mapLabelViewportLimit, placeMapLabels, visibleMapLabels, type LabelPlacement } from './labelPlacement.ts';
+import { mapLabelFontSize, placeMapLabels, planMapLabels, projectMapLabels, visibleMapLabels, type LabelPlacement, type PlannedMapLabel } from './labelPlacement.ts';
 import { MapStudyTerrain, type MapStudyData } from './MapStudyTerrain.tsx';
 import publicMapTerrain from '../../data/public-map-terrain.json';
 
@@ -89,6 +89,14 @@ export function MapCanvas({
 }: MapCanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const labelHits = useRef<LabelPlacement[]>([]);
+    const labelPlan = useRef<{
+        labels: ReturnType<typeof summarizeMapLabels>;
+        activeTagId: string | null;
+        width: number;
+        height: number;
+        placeNames: boolean;
+        entries: PlannedMapLabel[];
+    } | null>(null);
     const drag = useRef<DragState | null>(null);
     const pointers = useRef(new Map<number, { x: number; y: number }>());
     const pinch = useRef<PinchState | null>(null);
@@ -415,12 +423,27 @@ export function MapCanvas({
 
         const placeNames = __MAP_STUDY__ && study !== null;
         const fixedStudy = __MAP_STUDY_ENDPOINT__;
-        const placedLabels = placeMapLabels(labels, activeTagId, view.zoom, size, (title, active) => {
-            setLabelFont(ctx, active, placeNames, view.zoom, size.width, fixedStudy);
+        const measure = (title: string, active: boolean, zoom: number): number => {
+            setLabelFont(ctx, active, placeNames, zoom, size.width, fixedStudy);
             return ctx.measureText(title).width;
-        }, placeNames, fixedStudy);
-        const visibleLabels = visibleMapLabels(placedLabels, view.centerX, view.centerY, view.zoom, size)
-            .slice(0, mapLabelViewportLimit(view.zoom, size.width, fixedStudy));
+        };
+        let placedLabels: LabelPlacement[];
+        if (fixedStudy) {
+            placedLabels = placeMapLabels(labels, activeTagId, view.zoom, size,
+                (title, active) => measure(title, active, view.zoom), placeNames, true);
+        } else {
+            // Freeze admission and collision offsets in map space, not in the moving viewport.
+            // Rebuild only when the actual data, selection or canvas dimensions change.
+            const cached = labelPlan.current;
+            const valid = cached !== null && cached.labels === labels && cached.activeTagId === activeTagId &&
+                cached.width === size.width && cached.height === size.height && cached.placeNames === placeNames;
+            const entries = valid && cached !== null ? cached.entries : planMapLabels(labels, activeTagId, size, measure, placeNames);
+            if (!valid) labelPlan.current = { labels, activeTagId, width: size.width, height: size.height, placeNames, entries };
+            placedLabels = projectMapLabels(entries, view.zoom, size, measure, activeTagId, placeNames);
+        }
+        // A viewport-relative quota used to evict names in the middle when a higher-ranked
+        // one crossed the edge. Only geometric edge clipping may now remove a visible name.
+        const visibleLabels = visibleMapLabels(placedLabels, view.centerX, view.centerY, view.zoom, size);
         for (const hit of visibleLabels) {
             const active = hit.summary.tagId === activeTagId;
             const placeName = placeNames;

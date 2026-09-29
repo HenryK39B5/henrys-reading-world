@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MapLabelSummary } from '../../domain/map.ts';
-import { mapLabelFontSize, mapLabelViewportLimit, placeMapLabels, visibleMapLabels } from './labelPlacement.ts';
+import { mapLabelFontSize, placeMapLabels, planMapLabels, projectMapLabels, visibleMapLabels } from './labelPlacement.ts';
 
 const size = { width: 400, height: 400 };
 const summary = (tagId: string, x: number, count: number, title: string): MapLabelSummary => ({
@@ -15,18 +15,19 @@ const measure = (text: string): number => text.length * 14;
 
 describe('map label placement', () => {
     it('keeps labels at the same map position when a higher-priority label leaves the viewport', () => {
-        const labels = [summary('tag-001', 4200, 100, 'A'), summary('tag-002', 5000, 20, 'nearby')];
-        const placed = placeMapLabels(labels, null, 2, size, measure);
+        const labels = [summary('tag-001', 3900, 100, 'A'), summary('tag-002', 5000, 20, 'nearby')];
+        const plan = planMapLabels(labels, null, size, measure);
+        const placed = projectMapLabels(plan, 4, size, measure, null);
         expect(placed).toHaveLength(2);
-        const first = visibleMapLabels(placed, 4500, 5000, 2, size);
-        const second = visibleMapLabels(placed, 6500, 5000, 2, size);
+        const first = visibleMapLabels(placed, 4800, 5000, 4, size);
+        const second = visibleMapLabels(placed, 5600, 5000, 4, size);
         expect(first.map((entry) => entry.summary.tagId)).toContain('tag-001');
         expect(second.map((entry) => entry.summary.tagId)).not.toContain('tag-001');
         const before = first.find((entry) => entry.summary.tagId === 'tag-002');
         const after = second.find((entry) => entry.summary.tagId === 'tag-002');
         expect(before).toBeDefined();
         expect(after).toBeDefined();
-        expect(after!.x - before!.x).toBe(-160);
+        expect(after!.x - before!.x).toBe(-128);
         expect(after!.y).toBe(before!.y);
     });
 
@@ -36,8 +37,9 @@ describe('map label placement', () => {
             summary('tag-002', 4000, 2, 'B'),
             summary('tag-003', 5500, 1, 'C'),
         ];
+        const plan = planMapLabels(labels, null, size, measure);
         for (const zoom of [1, 1.7, 1.71, 2, 2.01]) {
-            expect(placeMapLabels(labels, null, zoom, size, measure).map((entry) => entry.summary.tagId))
+            expect(projectMapLabels(plan, zoom, size, measure, null).map((entry) => entry.summary.tagId))
                 .toEqual(['tag-001', 'tag-002', 'tag-003']);
         }
     });
@@ -62,10 +64,6 @@ describe('map label placement', () => {
         expect(mapLabelFontSize(1, 1440, false, true)).toBe(13);
         expect(mapLabelFontSize(4, 1440, false, true)).toBe(19);
         expect(mapLabelFontSize(8, 390, true, true, true)).toBe(16);
-        expect(mapLabelViewportLimit(1, 390)).toBe(10);
-        expect(mapLabelViewportLimit(4, 390)).toBe(6);
-        expect(mapLabelViewportLimit(4, 1440)).toBe(12);
-        expect(mapLabelViewportLimit(4, 390, true)).toBe(10);
         expect(placeMapLabels([summary('tag-001', 5000, 1, 'A')], null, 4, size, measure, true, true)).toHaveLength(1);
     });
 
@@ -82,11 +80,12 @@ describe('map label placement', () => {
             },
         }));
         const titleWidth = (title: string): number => title.length * 9;
-        const world = placeMapLabels(candidates, null, 1, size, titleWidth, true);
+        const plan = planMapLabels(candidates, null, size, titleWidth, true);
+        const world = projectMapLabels(plan, 1, size, titleWidth, null, true);
         expect(world).toEqual(placeMapLabels(candidates, null, 1, size, titleWidth, true, true));
         expect(world.map((entry) => entry.summary.tagId)).not.toContain('tag-012');
         expect(placeMapLabels(candidates, null, 4, size, titleWidth, true, true)).toHaveLength(10);
-        const close = placeMapLabels(candidates, null, 4, size, titleWidth);
+        const close = projectMapLabels(plan, 4, size, titleWidth, null, true);
         const target = candidates[11]!;
         expect(close.map((entry) => entry.summary.tagId)).toContain(target.tagId);
         const first = visibleMapLabels(close, target.label.x, target.label.y, 4, size)
@@ -95,7 +94,15 @@ describe('map label placement', () => {
             .find((entry) => entry.summary.tagId === target.tagId);
         expect(first).toBeDefined();
         expect(panned?.x).toBeCloseTo(first!.x - 16);
-        expect(placeMapLabels(candidates, target.tagId, 4, size, titleWidth)[0]?.summary.tagId).toBe(target.tagId);
+        expect(projectMapLabels(planMapLabels(candidates, target.tagId, size, titleWidth, true), 4, size, titleWidth, target.tagId, true)[0]?.summary.tagId)
+            .toBe(target.tagId);
+        let previous = new Set<string>();
+        for (let tenth = 10; tenth <= 80; tenth += 1) {
+            const current = new Set(projectMapLabels(plan, tenth / 10, size, titleWidth, null, true)
+                .map((entry) => entry.summary.tagId));
+            expect([...previous].every((id) => current.has(id))).toBe(true);
+            previous = current;
+        }
     });
 
     it('reserves the first placement for the selected region', () => {

@@ -8,6 +8,61 @@ import type { Snapshot } from '../src/domain/types.ts';
 const index = indexSnapshot(JSON.parse(readFileSync(new URL('../src/data/public-snapshot.json', import.meta.url), 'utf8')) as Snapshot);
 const layout = index.snapshot.map;
 
+test('an interior real place name survives a small pan when another name enters the frame', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.addInitScript(() => {
+        sessionStorage.setItem('reading-world:map:world-view:v1', JSON.stringify({ centerX: 5662, centerY: 2407, zoom: 4 }));
+    });
+    await page.goto('/map');
+    const canvas = page.getByTestId('map-canvas');
+    await expect(canvas).toHaveAttribute('data-map-zoom', '4.000');
+    const target = layout?.labels.find((label) => label.tagId === 'tag-006');
+    if (target === undefined) throw Error('Real place-name anchor missing');
+    const title = index.tagsById.get(target.tagId)?.title;
+    if (title === undefined) throw Error('Reviewed place-name text missing');
+    const point = async () => {
+        const box = await canvas.boundingBox();
+        if (box === null) throw Error('Reading map canvas missing');
+        const view = {
+            centerX: Number(await canvas.getAttribute('data-map-center-x')),
+            centerY: Number(await canvas.getAttribute('data-map-center-y')),
+            zoom: Number(await canvas.getAttribute('data-map-zoom')),
+        };
+        const local = mapToScreen(target, view, box.width, box.height);
+        return { x: box.x + local.x, y: box.y + local.y, local, box };
+    };
+    await canvas.scrollIntoViewIfNeeded();
+    const initial = await point();
+    await page.mouse.move(initial.x, initial.y);
+    await expect(page.locator('.map-hover-readout')).toContainText(title);
+    const folder = '.private/review/map-label-stability';
+    mkdirSync(folder, { recursive: true });
+    await page.screenshot({ path: `${folder}/before-${test.info().project.name}.png`, animations: 'disabled' });
+    await page.mouse.move(initial.box.x + initial.box.width / 2, initial.box.y + initial.box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(initial.box.x + initial.box.width / 2 - 27, initial.box.y + initial.box.height / 2, { steps: 6 });
+    await page.mouse.up();
+    const after = await point();
+    expect(after.local.x).toBeGreaterThan(45);
+    expect(after.local.x).toBeLessThan(after.box.width - 45);
+    expect(after.local.y).toBeGreaterThan(35);
+    expect(after.local.y).toBeLessThan(after.box.height - 35);
+    await page.mouse.move(after.x, after.y);
+    await expect(page.locator('.map-hover-readout')).toContainText(title);
+    await page.screenshot({ path: `${folder}/after-${test.info().project.name}.png`, animations: 'disabled' });
+    await canvas.focus();
+    await page.keyboard.press('+');
+    const closer = await point();
+    expect(Number(await canvas.getAttribute('data-map-zoom'))).toBeGreaterThan(4);
+    await page.mouse.move(closer.x, closer.y);
+    await expect(page.locator('.map-hover-readout')).toContainText(title);
+    await canvas.focus();
+    await page.keyboard.press('-');
+    const returned = await point();
+    await page.mouse.move(returned.x, returned.y);
+    await expect(page.locator('.map-hover-readout')).toContainText(title);
+});
+
 for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }, { width: 320, height: 720 }]) {
     test(`map place names grow with proximity and a genuine lower-ranked place becomes reachable at ${viewport.width}`, async ({ page }, testInfo) => {
         await page.setViewportSize(viewport);
