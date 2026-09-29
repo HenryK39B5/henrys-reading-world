@@ -27,6 +27,7 @@
 
 - `npm run test:e2e` 本机完整真实数据站点 Chromium **130/130**（跨房间导航、键盘、地图、分享、320～1440px、200%等效视窗以及部分Chromium真放大）；`npm run check:local` 57文件/388单测与130本/4,663句本机快照校验通过，本机草稿主题继续诚实保留。公开 `npm run test:public` 最终 Chromium **9/9**；`npm run check` 57文件/388单测、类型/lint/公开快照与地形校验、构建通过，`npm run isolation:public` 与 `npm run publication:verify` 再次通过（108本/3,462句、108封面、184静态房间）。改动后的最终生产 Pages 子路径专项 Chromium10/10＋Playwright WebKit10/10，包含真图首帧和深层书房图标。
 - **失败保留**：第一次 `npm run test:public` 为 **8/9**，并非地图或favicon回归：`e2e/public-release.spec.ts` 仍断言旧技术文章文案「不重新运行 UMAP 或移动剩余点」，实际页面早已写为「不重新运行 UMAP，也不为发布移动点位」。改测试为精确当前边界；另将`TechnicalRoom.tsx`中「公开地形是JSON资源」改为准确描述当前**构建时预备、首次地图绘制即用**，并增加相应断言。随后完整公开9/9及上述全套检查通过；不把首轮失败抹去，不改变地图坐标/原文/范围或分享契约。
+- **移动长②的取舍已复看，未擅改版式**：当前`map.css`在≥1050px使地图贴顶、阅读栏独立滚动；≤700px地图高190px且不贴顶，长原文使两句对照时地图可能离开当前屏。真实Chromium截图`.private/review/map-readable/compare-390-chromium.png`显示②完整文字、地图不在视口；`compare-320-chromium.png`仅见地图底部，不能把电脑端图文共视结果推作手机长②已解决。已有「在图上读②的详情」/收起②/返回原处可找回真点，不自动飞地图；强行固定190px地图会挤占小屏原文，应请Henry在完整站点权衡可接受性再做版式改变。
 - 当前本机预览`http://127.0.0.1:5212/`仍在响应且提供最新源码，可供 Henry 看完整站点（预览端口是临时进程，失效时依 README 本机命令重启）。自动化WebKit仍不是实体Safari，全部测试通过仍不构成内容权利/访客审美或部署许可。
 
 ## 5. 还值得完善什么，以及正式发布前的决定

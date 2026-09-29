@@ -5,7 +5,7 @@
 ## 2026-09-29 · 第二次上线全站回归与技术说明同步（无部署）
 
 - 新图标/首帧候选落地后补跑`npm run test:e2e`：本机完整真实数据网站Chromium **130/130**，覆盖跨页、隐私阻断、键盘、手机与200%等效/部分Chromium真放大；`npm run check:local`类型/lint/57文件388单测、本机130本4663句校验通过（2969条主题草稿仍未强贴）。`npm run test:public`第一次8/9，技术说明的旧断言「不重新运行 UMAP 或移动剩余点」不符现行已发布文案；对照`TechnicalRoom.tsx`确认实际是「不重新运行 UMAP，也不为发布移动点位」，只修正断言，并将该技术文章中会被误解成**额外请求**公开地形JSON的描述同步为「构建时准备、地图首次绘制即用」，补上首帧断言。复跑公开Chromium9/9。没有修改原书句或地图语义边界，失败记录保留在`docs/79`。
-- 最终`npm run check`通过57文件388单测/类型/lint/快照与地形校验/build；`npm run isolation:public`干净；`npm run publication:verify`核对108本3462句108封面/184静态房间。改后Pages式生产入口`npx playwright test --config playwright.pages.config.ts` Chromium10/10＋Playwright WebKit10/10（地图冷启、深层书房图标、技术文章、手机宽度）。本机5212 `/map`响应200且提供最新源码，供Henry看完整网站；低端首次加载、手机长②地图离屏、真机Safari/iOS、读屏、访客/权利仍未验收。提交本地小步Git；无push或部署，`master` push须Henry单独授权。
+- 最终`npm run check`通过57文件388单测/类型/lint/快照与地形校验/build；`npm run isolation:public`干净；`npm run publication:verify`核对108本3462句108封面/184静态房间。改后Pages式生产入口`npx playwright test --config playwright.pages.config.ts` Chromium10/10＋Playwright WebKit10/10（地图冷启、深层书房图标、技术文章、手机宽度）。本机5212 `/map`响应200且提供最新源码，供Henry看完整网站；复看`map.css`与实际截图`.private/review/map-readable/compare-{390,320}-chromium.png`：手机地图190px且不贴顶，长②在390px时当前屏不见地图、320px仅露地图底部；读②详情/收起/返回路径存在，若固定地图会压缩窄屏原文，本轮不擅改方案，交Henry完整站点权衡。低端首次加载、真机Safari/iOS、读屏、访客/权利仍未验收。提交本地小步Git；无push或部署，`master` push须Henry单独授权。
 
 ## 2026-09-28 · 第二次上线准备：站点图标与地图新地形首帧（待Henry验收、无部署）
 

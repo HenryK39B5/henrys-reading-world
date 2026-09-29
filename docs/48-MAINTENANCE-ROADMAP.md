@@ -5,7 +5,7 @@
 
 本文件是后续维护任务的唯一进度入口。`docs/08-REVIEW-CHECKLIST.md` 保留逐阶段执行记录，`docs/47-PUBLIC-RELEASE-CLOSEOUT.md` 保留上线验收结果；不要在三处分别维护任务状态。开始新一轮工作前，先读本文件并检查 Git 状态。任务只用四种状态：`待做`、`进行中`、`待 Henry 验收`、`完成`；原则上同时只有一项 `进行中`。每项完成时记录实际测试、截图位置、提交号与未验证项，再进入下一项；不能把计划写成已经验证的结果。
 
-2026-09-29 · 第二次上线全站回归（待 Henry 验收/部署决定） · 新图标/同步公开地形后本机完整真实数据站点Chromium130/130，`npm run check:local`388单测与4663句本机数据检查，公开`npm run test:public`初跑8/9（过期技术文章断言），对照现行页面修正断言/同步技术文章首次地形绘制描述后完整9/9；最终`npm run check`388/388、public isolation、publication verify通过，改后Pages式Chromium/WebKit20/20。失败/修复、截图和余留Gate见`docs/79`/`docs/08`；目前完整站点本机5212可体验。发布前仍要Henry看16px图标/地图冷启与长②，并单独许可推送（将触发部署）；首次访客、实体Safari/iOS、权利和低端冷启性能未独立通过，未push/deploy。
+2026-09-29 · 第二次上线全站回归（待 Henry 验收/部署决定） · 新图标/同步公开地形后本机完整真实数据站点Chromium130/130，`npm run check:local`388单测与4663句本机数据检查，公开`npm run test:public`初跑8/9（过期技术文章断言），对照现行页面修正断言/同步技术文章首次地形绘制描述后完整9/9；最终`npm run check`388/388、public isolation、publication verify通过，改后Pages式Chromium/WebKit20/20。失败/修复、截图和余留Gate见`docs/79`/`docs/08`；目前完整站点本机5212可体验。发布前仍要Henry看16px图标/地图冷启与长②：手机地图190px不贴顶，实图390px长②阅读时地图离屏，320px只露底部；若固定地图会挤占文字，须由Henry在完整站点衡量。并须单独许可推送（将触发部署）；首次访客、实体Safari/iOS、权利和低端冷启性能未独立通过，未push/deploy。
 
 2026-09-28 · 第二次上线准备（待 Henry 验收/部署决定） · 用户要求Tab图标、产品气质补全及查「旧图闪新图」。借Blogverse skill只读博客木屋图标，新设计本站书页＋地图点favicon SVG/32PNG/180touch PNG，README补克制技术badge/在本机待上线状态，页面头加图标与描述。公开地图旧图闪烁是先画snapshot旧网格/轮廓再异步加载新地形，不是已证明的浏览器缓存；公开版首次渲染即采用同步打包的已校验地形，隔离研究与私有地形按原方式加载。`npm run check`388/388，`npm run isolation:public`/`npm run publication:verify`通过；Pages生产两引擎20/20、地图阅读36/36、本机地图14/14、研究地图14+1/1+预期skip。现场截图、bundle体积/失败记录及余留Gate见`docs/79`和`docs/08`；公开快照/地形/点位不变。无push/deploy；真实Safari/iOS、低端首次加载、长②地图离屏、访客与内容/封面权利未过Gate。
 
