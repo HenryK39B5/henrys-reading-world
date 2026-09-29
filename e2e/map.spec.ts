@@ -113,6 +113,7 @@ test.describe('V3 reading world map', () => {
         await page.setViewportSize({ width: 320, height: 720 });
         await page.goto(`/map?h=${longest.id}`);
         await expect(page.locator('.map-detail-passage')).toHaveText(longest.text);
+        await expect(page.getByTestId('map-reading-window')).toHaveCount(0);
         await expect(page.locator('#map-detail-heading')).toBeFocused();
         await expect.poll(() => page.locator('#map-detail-heading').evaluate((node) => {
             const box = node.getBoundingClientRect();

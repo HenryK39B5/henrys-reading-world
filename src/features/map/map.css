@@ -915,6 +915,27 @@ body:has(.shell--dark-map) {
     height: min(80svh, 800px);
 }
 
+/* Keep the same Canvas mounted while crossing the world/reading threshold. The camera and
+   true point positions reproject as the viewport opens a place for the passage. */
+.room-map[data-map-transition='world-reading'] .map-reading-window {
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    padding: 0;
+    border-color: transparent;
+    pointer-events: none;
+    transition: opacity 160ms ease, visibility 0s linear 160ms;
+}
+
+.room-map[data-map-transition='world-reading'][data-map-level='reading'] .map-reading-window {
+    opacity: 1;
+    visibility: visible;
+    padding: clamp(22px, 3vw, 38px);
+    border-color: var(--rule);
+    pointer-events: auto;
+    transition: opacity 160ms ease 170ms, visibility 0s linear 170ms;
+}
+
 @media (max-width: 700px) {
     .shell--dark-map .map-opening-world .map-stage {
         width: 100vw;
@@ -1098,6 +1119,13 @@ body:has(.shell--dark-map) {
 }
 
 @media (min-width: 1050px) {
+    .room-map[data-map-transition='world-reading'] .map-stage {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 0fr);
+        align-items: start;
+        transition: grid-template-columns 340ms ease-in-out;
+    }
+    .room-map[data-map-transition='world-reading'] .map-canvas-wrap { min-width: 0; }
     .room-map[data-map-level='reading'] .map-stage {
         display: grid;
         grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.9fr);
@@ -1116,6 +1144,9 @@ body:has(.shell--dark-map) {
 }
 
 @media (max-width: 1049px) {
+    .room-map[data-map-transition='world-reading'] .map-canvas-wrap {
+        transition: height 340ms ease-in-out;
+    }
     .room-map[data-map-level='reading'] .map-stage { min-height: 0; }
     .room-map[data-map-level='reading'] .map-canvas-wrap {
         height: clamp(220px, 36svh, 320px);
@@ -1124,6 +1155,9 @@ body:has(.shell--dark-map) {
     .room-map[data-map-level='reading'] .map-reading-window {
         border-top: 1px solid var(--rule);
         border-left: 0;
+        padding: 20px clamp(24px, 6vw, 48px) 32px;
+    }
+    .room-map[data-map-transition='world-reading'][data-map-level='reading'] .map-reading-window {
         padding: 20px clamp(24px, 6vw, 48px) 32px;
     }
 }
@@ -1136,6 +1170,9 @@ body:has(.shell--dark-map) {
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .room-map[data-map-transition='world-reading'] .map-stage,
+    .room-map[data-map-transition='world-reading'] .map-canvas-wrap,
+    .room-map[data-map-transition='world-reading'] .map-reading-window { transition: none; }
     .map-icon-button,
     .map-book-trigger,
     .map-book-dialog,

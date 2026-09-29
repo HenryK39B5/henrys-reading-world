@@ -8,6 +8,81 @@ import type { Snapshot } from '../src/domain/types.ts';
 const index = indexSnapshot(JSON.parse(readFileSync(new URL('../src/data/public-snapshot.json', import.meta.url), 'utf8')) as Snapshot);
 const layout = index.snapshot.map;
 
+for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }, { width: 320, height: 720 }]) {
+    test(`the world opens into a readable place without jumping the map at ${viewport.width}`, async ({ page }, testInfo) => {
+        await page.setViewportSize(viewport);
+        await page.addInitScript(() => sessionStorage.setItem('reading-world:map:world-view:v1',
+            JSON.stringify({ centerX: 5662, centerY: 2807, zoom: 3.4 })));
+        await page.goto('/map');
+        const canvas = page.getByTestId('map-canvas');
+        await expect(page.locator('.map-canvas-wrap')).toHaveAttribute('data-map-study', 'ready');
+        await canvas.scrollIntoViewIfNeeded();
+        const before = await canvas.boundingBox();
+        if (before === null) throw Error('World map did not mount');
+        const scroll = await page.evaluate(() => window.scrollY);
+        const frames = await page.evaluate(() => new Promise<Array<{ width: number; height: number; top: number; stageTop: number }>>((resolve) => {
+            const surface = document.querySelector<HTMLCanvasElement>('[data-testid="map-canvas"]');
+            const stage = document.querySelector<HTMLElement>('.map-stage');
+            if (surface === null || stage === null) throw Error('Map scene missing');
+            const rect = surface.getBoundingClientRect();
+            const start = performance.now();
+            const result: Array<{ width: number; height: number; top: number; stageTop: number }> = [];
+            surface.dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: -80,
+                clientX: rect.x + rect.width / 2, clientY: rect.y + 120 }));
+            const frame = (now: number): void => {
+                const current = surface.getBoundingClientRect();
+                result.push({ width: current.width, height: current.height, top: current.top, stageTop: stage.getBoundingClientRect().top });
+                if (now - start < 650) requestAnimationFrame(frame);
+                else resolve(result);
+            };
+            requestAnimationFrame(frame);
+        }));
+        await expect(page.locator('.room-map')).toHaveAttribute('data-map-level', 'reading');
+        await expect(page.getByTestId('map-reading-window')).toBeVisible();
+        const after = await canvas.boundingBox();
+        if (after === null) throw Error('Reading map disappeared');
+        const extent = viewport.width >= 1050 ? 'width' : 'height';
+        expect(before[extent]).toBeGreaterThan(after[extent] + 100);
+        expect(frames.some((frame) => frame[extent] < before[extent] - 12 && frame[extent] > after[extent] + 12)).toBe(true);
+        expect(frames.every((frame) => Math.abs(frame.stageTop - frames[0]!.stageTop) < 2)).toBe(true);
+        expect(await page.evaluate(() => window.scrollY)).toBe(scroll);
+        const view = { centerX: Number(await canvas.getAttribute('data-map-center-x')),
+            centerY: Number(await canvas.getAttribute('data-map-center-y')),
+            zoom: Number(await canvas.getAttribute('data-map-zoom')) };
+        const first = mapReadingWindow(index, view, after.width, after.height).entries[0];
+        if (first !== undefined) await expect(page.locator('.map-reading-window > .map-reading-passage p')).toHaveText(first.highlight.text);
+        if (testInfo.project.name === 'chromium') {
+            const folder = '.private/review/map-transition';
+            mkdirSync(folder, { recursive: true });
+            await page.screenshot({ path: `${folder}/reading-${viewport.width}.png`, animations: 'disabled' });
+        }
+        await canvas.focus();
+        await page.keyboard.press('-');
+        await expect(page.locator('.room-map')).toHaveAttribute('data-map-level', 'world');
+        await expect.poll(async () => (await canvas.boundingBox())?.[extent] ?? 0).toBeCloseTo(before[extent], 0);
+        await expect(page.getByTestId('map-reading-window')).toHaveCount(0);
+        expect((await canvas.boundingBox())?.y).toBeCloseTo(before.y, 0);
+    });
+}
+
+test('reduced motion crosses the reading threshold without a layout animation', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.addInitScript(() => sessionStorage.setItem('reading-world:map:world-view:v1',
+        JSON.stringify({ centerX: 5662, centerY: 2807, zoom: 3.4 })));
+    await page.goto('/map');
+    const canvas = page.getByTestId('map-canvas');
+    await expect(canvas).toHaveAttribute('data-map-zoom', '3.400');
+    await canvas.focus();
+    await page.keyboard.press('+');
+    await expect(page.getByTestId('map-reading-window')).toBeVisible();
+    // The global reduced-motion rule forces 0.01ms (not literally 0s) in both engines.
+    for (const selector of ['.map-canvas-wrap', '.map-reading-window']) {
+        const durations = await page.locator(selector).evaluate((element) => getComputedStyle(element).transitionDuration);
+        expect(durations.split(',').every((duration) => Number.parseFloat(duration) <= 0.00001)).toBe(true);
+    }
+});
+
 test('an interior real place name survives a small pan when another name enters the frame', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.addInitScript(() => {
@@ -47,9 +122,11 @@ test('an interior real place name survives a small pan when another name enters 
     expect(after.local.x).toBeLessThan(after.box.width - 45);
     expect(after.local.y).toBeGreaterThan(35);
     expect(after.local.y).toBeLessThan(after.box.height - 35);
-    await page.mouse.move(after.x, after.y);
-    await expect(page.locator('.map-hover-readout')).toContainText(title);
+    // Wait for the actual Canvas repaint/hit-region update after the drag, not just React's viewport attribute.
     await page.screenshot({ path: `${folder}/after-${test.info().project.name}.png`, animations: 'disabled' });
+    const paintedAfter = await point();
+    await page.mouse.move(paintedAfter.x, paintedAfter.y);
+    await expect(page.locator('.map-hover-readout')).toContainText(title);
     await canvas.focus();
     await page.keyboard.press('+');
     const closer = await point();
@@ -105,6 +182,10 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         const worldPoint = mapToScreen(target.label, WORLD_MAP_VIEW, bounds.width, bounds.height);
         await canvas.click({ position: worldPoint });
         await expect(page.getByTestId('map-reading-window')).toBeVisible();
+        // A geometry measurement during the deliberate opening would aim the pointer at an old place.
+        await page.locator('.map-stage').evaluate((stage) => Promise.all(stage.getAnimations({ subtree: true })
+            .map((animation) => animation.finished.catch(() => undefined))));
+        if (viewport.width <= 700) await expect.poll(async () => (await canvas.boundingBox())?.height ?? 0).toBeCloseTo(190, 0);
         const zoom = Number(await canvas.getAttribute('data-map-zoom'));
         expect(zoom).toBeGreaterThanOrEqual(4);
         const view = {
@@ -182,13 +263,18 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         await expect(page.getByTestId('map-reading-window')).toBeVisible();
         await expect(page.locator('.map-reading-passage p')).toHaveText(contents.entries[0]?.highlight.text ?? '');
         await expect(canvas).toHaveAttribute('data-map-zoom', zoom ?? '');
-        await page.getByRole('link', { name: '在图上读这一处' }).click();
+        const opener = page.getByRole('link', { name: '在图上读这一处' });
+        const openerNode = await opener.elementHandle();
+        await opener.click();
         await expect(page.locator('.map-detail-passage')).toHaveText(contents.entries[0]?.highlight.text ?? '');
+        await expect(page.locator('.map-reading-window')).toBeHidden();
+        expect(await openerNode?.evaluate((element) => element.isConnected)).toBe(true);
         expect(new URL(page.url()).searchParams.get('h')).toBe(firstId);
         await page.goBack();
         await expect(page.getByTestId('map-reading-window')).toBeVisible();
         await expect(canvas).toHaveAttribute('data-map-zoom', zoom ?? '');
-        await expect(page.getByRole('link', { name: '在图上读这一处' })).toBeFocused();
+        await expect(opener).toBeFocused();
+        expect(await openerNode?.evaluate((element) => document.activeElement === element)).toBe(true);
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     });
 }
@@ -334,6 +420,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         await page.setViewportSize(viewport);
         await page.goto('/map');
         const readout = page.locator('.map-hover-readout');
+        await expect(page.getByTestId('map-canvas')).toBeVisible();
         await expect(readout).toBeEmpty();
         expect(await readout.evaluate((element) => element.getBoundingClientRect().width)).toBeLessThanOrEqual(1);
         await page.screenshot({ path: `.private/review/map-readable/annotation-world-${viewport.width}-${testInfo.project.name}.png`, fullPage: false });

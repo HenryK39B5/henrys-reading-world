@@ -204,7 +204,10 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
     }, [layout, highlightId, mapSize.width, mapSize.height]);
     const [readingListLimit, setReadingListLimit] = useState(8);
     const [comparisonPick, setComparisonPick] = useState<{ anchorId: string; otherId: string; centerX: number; centerY: number; zoom: number } | null>(null);
-    const readingWorld = !__MAP_STUDY_ENDPOINT__ && effectiveTagId === null && effectiveBookId === null && view.view.zoom >= MAP_READING_ZOOM;
+    const worldReadingAvailable = !__MAP_STUDY_ENDPOINT__ && effectiveTagId === null && effectiveBookId === null;
+    const canReadWorld = worldReadingAvailable && highlight === undefined;
+    const keepReadingWindow = worldReadingAvailable && view.view.zoom >= MAP_READING_ZOOM;
+    const readingWorld = keepReadingWindow && highlight === undefined;
     const readingWindow = useMemo(
         () => mapReadingWindow(index, view.view, mapSize.width, mapSize.height),
         [index, mapSize.height, mapSize.width, view.view],
@@ -313,7 +316,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
     const selectedBookPoints = book === undefined ? [] : mapPointsForBook(index, book.id);
 
     return (
-        <section className={`room room-map${tag === undefined && highlight === undefined ? ' map-opening-world' : ''}${readingWorld && highlight === undefined ? ' map-reading-world' : ''}`} aria-labelledby="map-heading" data-room="map" data-map-level={level}>
+        <section className={`room room-map${tag === undefined && highlight === undefined ? ' map-opening-world' : ''}${readingWorld && highlight === undefined ? ' map-reading-world' : ''}`} aria-labelledby="map-heading" data-room="map" data-map-level={level} data-map-transition={canReadWorld ? 'world-reading' : undefined}>
             <header className="map-head">
                 <div>
                     <p className="room-kicker">{tag === undefined ? '全部真实划线形成的地形' : '正在查看主题区域'}</p>
@@ -324,7 +327,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                         {String(pointCount)} 个真实点 · {String(namedCount)} 个已命名点
                     </p>
                     {tag?.description === undefined ? null : <p className="map-region-description">{tag.description}</p>}
-                    {tag === undefined && highlight === undefined && !readingWorld ? (
+                    {tag === undefined && highlight === undefined ? (
                         <p className="map-region-description">点地图上的一处或放大一片地方，读真实划线；移动地图可以换一片。</p>
                     ) : null}
                 </div>
@@ -422,8 +425,9 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                         onNavigate(mapHref({ tagId: effectiveTagId, bookId: effectiveBookId, highlightId: nextHighlightId }));
                     }}
                 />
-                {readingWorld ? (
-                    <section className="map-reading-window" aria-labelledby="map-reading-heading" data-testid="map-reading-window" hidden={highlight !== undefined}>
+                {canReadWorld || keepReadingWindow ? (
+                    <section className="map-reading-window" aria-labelledby={keepReadingWindow ? 'map-reading-heading' : undefined} aria-hidden={!readingWorld} inert={!readingWorld} hidden={!canReadWorld} data-testid={readingWorld ? 'map-reading-window' : undefined}>
+                        {keepReadingWindow ? (<>
                         <p className="room-kicker">地图上的这一片</p>
                         <h2 id="map-reading-heading">这里的书与划线</h2>
                         <nav className="map-reading-exits" aria-label="离开这一片地图">
@@ -498,6 +502,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                                 </details>
                             </>
                         )}
+                        </>) : null}
                     </section>
                 ) : null}
                 {highlight === undefined ? null : (

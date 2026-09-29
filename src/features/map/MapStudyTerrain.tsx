@@ -8,13 +8,13 @@ export type MapStudyData = {
     bands: Array<{ value: number; coordinates: number[][][][] }>;
 };
 
-type Renderer = { render: (view: MapViewport) => void; dispose: () => void };
+type Renderer = { render: (view: MapViewport, width: number, height: number) => void; dispose: () => void };
 
-function bandRenderer(canvas: HTMLCanvasElement, data: MapStudyData, width: number, height: number, opacity = 1): Renderer {
+function bandRenderer(canvas: HTMLCanvasElement, data: MapStudyData, opacity = 1): Renderer {
     const ctx = canvas.getContext('2d');
     if (ctx === null) throw new Error('Map study Canvas2D unavailable');
     return {
-        render(view) {
+        render(view, width, height) {
             ctx.clearRect(0, 0, width, height);
             const scale = Math.min(width, height) / MAP_COORDINATE_MAX * view.zoom;
             for (const band of data.bands) {
@@ -36,7 +36,7 @@ function bandRenderer(canvas: HTMLCanvasElement, data: MapStudyData, width: numb
     };
 }
 
-function webglRenderer(canvas: HTMLCanvasElement, data: MapStudyData, width: number, height: number): Renderer | null {
+function webglRenderer(canvas: HTMLCanvasElement, data: MapStudyData): Renderer | null {
     const gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: false });
     if (gl === null) return null;
     const compile = (kind: number, source: string): WebGLShader => {
@@ -85,11 +85,11 @@ void main() {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.uniform2f(gl.getUniformLocation(program, 'viewport'), width, height);
     return {
-        render(view) {
+        render(view, width, height) {
             gl.useProgram(program);
             gl.viewport(0, 0, width, height);
+            gl.uniform2f(gl.getUniformLocation(program, 'viewport'), width, height);
             gl.uniform3f(gl.getUniformLocation(program, 'view'), view.centerX, view.centerY, view.zoom);
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         },
@@ -113,40 +113,44 @@ export function MapStudyTerrain({ data, view, width, height }: { data: MapStudyD
     useEffect(() => {
         const canvas = canvasRef.current;
         if (canvas === null) return;
-        const ratio = Math.min(2, window.devicePixelRatio || 1);
-        canvas.width = Math.round(width * ratio);
-        canvas.height = Math.round(height * ratio);
         const handleLost = (event: Event): void => { event.preventDefault(); setFallback(true); };
         canvas.addEventListener('webglcontextlost', handleLost);
         let renderer: Renderer | null = null;
         try {
-            renderer = fallback ? bandRenderer(canvas, data, canvas.width, canvas.height) : webglRenderer(canvas, data, canvas.width, canvas.height);
+            renderer = fallback ? bandRenderer(canvas, data) : webglRenderer(canvas, data);
         } catch {
             setFallback(true);
         }
         if (renderer === null && !fallback) setFallback(true);
         rendererRef.current = renderer;
-        renderer?.render(currentView.current);
+        renderer?.render(currentView.current, canvas.width, canvas.height);
         return () => {
             canvas.removeEventListener('webglcontextlost', handleLost);
             renderer?.dispose();
             rendererRef.current = null;
         };
-    }, [data, fallback, height, width]);
+    }, [data, fallback]);
     useEffect(() => {
         const canvas = bandCanvasRef.current;
         if (canvas === null) return;
-        const ratio = Math.min(2, window.devicePixelRatio || 1);
-        canvas.width = Math.round(width * ratio);
-        canvas.height = Math.round(height * ratio);
-        const renderer = bandRenderer(canvas, data, canvas.width, canvas.height, 0.28);
+        const renderer = bandRenderer(canvas, data, 0.28);
         bandRendererRef.current = renderer;
-        renderer.render(currentView.current);
+        renderer.render(currentView.current, canvas.width, canvas.height);
         return () => { renderer.dispose(); bandRendererRef.current = null; };
-    }, [data, fallback, height, width]);
+    }, [data, fallback]);
     useEffect(() => {
-        rendererRef.current?.render(view);
-        bandRendererRef.current?.render(view);
+        const ratio = Math.min(2, window.devicePixelRatio || 1);
+        for (const canvas of [canvasRef.current, bandCanvasRef.current]) {
+            if (canvas === null) continue;
+            canvas.width = Math.round(width * ratio);
+            canvas.height = Math.round(height * ratio);
+        }
+        rendererRef.current?.render(currentView.current, canvasRef.current?.width ?? 0, canvasRef.current?.height ?? 0);
+        bandRendererRef.current?.render(currentView.current, bandCanvasRef.current?.width ?? 0, bandCanvasRef.current?.height ?? 0);
+    }, [width, height, fallback]);
+    useEffect(() => {
+        rendererRef.current?.render(view, canvasRef.current?.width ?? 0, canvasRef.current?.height ?? 0);
+        bandRendererRef.current?.render(view, bandCanvasRef.current?.width ?? 0, bandCanvasRef.current?.height ?? 0);
     }, [view]);
     return (
         <>

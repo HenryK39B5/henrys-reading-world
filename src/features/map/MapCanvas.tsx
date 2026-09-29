@@ -97,6 +97,7 @@ export function MapCanvas({
         placeNames: boolean;
         entries: PlannedMapLabel[];
     } | null>(null);
+    const layoutTransition = useRef(false);
     const drag = useRef<DragState | null>(null);
     const pointers = useRef(new Map<number, { x: number; y: number }>());
     const pinch = useRef<PinchState | null>(null);
@@ -150,6 +151,32 @@ export function MapCanvas({
     }, []);
 
     useEffect(() => () => { if (zoomFrame.current !== null) cancelAnimationFrame(zoomFrame.current); }, []);
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        const stage = canvas?.closest<HTMLElement>('.map-stage') ?? null;
+        if (canvas === null || stage === null) return;
+        const isSceneResize = (event: TransitionEvent): boolean =>
+            (event.target === stage && event.propertyName === 'grid-template-columns') ||
+            (event.target === canvas.parentElement && event.propertyName === 'height');
+        const start = (event: TransitionEvent): void => {
+            if (isSceneResize(event)) layoutTransition.current = true;
+        };
+        const finish = (event: TransitionEvent): void => {
+            if (!isSceneResize(event)) return;
+            layoutTransition.current = false;
+            labelPlan.current = null;
+            // Admit labels against the settled viewport, never plan all intermediate widths.
+            setSize((current) => ({ ...current }));
+        };
+        stage.addEventListener('transitionrun', start);
+        stage.addEventListener('transitionend', finish);
+        stage.addEventListener('transitioncancel', finish);
+        return () => {
+            stage.removeEventListener('transitionrun', start);
+            stage.removeEventListener('transitionend', finish);
+            stage.removeEventListener('transitioncancel', finish);
+        };
+    }, []);
     useEffect(() => { if (__MAP_STUDY__) setHoverTarget(null); }, [view.centerX, view.centerY, view.zoom]);
 
     useEffect(() => {
@@ -436,7 +463,7 @@ export function MapCanvas({
             // Rebuild only when the actual data, selection or canvas dimensions change.
             const cached = labelPlan.current;
             const valid = cached !== null && cached.labels === labels && cached.activeTagId === activeTagId &&
-                cached.width === size.width && cached.height === size.height && cached.placeNames === placeNames;
+                (layoutTransition.current || (cached.width === size.width && cached.height === size.height)) && cached.placeNames === placeNames;
             const entries = valid && cached !== null ? cached.entries : planMapLabels(labels, activeTagId, size, measure, placeNames);
             if (!valid) labelPlan.current = { labels, activeTagId, width: size.width, height: size.height, placeNames, entries };
             placedLabels = projectMapLabels(entries, view.zoom, size, measure, activeTagId, placeNames);
