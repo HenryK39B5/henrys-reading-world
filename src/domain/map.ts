@@ -20,6 +20,8 @@ export type MapLabelSummary = {
     description?: string;
     highlightCount: number;
     bookCount: number;
+    /** Reviewed members genuinely close to this fixed label anchor (not all nearby points). */
+    localHighlightCount?: number;
 };
 
 export function mapPointsById(index: SnapshotIndex): Map<string, MapPoint> {
@@ -41,6 +43,7 @@ export function mapPointsForBook(index: SnapshotIndex, bookId: string): MapPoint
 }
 
 export function summarizeMapLabels(index: SnapshotIndex): MapLabelSummary[] {
+    const pointById = mapPointsById(index);
     return (index.snapshot.map?.labels ?? []).flatMap((label) => {
         const tag = index.tagsById.get(label.tagId);
         if (tag === undefined) return [];
@@ -52,6 +55,10 @@ export function summarizeMapLabels(index: SnapshotIndex): MapLabelSummary[] {
             ...(tag.description === undefined ? {} : { description: tag.description }),
             highlightCount: highlights.length,
             bookCount: new Set(highlights.map((highlight) => highlight.bookId)).size,
+            localHighlightCount: highlights.filter((highlight) => {
+                const point = pointById.get(highlight.id);
+                return point !== undefined && (point.x - label.x) ** 2 + (point.y - label.y) ** 2 <= 900 ** 2;
+            }).length,
         }];
     });
 }

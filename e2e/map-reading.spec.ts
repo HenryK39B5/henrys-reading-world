@@ -64,12 +64,29 @@ test('an interior real place name survives a small pan when another name enters 
 });
 
 for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }, { width: 320, height: 720 }]) {
+    test(`an evidenced but previously unnamed place is a genuine overview signpost at ${viewport.width}`, async ({ page }) => {
+        await page.setViewportSize(viewport);
+        await page.goto('/map');
+        const canvas = page.getByTestId('map-canvas');
+        await expect(page.locator('.map-canvas-wrap')).toHaveAttribute('data-map-study', 'ready');
+        await canvas.scrollIntoViewIfNeeded();
+        const bounds = await canvas.boundingBox();
+        if (bounds === null) throw Error('Missing overview map');
+        const anchor = layout?.labels.find((label) => label.tagId === 'tag-049');
+        if (anchor === undefined) throw Error('Missing fixed, reviewed place');
+        const position = mapToScreen(anchor, WORLD_MAP_VIEW, bounds.width, bounds.height);
+        await page.mouse.move(bounds.x + position.x, bounds.y + position.y);
+        await expect(page.locator('.map-hover-readout')).toContainText('民主法治');
+        await canvas.click({ position });
+        await expect(page).toHaveURL(/\/map\?tag=tag-049/);
+    });
+
     test(`map place names grow with proximity and a genuine lower-ranked place becomes reachable at ${viewport.width}`, async ({ page }, testInfo) => {
         await page.setViewportSize(viewport);
-        const target = summarizeMapLabels(index).find((item) => item.tagId === 'tag-051');
+        const target = summarizeMapLabels(index).find((item) => item.tagId === 'tag-025');
         expect(target).toBeDefined();
         if (target === undefined) return;
-        const folder = '.private/review/map-label-scale';
+        const folder = '.private/review/map-overview-coverage';
         mkdirSync(folder, { recursive: true });
         await page.addInitScript(({ title }) => {
             const paints: string[] = [];
@@ -107,7 +124,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
             return pixels !== null && Number(pixels[1]) >= (viewport.width < 520 ? 17 : 19);
         })).toBe(true);
         await canvas.click({ position: near });
-        await expect(page).toHaveURL(/\/map\?tag=tag-051/);
+        await expect(page).toHaveURL(/\/map\?tag=tag-025/);
         await page.screenshot({ path: `${folder}/selected-${viewport.width}-${testInfo.project.name}.png`, animations: 'disabled' });
     });
 }

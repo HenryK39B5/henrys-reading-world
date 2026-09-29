@@ -39,9 +39,28 @@ describe('map label placement', () => {
         ];
         const plan = planMapLabels(labels, null, size, measure);
         for (const zoom of [1, 1.7, 1.71, 2, 2.01]) {
-            expect(projectMapLabels(plan, zoom, size, measure, null).map((entry) => entry.summary.tagId))
-                .toEqual(['tag-001', 'tag-002', 'tag-003']);
+            expect(new Set(projectMapLabels(plan, zoom, size, measure, null).map((entry) => entry.summary.tagId)))
+                .toEqual(new Set(['tag-001', 'tag-002', 'tag-003']));
         }
+    });
+
+    it('signposts a separated locally supported place instead of filling the world with global popularity', () => {
+        const candidates = [
+            { ...summary('tag-001', 2200, 100, 'popular'), localHighlightCount: 15 },
+            { ...summary('tag-002', 2800, 90, 'near popular'), localHighlightCount: 8 },
+            { ...summary('tag-003', 8300, 2, 'remote'), localHighlightCount: 4 },
+            { ...summary('tag-004', 5300, 30, 'unsupported'), localHighlightCount: 0 },
+        ];
+        const plan = planMapLabels(candidates, null, size, measure, true);
+        const world = projectMapLabels(plan, 1, size, measure, null, true);
+        expect(world.map((entry) => entry.summary.tagId)).toContain('tag-003');
+        expect(world.map((entry) => entry.summary.tagId)).not.toContain('tag-004');
+        expect(projectMapLabels(plan, 4, size, measure, null, true).map((entry) => entry.summary.tagId))
+            .toContain('tag-004');
+        // A selected topic still uses the original region/neighbour ordering, not the world coverage plan.
+        const selected = planMapLabels(candidates, 'tag-004', size, measure, true);
+        expect(projectMapLabels(selected, 1, size, measure, 'tag-004', true))
+            .toEqual(placeMapLabels(candidates, 'tag-004', 1, size, measure, true));
     });
 
     it('centers pure lettering on the real anchor and reserves a larger invisible hit area', () => {
@@ -82,11 +101,14 @@ describe('map label placement', () => {
         const titleWidth = (title: string): number => title.length * 9;
         const plan = planMapLabels(candidates, null, size, titleWidth, true);
         const world = projectMapLabels(plan, 1, size, titleWidth, null, true);
-        expect(world).toEqual(placeMapLabels(candidates, null, 1, size, titleWidth, true, true));
-        expect(world.map((entry) => entry.summary.tagId)).not.toContain('tag-012');
+        expect(world.length).toBeLessThan(candidates.length);
+        expect(new Set(world.map((entry) => entry.summary.tagId)).size).toBe(world.length);
         expect(placeMapLabels(candidates, null, 4, size, titleWidth, true, true)).toHaveLength(10);
         const close = projectMapLabels(plan, 4, size, titleWidth, null, true);
-        const target = candidates[11]!;
+        const worldIds = new Set(world.map((entry) => entry.summary.tagId));
+        const target = candidates.slice(10).find((entry) => !worldIds.has(entry.tagId));
+        expect(target).toBeDefined();
+        if (target === undefined) return;
         expect(close.map((entry) => entry.summary.tagId)).toContain(target.tagId);
         const first = visibleMapLabels(close, target.label.x, target.label.y, 4, size)
             .find((entry) => entry.summary.tagId === target.tagId);
