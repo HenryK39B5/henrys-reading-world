@@ -43,7 +43,8 @@ test.describe('non-empty public release', () => {
         await page.getByRole('link', { name: '技术实现' }).click();
         await expect(page).toHaveURL('/design/technical');
         await expect(page.getByTestId('room-heading')).toHaveText('技术实现');
-        await expect(page.locator('[data-room="technical"]')).toContainText('不重新运行 UMAP 或移动剩余点');
+        await expect(page.locator('[data-room="technical"]')).toContainText('不重新运行 UMAP，也不为发布移动点位');
+        await expect(page.locator('[data-room="technical"]')).toContainText('地图首次绘制就使用这份公开地形，不等待再次请求');
         await expect(page.locator('[data-room="technical"]')).toContainText('无法可靠标注的内容保留未标注状态');
         await page.reload();
         await expect(page.getByTestId('room-heading')).toHaveText('技术实现');

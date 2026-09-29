@@ -2,6 +2,11 @@
 
 上线后的未完成任务与状态统一维护在 `docs/48-MAINTENANCE-ROADMAP.md`；本文件继续按阶段追加实际执行证据，不作为第二份待办清单。2026-09-24 起，历史截图与专项审计 Playwright 配置位于 `e2e/config/`；下文更早的根目录调用命令保留为当时执行记录，重新运行时须改用新路径。
 
+## 2026-09-29 · 第二次上线全站回归与技术说明同步（无部署）
+
+- 新图标/首帧候选落地后补跑`npm run test:e2e`：本机完整真实数据网站Chromium **130/130**，覆盖跨页、隐私阻断、键盘、手机与200%等效/部分Chromium真放大；`npm run check:local`类型/lint/57文件388单测、本机130本4663句校验通过（2969条主题草稿仍未强贴）。`npm run test:public`第一次8/9，技术说明的旧断言「不重新运行 UMAP 或移动剩余点」不符现行已发布文案；对照`TechnicalRoom.tsx`确认实际是「不重新运行 UMAP，也不为发布移动点位」，只修正断言，并将该技术文章中会被误解成**额外请求**公开地形JSON的描述同步为「构建时准备、地图首次绘制即用」，补上首帧断言。复跑公开Chromium9/9。没有修改原书句或地图语义边界，失败记录保留在`docs/79`。
+- 最终`npm run check`通过57文件388单测/类型/lint/快照与地形校验/build；`npm run isolation:public`干净；`npm run publication:verify`核对108本3462句108封面/184静态房间。改后Pages式生产入口`npx playwright test --config playwright.pages.config.ts` Chromium10/10＋Playwright WebKit10/10（地图冷启、深层书房图标、技术文章、手机宽度）。本机5212 `/map`响应200且提供最新源码，供Henry看完整网站；低端首次加载、手机长②地图离屏、真机Safari/iOS、读屏、访客/权利仍未验收。提交本地小步Git；无push或部署，`master` push须Henry单独授权。
+
 ## 2026-09-28 · 第二次上线准备：站点图标与地图新地形首帧（待Henry验收、无部署）
 
 - **范围与依据**：Henry明确希望准备第二次上线、给网页Tab一枚站点图标、考虑产品气质及排查「旧图闪成新图」；Blogverse skill与博客配置/木屋图标仅作只读参考。本机公开站点自设计深夜纸页＋一点暖光的SVG图标；PNG32/180由现有Playwright生成，`index.html`添加项目子路径正确的三条图标引用、深色主题色和与现行体验一致的短描述；README补克制技术栈badge及线上/本机第二版状态。`src/features/map/MapCanvas.tsx`公开模式首次渲染时同步采用已验证的公开地形数据，不再先画旧快照的网格轮廓后因异步fetch切换；隔离研究和私有地形的loopback入口仍维持各自的异步回退。`scripts/preview-pages.ts`补图标MIME；`e2e/pages-preflight.spec.ts`新增深层书页图标与冷启动不读旧地形的回归。详情与发布Gate见`docs/79-SECOND-RELEASE-PREPARATION.md`。

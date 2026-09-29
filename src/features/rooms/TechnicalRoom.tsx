@@ -62,7 +62,7 @@ export function TechnicalRoom() {
             <section className="design-section" aria-labelledby="technical-delivery">
                 <h2 id="technical-delivery">在浏览器里交付</h2>
                 <p>
-                    公开站点是静态构建。获准快照和公开地形都是带版本指纹的 JSON 资源；地形在构建前会校验版本、固定点位 hash 和几何层数。公开站点不依赖本机私有数据、运行时接口或模型服务。
+                    公开站点是静态构建。获准快照和公开地形预先从带版本指纹的 JSON 准备；地形在构建前会校验版本、固定点位 hash 和几何层数。地图首次绘制就使用这份公开地形，不等待再次请求。本机私有数据、运行时接口或模型服务不进入公开站点。
                 </p>
                 <p>
                     推送后由 GitHub Pages 工作流安装锁定依赖、重新构建并部署静态资源。改变公开内容或地图资源需要重新审核、导出、隔离检查、构建验证与部署。
