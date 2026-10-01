@@ -8,7 +8,7 @@
 - 站内说明：https://henryk39b5.github.io/henrys-reading-world/design/
 - [上线后维护任务](docs/48-MAINTENANCE-ROADMAP.md) · [首次发布验收记录](docs/47-PUBLIC-RELEASE-CLOSEOUT.md)
 
-第二次上线正在本机准备：可阅读的地图、跨书真句对读与新站点图标**尚未推送到线上**。公开内容范围和坐标保持不变；新交互的实况见 [地图方向](docs/77-READABLE-TERRAIN-MAP-DIRECTION.md) 与 [第二次上线准备](docs/79-SECOND-RELEASE-PREPARATION.md)。
+第二次上线已由 Henry 体验确认并授权发布：可阅读的地图、跨书真句对读、稳定停驻、多尺度地名、连续阅读比例与新站点图标已上线。公开内容范围、地图坐标与地形保持不变；实施与性能边界见 [阅读连续性与冷启动](docs/84-READING-CONTINUITY-AND-COLD-START.md)，部署与线上复核见 [第二次上线记录](docs/85-SECOND-RELEASE-CLOSEOUT.md)。
 
 ## 公开范围
 

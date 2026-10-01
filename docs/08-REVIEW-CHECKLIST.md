@@ -2,7 +2,13 @@
 
 上线后的未完成任务与状态统一维护在 `docs/48-MAINTENANCE-ROADMAP.md`；本文件继续按阶段追加实际执行证据，不作为第二份待办清单。2026-09-24 起，历史截图与专项审计 Playwright 配置位于 `e2e/config/`；下文更早的根目录调用命令保留为当时执行记录，重新运行时须改用新路径。
 
-## 2026-10-01 · 阅读连续性、对读停驻与公开冷启动（完整本机候选收口；无发布）
+## 2026-10-02 · Henry明确授权第二次push与Pages发布（已上线）
+
+- **授权**：Henry看本机完整站点后反馈效果挺棒，明确要求push到GitHub Pages。不是Agent把此前优化许可推作发布许可；本次不更换公开内容/点位/地形，不开启发布后内容审核。
+- **执行与结果**：原候选fcc495f工作区干净，fetch后0 behind/50 ahead；再跑build、isolation、publication verify通过，未跟踪private/env/dist。正常`git push origin master`将`7ebf2a3..fcc495f`推送；按本次head核对Actions **36890931998 completed/success**，build30秒、deploy36秒。UTC结束2026-10-01T16:19:18Z、本机UTC+8为10-02。代码此前404单测/local130/地图64/Pages22的回归未在本次重复冒称重跑。无force push、重写历史、内容导出、模型请求或私有上传。
+- **真实线上复核**：公开首页/地图，Chromium与Playwright WebKit各1440/390，**4/4**。首页/地图HTTP200，公开JSON单请求与子路径bootstrap，比例参照720/390；真实①h-1443/②h-3600选书后平移/放大保留全文、②详情/Back保留组合、明确跟随当前位置、无pageerror/横向溢出。脚本/JSON/四图在`.private/review/map-continuity/live-second-release*`与`live-*`；非真机Safari，不宣称所有设备/低端长期性能或首次访客Gate。README与维护/Agent状态、`docs/84`历史状态补记及新`docs/85-SECOND-RELEASE-CLOSEOUT.md`同步收口并正常推送，不变消费者代码。实体手机体验由Henry发布后反馈，长②地图离屏与既有权利/读屏/首访待验项照旧。
+
+## 2026-10-01 · 阅读连续性、对读停驻与公开冷启动（完整本机候选收口；当时无发布）
 
 - **授权/范围**：Henry允许Agent自行处理阅读稳定性、手机地图进入阅读的比例连续性，以及开发阶段能处理的冷启动/跟手开销；真机体验留到单独确认发布后反馈，按证据做内容审核不在本轮启动。具体方案、取舍、参数与红灯见`docs/84-READING-CONTINUITY-AND-COLD-START.md`。不是最终访客Gate或push/部署许可。
 - **实现**：世界地图增加总览CSS尺寸参照，短图只裁切而不随布局缩小地理比例；逻辑zoom/3.5阈值不补偿，投影/逆投影/手势/查询/标签/WebGL/Canvas一致。地名沿用总览计划，圆内范围仍按实际短图查询，诚实承认书句数可减少。读者选另一本书后保留当时的①②/真实窗口与稳定ID，拖动/变焦不清掉，明确「看地图当前位置」/收起②结束停驻；详情隐藏/inert保留opener后原位返回。固定比例暴露世界旧padding挡外围真点，用真实h-015/h-3944/h-2300/h-3085修相机边界与刷新，不改点位。只存逻辑相机，不存CSS尺寸。Canvas只有真实像素尺寸改变才重设backing store。public-only HTML解析即请求同一fingerprinted公开JSON，共享一次解析结果且保持原验证/失败路径；local/研究/Studio不提前读公开内容。`src/{domain/map*,app/snapshotSource*,features/map/*}`、`vite.config.ts`与相关E2E；无新依赖、模型/数据/地形/公开范围变化。
