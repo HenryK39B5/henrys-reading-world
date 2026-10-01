@@ -22,7 +22,7 @@ export function mapArrivalView(
     const margin = Math.min(24, Math.min(width, height) * 0.1);
     if (view.zoom >= MAP_READING_ZOOM && screen.x >= margin && screen.x <= width - margin &&
         screen.y >= margin && screen.y <= height - margin) return null;
-    return clampMapView({ centerX: point.x, centerY: point.y, zoom: Math.max(4, view.zoom) });
+    return clampMapView({ ...view, centerX: point.x, centerY: point.y, zoom: Math.max(4, view.zoom) });
 }
 
 export type MapReadingEntry = {

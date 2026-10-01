@@ -118,6 +118,22 @@ test('tab and touch icons resolve from the project root even on a deep book rout
     }
 });
 
+test('approved snapshot bootstrap reuses one base-prefixed request, including on a deep route', async ({ page }) => {
+    const requests: string[] = [];
+    page.on('request', (request) => {
+        if (/\/public-snapshot-[^/]+\.json$/.test(new URL(request.url()).pathname)) requests.push(request.url());
+    });
+    await page.goto(`${site}/books/${encodeURIComponent(book.id)}/`);
+    await expect(page.getByTestId('book-random-text')).toBeVisible();
+    const bootstrap = page.locator('script[data-public-snapshot]');
+    await expect(bootstrap).toHaveAttribute('data-public-snapshot', /^\/henrys-reading-world\/assets\/public-snapshot-[^/]+\.json$/);
+    const href = await bootstrap.getAttribute('data-public-snapshot');
+    expect(requests).toEqual([new URL(href ?? '', page.url()).href]);
+    await page.getByRole('link', { name: '世界地图', exact: true }).first().click();
+    await expect(page.getByTestId('map-canvas')).toBeVisible();
+    expect(requests).toHaveLength(1); // SPA navigation reuses the loaded snapshot, not another fetch.
+});
+
 test('a cold public map starts with the accepted terrain, not an older snapshot while fetching it', async ({ page }) => {
     const separateTerrainRequests: string[] = [];
     await page.route('**/*public-map-terrain*.json', (route) => {

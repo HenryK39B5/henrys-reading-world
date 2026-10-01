@@ -27,6 +27,7 @@ test('selected map label stays reachable through pan and zoom at desktop and mob
             const view = {
                 centerX: Number(await canvas.getAttribute('data-map-center-x')),
                 centerY: Number(await canvas.getAttribute('data-map-center-y')),
+                scaleBasis: Number(await canvas.getAttribute('data-map-scale-basis')) || undefined,
                 zoom: Number(await canvas.getAttribute('data-map-zoom')),
             };
             const point = mapToScreen(label, view, box.width, box.height);

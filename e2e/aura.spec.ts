@@ -355,7 +355,8 @@ test.describe('book aura', () => {
 
     test('text keeps its contrast over the tinted room', async ({ page }) => {
         await page.goto('/');
-        await expect(page.getByTestId('room-heading')).toBeVisible();
+        // This is a contrast audit, not a 5-second cold-load budget for the large local snapshot.
+        await expect(page.getByTestId('room-heading')).toBeVisible({ timeout: 20_000 });
         await settledRoom(page);
         const hallRatio = await contrast(page);
         expect(hallRatio.passage, 'the passage must stay well above AA').toBeGreaterThan(7);

@@ -133,6 +133,7 @@ test.describe('V3 reading world map', () => {
         const view = {
             centerX: Number(await canvas.getAttribute('data-map-center-x')),
             centerY: Number(await canvas.getAttribute('data-map-center-y')),
+            scaleBasis: Number(await canvas.getAttribute('data-map-scale-basis')) || undefined,
             zoom: Number(await canvas.getAttribute('data-map-zoom')),
         };
         const highlightIds = new Set(data.highlights.filter((item) => item.bookId === 'b-013').map((item) => item.id));
@@ -307,6 +308,7 @@ test.describe('V3 reading world map', () => {
         const readView = async () => ({
             centerX: Number(await canvas.getAttribute('data-map-center-x')),
             centerY: Number(await canvas.getAttribute('data-map-center-y')),
+            scaleBasis: Number(await canvas.getAttribute('data-map-scale-basis')) || undefined,
             zoom: Number(await canvas.getAttribute('data-map-zoom')),
         });
         const mapAtAnchor = (view: { centerX: number; centerY: number; zoom: number }) => {

@@ -129,7 +129,7 @@ test.describe('sharing the passage on screen', () => {
         // The link is the canonical hall link and nothing else: no room, no filter, no tracking.
         await page.getByTestId('share-copy-link').click();
         const copiedLink = await readClipboard(page);
-        expect(copiedLink).toBe(`http://127.0.0.1:5173/?h=${encodeURIComponent(highlight.id)}`);
+        expect(copiedLink).toBe(`${new URL(page.url()).origin}/?h=${encodeURIComponent(highlight.id)}`);
         expect([...new URL(copiedLink).searchParams.keys()]).toEqual(['h']);
         // local-only content must say so, on the card and next to the link.
         await expect(page.getByTestId('share-local-hint')).toContainText('仅在这台电脑的本机预览中有效');

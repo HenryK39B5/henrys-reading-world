@@ -379,6 +379,26 @@ export default defineConfig(({ command, mode }) => {
         base: command === 'build' ? '/henrys-reading-world/' : '/',
         plugins: [
             react(),
+            // Public only: start ONE approved JSON request while parsing HTML, before app JS.
+            // WebKit did not reliably reuse as=fetch preloads in our actual browser regression.
+            ...(!anyLocalMode && !mapStudyMode ? [{
+                name: 'public-snapshot-bootstrap',
+                transformIndexHtml: {
+                    order: 'post' as const,
+                    handler: (_html, context) => {
+                        const asset = context.bundle === undefined ? undefined : Object.values(context.bundle)
+                            .find((entry) => entry.type === 'asset' && /^assets\/public-snapshot-.*\.json$/.test(entry.fileName));
+                        if (command === 'build' && asset === undefined) throw Error('Approved snapshot asset missing from HTML bootstrap');
+                        const url = asset === undefined ? '/src/data/public-snapshot.json' : `/henrys-reading-world/${asset.fileName}`;
+                        return [{
+                            tag: 'script',
+                            attrs: { 'data-public-snapshot': url },
+                            children: `window.__READING_WORLD_PUBLIC_SNAPSHOT__=fetch(${JSON.stringify(url)}).then(async r=>({ok:r.ok,status:r.status,raw:r.ok?await r.json():null})).catch(()=>null);`,
+                            injectTo: 'head-prepend' as const,
+                        }];
+                    },
+                },
+            } as Plugin] : []),
             localSnapshotPlugin({ snapshot: anyLocalMode, publication: reviewMode, tags: tagStudioMode }),
             localMapTerrainPlugin(anyLocalMode),
             ...(mapStudyMode ? [mapStudyPlugin()] : []),

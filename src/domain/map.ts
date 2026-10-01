@@ -5,6 +5,8 @@ export type MapViewport = {
     centerX: number;
     centerY: number;
     zoom: number;
+    /** Presentation-only reference in CSS pixels; never saved as part of the camera. */
+    scaleBasis?: number | undefined;
 };
 
 export const WORLD_MAP_VIEW: MapViewport = {
@@ -83,13 +85,21 @@ export function fitMapPoints(points: readonly MapPoint[], maximumZoom = 6): MapV
     };
 }
 
-export function clampMapView(view: MapViewport): MapViewport {
-    const half = MAP_COORDINATE_MAX / (2 * Math.max(1, view.zoom));
+export function clampMapView(view: MapViewport, allowEdgeCenter = view.scaleBasis !== undefined): MapViewport {
+    // A clipped reading viewport must still reach the outer true points. The historical full-square
+    // padding otherwise keeps e.g. y=350 off the short mobile map. Camera centers stay inside the world.
+    const half = allowEdgeCenter ? 0 : MAP_COORDINATE_MAX / (2 * Math.max(1, view.zoom));
     return {
+        ...(view.scaleBasis === undefined ? {} : { scaleBasis: view.scaleBasis }),
         centerX: Math.max(half, Math.min(MAP_COORDINATE_MAX - half, view.centerX)),
         centerY: Math.max(half, Math.min(MAP_COORDINATE_MAX - half, view.centerY)),
         zoom: Math.max(1, Math.min(8, view.zoom)),
     };
+}
+
+/** Separate geographic magnification from the size of a clipped viewing window. */
+export function mapScale(view: MapViewport, width: number, height: number): number {
+    return (view.scaleBasis ?? Math.min(width, height)) / MAP_COORDINATE_MAX * view.zoom;
 }
 
 export function mapToScreen(
@@ -98,7 +108,7 @@ export function mapToScreen(
     width: number,
     height: number,
 ): { x: number; y: number } {
-    const scale = (Math.min(width, height) / MAP_COORDINATE_MAX) * view.zoom;
+    const scale = mapScale(view, width, height);
     return {
         x: width / 2 + (point.x - view.centerX) * scale,
         y: height / 2 + (point.y - view.centerY) * scale,
@@ -111,7 +121,7 @@ export function screenToMap(
     width: number,
     height: number,
 ): { x: number; y: number } {
-    const scale = (Math.min(width, height) / MAP_COORDINATE_MAX) * view.zoom;
+    const scale = mapScale(view, width, height);
     return {
         x: view.centerX + (point.x - width / 2) / scale,
         y: view.centerY + (point.y - height / 2) / scale,
@@ -128,8 +138,9 @@ export function zoomMapViewAt(
 ): MapViewport {
     const mapAnchor = screenToMap(anchor, view, width, height);
     const zoom = Math.max(1, Math.min(8, view.zoom * factor));
-    const scale = (Math.min(width, height) / MAP_COORDINATE_MAX) * zoom;
+    const scale = mapScale({ ...view, zoom }, width, height);
     return clampMapView({
+        ...view,
         zoom,
         centerX: mapAnchor.x - (anchor.x - width / 2) / scale,
         centerY: mapAnchor.y - (anchor.y - height / 2) / scale,

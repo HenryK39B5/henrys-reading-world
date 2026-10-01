@@ -4,6 +4,7 @@ import {
     mapPointsForBook,
     mapPointsForTag,
     mapToScreen,
+    mapScale,
     nearestPoint,
     screenToMap,
     summarizeMapLabels,
@@ -34,7 +35,8 @@ export type MapCanvasProps = {
     onSelectHighlight: (highlightId: string) => void;
 };
 
-type Size = { width: number; height: number };
+export type MapCanvasSize = { width: number; height: number; scaleBasis?: number; referenceWidth?: number; referenceHeight?: number };
+type Size = MapCanvasSize;
 
 type DragState = {
     pointerId: number;
@@ -74,7 +76,7 @@ function setLabelFont(ctx: CanvasRenderingContext2D, active: boolean, studyPlace
 
 export function MapCanvas({
     index,
-    view,
+    view: cameraView,
     onViewChange,
     activeTagId,
     activeBookId,
@@ -88,12 +90,14 @@ export function MapCanvas({
     onSelectHighlight,
 }: MapCanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const scaleReferenceRef = useRef<HTMLSpanElement>(null);
     const labelHits = useRef<LabelPlacement[]>([]);
     const labelPlan = useRef<{
         labels: ReturnType<typeof summarizeMapLabels>;
         activeTagId: string | null;
         width: number;
         height: number;
+        scaleBasis: number | undefined;
         placeNames: boolean;
         entries: PlannedMapLabel[];
     } | null>(null);
@@ -103,6 +107,11 @@ export function MapCanvas({
     const pinch = useRef<PinchState | null>(null);
     const gestureMoved = useRef(false);
     const [size, setSize] = useState<Size>({ width: 1, height: 1 });
+    const preserveScale = !__MAP_STUDY_ENDPOINT__ && activeTagId === null && activeBookId === null;
+    const planningSize = useMemo(() => preserveScale && size.referenceWidth !== undefined && size.referenceHeight !== undefined
+        ? { width: size.referenceWidth, height: size.referenceHeight, scaleBasis: size.scaleBasis ?? Math.min(size.referenceWidth, size.referenceHeight) } : size, [preserveScale, size]);
+    const view = useMemo(() => preserveScale && size.scaleBasis !== undefined
+        ? { ...cameraView, scaleBasis: size.scaleBasis } : cameraView, [cameraView, preserveScale, size.scaleBasis]);
     const [hoverText, setHoverText] = useState('');
     // Public terrain is a validated build artifact: paint the accepted surface on the first frame,
     // not the snapshot's older contours followed by a network-driven replacement.
@@ -164,7 +173,6 @@ export function MapCanvas({
         const finish = (event: TransitionEvent): void => {
             if (!isSceneResize(event)) return;
             layoutTransition.current = false;
-            labelPlan.current = null;
             // Admit labels against the settled viewport, never plan all intermediate widths.
             setSize((current) => ({ ...current }));
         };
@@ -182,15 +190,21 @@ export function MapCanvas({
     useEffect(() => {
         const canvas = canvasRef.current;
         if (canvas === null) return;
-        const observer = new ResizeObserver(([entry]) => {
-            if (entry === undefined) return;
-            const nextSize = { width: Math.max(1, entry.contentRect.width), height: Math.max(1, entry.contentRect.height) };
-            setSize(nextSize);
+        const reference = scaleReferenceRef.current;
+        const observer = new ResizeObserver(() => {
+            const rect = canvas.getBoundingClientRect();
+            const referenceRect = reference?.getBoundingClientRect();
+            const nextSize: Size = {
+                width: Math.max(1, rect.width), height: Math.max(1, rect.height),
+                ...(preserveScale && referenceRect !== undefined ? { scaleBasis: Math.max(1, Math.min(referenceRect.width, referenceRect.height)), referenceWidth: referenceRect.width, referenceHeight: referenceRect.height } : {}),
+            };
+            setSize((current) => current.width === nextSize.width && current.height === nextSize.height && current.scaleBasis === nextSize.scaleBasis && current.referenceWidth === nextSize.referenceWidth && current.referenceHeight === nextSize.referenceHeight ? current : nextSize);
             onSizeChange(nextSize);
         });
         observer.observe(canvas);
+        if (reference !== null) observer.observe(reference);
         return () => observer.disconnect();
-    }, [onSizeChange]);
+    }, [onSizeChange, preserveScale]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -215,8 +229,12 @@ export function MapCanvas({
         const canvas = canvasRef.current;
         if (canvas === null || layout === undefined) return;
         const ratio = Math.min(2, window.devicePixelRatio || 1);
-        canvas.width = Math.round(size.width * ratio);
-        canvas.height = Math.round(size.height * ratio);
+        // Resizing a Canvas reallocates its backing store and resets context state.
+        // Camera/hover changes need a repaint, not a backing-store resize.
+        const rasterWidth = Math.round(size.width * ratio);
+        const rasterHeight = Math.round(size.height * ratio);
+        if (canvas.width !== rasterWidth) canvas.width = rasterWidth;
+        if (canvas.height !== rasterHeight) canvas.height = rasterHeight;
         const ctx = canvas.getContext('2d');
         if (ctx === null) return;
         ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
@@ -451,7 +469,7 @@ export function MapCanvas({
         const placeNames = __MAP_STUDY__ && study !== null;
         const fixedStudy = __MAP_STUDY_ENDPOINT__;
         const measure = (title: string, active: boolean, zoom: number): number => {
-            setLabelFont(ctx, active, placeNames, zoom, size.width, fixedStudy);
+            setLabelFont(ctx, active, placeNames, zoom, planningSize.width, fixedStudy);
             return ctx.measureText(title).width;
         };
         let placedLabels: LabelPlacement[];
@@ -463,9 +481,10 @@ export function MapCanvas({
             // Rebuild only when the actual data, selection or canvas dimensions change.
             const cached = labelPlan.current;
             const valid = cached !== null && cached.labels === labels && cached.activeTagId === activeTagId &&
-                (layoutTransition.current || (cached.width === size.width && cached.height === size.height)) && cached.placeNames === placeNames;
-            const entries = valid && cached !== null ? cached.entries : planMapLabels(labels, activeTagId, size, measure, placeNames);
-            if (!valid) labelPlan.current = { labels, activeTagId, width: size.width, height: size.height, placeNames, entries };
+                cached.scaleBasis === size.scaleBasis &&
+                (layoutTransition.current || (cached.width === planningSize.width && cached.height === planningSize.height)) && cached.placeNames === placeNames;
+            const entries = valid && cached !== null ? cached.entries : planMapLabels(labels, activeTagId, planningSize, measure, placeNames);
+            if (!valid) labelPlan.current = { labels, activeTagId, width: planningSize.width, height: planningSize.height, scaleBasis: size.scaleBasis, placeNames, entries };
             placedLabels = projectMapLabels(entries, view.zoom, size, measure, activeTagId, placeNames);
         }
         // A viewport-relative quota used to evict names in the middle when a higher-ranked
@@ -487,7 +506,7 @@ export function MapCanvas({
                 }
             }
             const onLitCluster = litPointsUnderName >= 5;
-            setLabelFont(ctx, active, placeName, view.zoom, size.width, fixedStudy);
+            setLabelFont(ctx, active, placeName, view.zoom, planningSize.width, fixedStudy);
             if (placeName) {
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
@@ -538,7 +557,7 @@ export function MapCanvas({
             }
         }
         labelHits.current = visibleLabels;
-    }, [activeBookId, activeHighlightId, activeTagId, bookAccent, compareHighlightId, highlightAccent, bookPointIds, bookPoints, contourPaths, hoverTarget, index, labels, layout, readingHighlightId, size, study, tagPointIds, tagPoints, view]);
+    }, [activeBookId, activeHighlightId, activeTagId, bookAccent, compareHighlightId, highlightAccent, bookPointIds, bookPoints, contourPaths, hoverTarget, index, labels, layout, readingHighlightId, planningSize, size, study, tagPointIds, tagPoints, view]);
 
     const pointerPosition = (event: React.PointerEvent<HTMLCanvasElement>): { x: number; y: number } => {
         const rect = event.currentTarget.getBoundingClientRect();
@@ -569,6 +588,7 @@ export function MapCanvas({
 
     return (
         <div className="map-canvas-wrap" data-map-study={__MAP_STUDY__ && study !== null ? 'ready' : undefined}>
+            {preserveScale ? <span ref={scaleReferenceRef} className="map-scale-reference" aria-hidden="true" /> : null}
             {__MAP_STUDY__ && study !== null ? <MapStudyTerrain data={study} view={view} width={size.width} height={size.height} /> : null}
             <canvas
                 ref={canvasRef}
@@ -577,13 +597,15 @@ export function MapCanvas({
                 data-map-center-x={String(Math.round(view.centerX))}
                 data-map-center-y={String(Math.round(view.centerY))}
                 data-map-zoom={view.zoom.toFixed(3)}
+                data-map-scale-basis={view.scaleBasis}
+                data-map-reading-highlight={readingHighlightId ?? undefined}
                 data-map-compare-highlight={compareHighlightId ?? undefined}
                 data-map-hover-point={__MAP_STUDY__ && hoverTarget?.kind === 'point' ? hoverTarget.id : undefined}
                 data-map-hover-label={__MAP_STUDY__ && hoverTarget?.kind === 'label' ? hoverTarget.id : undefined}
                 data-map-hover-contour={__MAP_STUDY__ && hoverTarget?.kind === 'contour' ? String(hoverTarget.index) : undefined}
                 role="img"
                 tabIndex={0}
-                aria-label={`阅读世界地图。轻点地图靠近任意位置并查看圆内的真实书与划线；${compareHighlightId === null ? '' : '圈内数字①和②是当前句及读者选的另一句的真实位置；'}可拖动、滚轮或双指缩放，键盘可用方向键与加减键；下方仍有主题区域列表。`}
+                aria-label={`阅读世界地图。轻点地图靠近任意位置并查看圆内的真实书与划线；${compareHighlightId === null ? '' : '数字①和②是停驻对读的真实位置，移出画面时仍保留原文；'}可拖动、滚轮或双指缩放，键盘可用方向键与加减键；下方仍有主题区域列表。`}
                 onPointerDown={(event) => {
                     if (zoomFrame.current !== null) cancelAnimationFrame(zoomFrame.current);
                     if (__MAP_STUDY__) setHoverTarget(null);
@@ -616,8 +638,9 @@ export function MapCanvas({
                         if (left !== undefined && right !== undefined) {
                             const anchor = midpoint(left, right);
                             const zoom = Math.max(1, Math.min(8, currentPinch.startView.zoom * (distance(left, right) / currentPinch.startDistance)));
-                            const scale = (Math.min(size.width, size.height) / MAP_COORDINATE_MAX) * zoom;
+                            const scale = mapScale({ ...currentPinch.startView, zoom }, size.width, size.height);
                             onViewChange(clampMapView({
+                                ...currentPinch.startView,
                                 zoom,
                                 centerX: currentPinch.anchorMap.x - (anchor.x - size.width / 2) / scale,
                                 centerY: currentPinch.anchorMap.y - (anchor.y - size.height / 2) / scale,
@@ -724,7 +747,7 @@ export function MapCanvas({
                     if (activeTagId === null && activeBookId === null && layout !== undefined) {
                         const at = screenToMap(position, view, size.width, size.height);
                         if (view.zoom < MAP_READING_ZOOM) {
-                            onViewChange(clampMapView({ centerX: at.x, centerY: at.y, zoom: Math.max(4, view.zoom * 1.8) }));
+                            onViewChange(clampMapView({ ...view, centerX: at.x, centerY: at.y, zoom: Math.max(4, view.zoom * 1.8) }));
                             return;
                         }
                         const point = nearestPoint(layout.points, position, view, size.width, size.height, 13);

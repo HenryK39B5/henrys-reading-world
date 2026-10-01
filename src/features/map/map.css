@@ -915,6 +915,23 @@ body:has(.shell--dark-map) {
     height: min(80svh, 800px);
 }
 
+/* This invisible reference retains the overview's magnification as its visible window clips.
+   Its dimensions depend on viewport CSS, never the reading/detail panel or transition progress. */
+.map-scale-reference {
+    position: absolute;
+    width: min(calc(100vw - 48px), 1360px);
+    height: min(80svh, 800px);
+    visibility: hidden;
+    pointer-events: none;
+    contain: strict;
+}
+@media (max-width: 700px) {
+    .map-scale-reference {
+        width: 100vw;
+        height: clamp(500px, calc(100svh - 310px), 680px);
+    }
+}
+
 /* Keep the same Canvas mounted while crossing the world/reading threshold. The camera and
    true point positions reproject as the viewport opens a place for the passage. */
 .room-map[data-map-transition='world-reading'] .map-reading-window {

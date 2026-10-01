@@ -35,6 +35,24 @@ describe('map viewport geometry', () => {
         expect(after.y).toBeCloseTo(before.y);
     });
 
+    it('clips a mobile reading window without shrinking its geographic magnification', () => {
+        const view = { centerX: 5000, centerY: 5000, zoom: 4, scaleBasis: 390 };
+        const point = { x: 5300, y: 4900 };
+        const full = mapToScreen(point, view, 390, 534);
+        for (const height of [534, 410, 300, 190]) {
+            const clipped = mapToScreen(point, view, 390, height);
+            expect(clipped.x - 195).toBeCloseTo(full.x - 195);
+            expect(clipped.y - height / 2).toBeCloseTo(full.y - 267);
+            expect(screenToMap(clipped, view, 390, height)).toEqual(point);
+            const anchor = { x: 212, y: height / 2 - 15 };
+            const before = screenToMap(anchor, view, 390, height);
+            const next = zoomMapViewAt(view, 1.18, anchor, 390, height);
+            expect(next.scaleBasis).toBe(390);
+            expect(screenToMap(anchor, next, 390, height).x).toBeCloseTo(before.x);
+            expect(screenToMap(anchor, next, 390, height).y).toBeCloseTo(before.y);
+        }
+    });
+
     it('finds only points within the requested hit radius', () => {
         const view = { centerX: 3000, centerY: 4000, zoom: 2 };
         const target = mapToScreen(points[0]!, view, 1000, 700);

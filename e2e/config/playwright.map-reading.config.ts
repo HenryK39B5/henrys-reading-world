@@ -7,6 +7,9 @@ export default defineConfig({
     testMatch: 'map-reading.spec.ts',
     workers: 1,
     timeout: 90_000,
+    // This Windows WebKit dev-server cold load has exceeded the old 5s assertion budget.
+    // Readiness waits are not a phone startup performance claim; measure built cold loads separately.
+    expect: { timeout: 20_000 },
     reporter: [['list']],
     use: { baseURL: `http://127.0.0.1:${String(port)}`, trace: 'off', screenshot: 'off', video: 'off' },
     projects: [

@@ -20,18 +20,20 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         const before = await canvas.boundingBox();
         if (before === null) throw Error('World map did not mount');
         const scroll = await page.evaluate(() => window.scrollY);
-        const frames = await page.evaluate(() => new Promise<Array<{ width: number; height: number; top: number; stageTop: number }>>((resolve) => {
+        const originalBasis = Number(await canvas.getAttribute('data-map-scale-basis'));
+        const frames = await page.evaluate(() => new Promise<Array<{ width: number; height: number; top: number; stageTop: number; scaleBasis: number }>>((resolve) => {
             const surface = document.querySelector<HTMLCanvasElement>('[data-testid="map-canvas"]');
             const stage = document.querySelector<HTMLElement>('.map-stage');
             if (surface === null || stage === null) throw Error('Map scene missing');
             const rect = surface.getBoundingClientRect();
             const start = performance.now();
-            const result: Array<{ width: number; height: number; top: number; stageTop: number }> = [];
+            const result: Array<{ width: number; height: number; top: number; stageTop: number; scaleBasis: number }> = [];
             surface.dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: -80,
                 clientX: rect.x + rect.width / 2, clientY: rect.y + 120 }));
             const frame = (now: number): void => {
                 const current = surface.getBoundingClientRect();
-                result.push({ width: current.width, height: current.height, top: current.top, stageTop: stage.getBoundingClientRect().top });
+                result.push({ width: current.width, height: current.height, top: current.top, stageTop: stage.getBoundingClientRect().top,
+                    scaleBasis: Number(surface.dataset.mapScaleBasis) });
                 if (now - start < 650) requestAnimationFrame(frame);
                 else resolve(result);
             };
@@ -41,18 +43,23 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         await expect(page.getByTestId('map-reading-window')).toBeVisible();
         const after = await canvas.boundingBox();
         if (after === null) throw Error('Reading map disappeared');
+        expect(Number(await canvas.getAttribute('data-map-scale-basis'))).toBeCloseTo(originalBasis);
+        // Width/height clip; zoom still means the same geographic magnification, not a hidden compensation.
+        expect(Number(await canvas.getAttribute('data-map-zoom')) / 3.4).toBeCloseTo(1.18, 2);
         const extent = viewport.width >= 1050 ? 'width' : 'height';
         expect(before[extent]).toBeGreaterThan(after[extent] + 100);
         expect(frames.some((frame) => frame[extent] < before[extent] - 12 && frame[extent] > after[extent] + 12)).toBe(true);
         expect(frames.every((frame) => Math.abs(frame.stageTop - frames[0]!.stageTop) < 2)).toBe(true);
+        expect(frames.every((frame) => Math.abs(frame.scaleBasis - originalBasis) < 0.01)).toBe(true);
         expect(await page.evaluate(() => window.scrollY)).toBe(scroll);
         const view = { centerX: Number(await canvas.getAttribute('data-map-center-x')),
             centerY: Number(await canvas.getAttribute('data-map-center-y')),
+            scaleBasis: Number(await canvas.getAttribute('data-map-scale-basis')) || undefined,
             zoom: Number(await canvas.getAttribute('data-map-zoom')) };
         const first = mapReadingWindow(index, view, after.width, after.height).entries[0];
         if (first !== undefined) await expect(page.locator('.map-reading-window > .map-reading-passage p')).toHaveText(first.highlight.text);
         if (testInfo.project.name === 'chromium') {
-            const folder = '.private/review/map-transition';
+            const folder = '.private/review/map-continuity';
             mkdirSync(folder, { recursive: true });
             await page.screenshot({ path: `${folder}/reading-${viewport.width}.png`, animations: 'disabled' });
         }
@@ -65,6 +72,71 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
     });
 }
 
+for (const width of [390, 320]) {
+    test(`outer real points remain reachable in a clipped reading window and after reload at ${width}`, async ({ page }) => {
+        test.setTimeout(180_000); // Eight explicit navigations/reloads, not a single-load budget.
+        await page.setViewportSize({ width, height: 844 });
+        await page.emulateMedia({ reducedMotion: 'reduce' });
+        for (const id of ['h-015', 'h-3944', 'h-2300', 'h-3085']) {
+            const point = layout?.points.find((entry) => entry.highlightId === id);
+            const passage = index.highlightsById.get(id);
+            if (point === undefined || passage === undefined) throw Error('Missing real outer passage');
+            await page.goto(`/map?h=${id}`);
+            await expect(page.locator('.map-detail-passage')).toHaveText(passage.text);
+            const canvas = page.getByTestId('map-canvas');
+            await expect(canvas).toHaveAttribute('data-map-center-x', String(point.x));
+            await expect(canvas).toHaveAttribute('data-map-center-y', String(point.y));
+            await page.getByRole('link', { name: '关闭划线详情，返回地图' }).click();
+            await expect(page.getByTestId('map-reading-window')).toBeVisible();
+            await expect(canvas).toHaveAttribute('data-map-reading-highlight', id);
+            await page.reload();
+            await expect(canvas).toHaveAttribute('data-map-reading-highlight', id);
+        }
+    });
+}
+
+test('continuous map gestures repaint without reallocating the canvas or storing presentation geometry', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.addInitScript(() => {
+        const host = window as unknown as { mapBackingStoreResizes: number };
+        host.mapBackingStoreResizes = 0;
+        for (const dimension of ['width', 'height']) {
+            const original = Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, dimension);
+            if (original?.set === undefined) throw Error('Canvas descriptor missing');
+            Object.defineProperty(HTMLCanvasElement.prototype, dimension, {
+                ...original,
+                set(this: HTMLCanvasElement, value: number) {
+                    if (this.dataset.testid === 'map-canvas') host.mapBackingStoreResizes++;
+                    original.set?.call(this, value);
+                },
+            });
+        }
+    });
+    await page.goto('/map');
+    const canvas = await openAnUnnamedPart(page);
+    const start = await page.evaluate(() => (window as unknown as { mapBackingStoreResizes: number }).mapBackingStoreResizes);
+    const bounds = await canvas.boundingBox();
+    if (bounds === null) throw Error('Missing canvas');
+    const original = await canvas.getAttribute('data-map-center-x');
+    await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(bounds.x + bounds.width / 2 + 48, bounds.y + bounds.height / 2 + 20, { steps: 18 });
+    await page.mouse.up();
+    await expect(canvas).not.toHaveAttribute('data-map-center-x', original ?? '');
+    await canvas.focus();
+    for (let step = 0; step < 5; step++) {
+        await page.keyboard.press('ArrowRight');
+        await page.keyboard.press('+');
+        await page.keyboard.press('-');
+    }
+    await page.screenshot({ path: `.private/review/map-continuity/gestures-${test.info().project.name}.png` });
+    expect(await page.evaluate(() => (window as unknown as { mapBackingStoreResizes: number }).mapBackingStoreResizes)).toBe(start);
+    const persisted = await page.evaluate(() => JSON.parse(sessionStorage.getItem('reading-world:map:world-view:v1') ?? '{}') as Record<string, unknown>);
+    expect(Object.keys(persisted).sort()).toEqual(['centerX', 'centerY', 'zoom']);
+    await expect(page.getByTestId('map-reading-window')).toBeVisible();
+});
+
 test('reduced motion crosses the reading threshold without a layout animation', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.setViewportSize({ width: 390, height: 844 });
@@ -73,8 +145,10 @@ test('reduced motion crosses the reading threshold without a layout animation', 
     await page.goto('/map');
     const canvas = page.getByTestId('map-canvas');
     await expect(canvas).toHaveAttribute('data-map-zoom', '3.400');
+    await expect(canvas).toHaveAttribute('data-map-scale-basis', '390');
     await canvas.focus();
-    await page.keyboard.press('+');
+    await expect(canvas).toBeFocused();
+    await canvas.press('+');
     await expect(page.getByTestId('map-reading-window')).toBeVisible();
     // The global reduced-motion rule forces 0.01ms (not literally 0s) in both engines.
     for (const selector of ['.map-canvas-wrap', '.map-reading-window']) {
@@ -86,7 +160,7 @@ test('reduced motion crosses the reading threshold without a layout animation', 
 test('an interior real place name survives a small pan when another name enters the frame', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.addInitScript(() => {
-        sessionStorage.setItem('reading-world:map:world-view:v1', JSON.stringify({ centerX: 5662, centerY: 2407, zoom: 4 }));
+        sessionStorage.setItem('reading-world:map:world-view:v1', JSON.stringify({ centerX: 5662, centerY: 2507, zoom: 4 }));
     });
     await page.goto('/map');
     const canvas = page.getByTestId('map-canvas');
@@ -101,6 +175,7 @@ test('an interior real place name survives a small pan when another name enters 
         const view = {
             centerX: Number(await canvas.getAttribute('data-map-center-x')),
             centerY: Number(await canvas.getAttribute('data-map-center-y')),
+            scaleBasis: Number(await canvas.getAttribute('data-map-scale-basis')) || undefined,
             zoom: Number(await canvas.getAttribute('data-map-zoom')),
         };
         const local = mapToScreen(target, view, box.width, box.height);
@@ -228,6 +303,7 @@ async function openAnUnnamedPart(page: Page) {
     const screen = mapToScreen(target, WORLD_MAP_VIEW, bounds.width, bounds.height);
     await canvas.click({ position: { x: screen.x, y: screen.y } });
     await expect(page.getByTestId('map-reading-window')).toBeVisible();
+    await expect.poll(() => canvas.evaluate((element) => element.parentElement?.getAnimations().some((animation) => animation.playState === 'running') ?? false)).toBe(false);
     return canvas;
 }
 
@@ -242,6 +318,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         const view: MapViewport = {
             centerX: Number(await canvas.getAttribute('data-map-center-x')),
             centerY: Number(await canvas.getAttribute('data-map-center-y')),
+            scaleBasis: Number(await canvas.getAttribute('data-map-scale-basis')) || undefined,
             zoom: Number(await canvas.getAttribute('data-map-zoom')),
         };
         const contents = mapReadingWindow(index, view, bounds.width, bounds.height);
@@ -290,6 +367,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         const view = {
             centerX: Number(await canvas.getAttribute('data-map-center-x')),
             centerY: Number(await canvas.getAttribute('data-map-center-y')),
+            scaleBasis: Number(await canvas.getAttribute('data-map-scale-basis')) || undefined,
             zoom: Number(await canvas.getAttribute('data-map-zoom')),
         };
         const local = mapReadingWindow(index, view, bounds.width, bounds.height);
@@ -326,13 +404,24 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         await expect(choose).toBeFocused();
         await expect(canvas).not.toHaveAttribute('data-map-compare-highlight', /.+/);
         await expect(page.getByTestId('map-reading-comparison')).toHaveCount(0);
-        if (viewport.width === 1440) {
-            await choose.click();
-            await canvas.focus();
-            await page.keyboard.press('ArrowRight');
-            await expect(canvas).not.toHaveAttribute('data-map-compare-highlight', /.+/);
-            await expect(page.getByTestId('map-reading-comparison')).toHaveCount(0);
-        }
+        await choose.click();
+        await canvas.focus();
+        const originalX = await canvas.getAttribute('data-map-center-x');
+        await page.keyboard.press('ArrowRight');
+        await page.keyboard.press('+');
+        await expect(canvas).not.toHaveAttribute('data-map-center-x', originalX ?? '');
+        await expect(canvas).toHaveAttribute('data-map-compare-highlight', other.highlight.id);
+        await expect(page.locator('.map-reading-window > .map-reading-passage p')).toHaveText(anchor.highlight.text);
+        await expect(page.getByTestId('map-reading-comparison').locator('blockquote p')).toHaveText(other.highlight.text);
+        await page.getByRole('link', { name: '在图上读②的详情' }).click();
+        await expect(page.locator('.map-detail-passage')).toHaveText(other.highlight.text);
+        await page.goBack();
+        await expect(canvas).toHaveAttribute('data-map-compare-highlight', other.highlight.id);
+        await expect(page.getByRole('link', { name: '在图上读②的详情' })).toBeFocused();
+        await page.getByRole('button', { name: '看地图当前位置' }).click();
+        await expect(canvas).toBeFocused();
+        await expect(canvas).not.toHaveAttribute('data-map-compare-highlight', /.+/);
+        await expect(page.getByTestId('map-reading-comparison')).toHaveCount(0);
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     });
 }
@@ -357,6 +446,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 320, height: 720 }
         const screen = mapToScreen(point, {
             centerX: Number(await canvas.getAttribute('data-map-center-x')),
             centerY: Number(await canvas.getAttribute('data-map-center-y')),
+            scaleBasis: Number(await canvas.getAttribute('data-map-scale-basis')) || undefined,
             zoom: Number(await canvas.getAttribute('data-map-zoom')),
         }, bounds.width, bounds.height);
         expect(screen.x).toBeGreaterThanOrEqual(0);
@@ -435,6 +525,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         const screen = mapToScreen(label, {
             centerX: Number(await canvas.getAttribute('data-map-center-x')),
             centerY: Number(await canvas.getAttribute('data-map-center-y')),
+            scaleBasis: Number(await canvas.getAttribute('data-map-scale-basis')) || undefined,
             zoom: Number(await canvas.getAttribute('data-map-zoom')),
         }, box.width, box.height);
         await page.mouse.move(box.x + screen.x, box.y + screen.y);
@@ -463,6 +554,7 @@ test('shared reviewed tags are labelled as classification, never as similarity o
     const local = mapReadingWindow(index, {
         centerX: Number(await canvas.getAttribute('data-map-center-x')),
         centerY: Number(await canvas.getAttribute('data-map-center-y')),
+        scaleBasis: Number(await canvas.getAttribute('data-map-scale-basis')) || undefined,
         zoom: Number(await canvas.getAttribute('data-map-zoom')),
     }, readingBounds.width, readingBounds.height);
     const anchor = local.entries[0];
@@ -504,6 +596,7 @@ test('the bounded text list can open an untagged real point in the same area', a
     const local = mapReadingWindow(index, {
         centerX: Number(await canvas.getAttribute('data-map-center-x')),
         centerY: Number(await canvas.getAttribute('data-map-center-y')),
+        scaleBasis: Number(await canvas.getAttribute('data-map-scale-basis')) || undefined,
         zoom: Number(await canvas.getAttribute('data-map-zoom')),
     }, bounds.width, bounds.height);
     const unknown = local.entries.find((entry) => entry.highlight.tagIds.length === 0);
@@ -537,6 +630,7 @@ test('panning changes the true local reading window, while reviewed tags remain 
     const current = mapReadingWindow(index, {
         centerX: Number(await canvas.getAttribute('data-map-center-x')),
         centerY: Number(await canvas.getAttribute('data-map-center-y')),
+        scaleBasis: Number(await canvas.getAttribute('data-map-scale-basis')) || undefined,
         zoom: Number(await canvas.getAttribute('data-map-zoom')),
     }, bounds.width, bounds.height);
     if (current.entries.length > 0) await expect(page.locator('.map-reading-passage p')).toHaveText(current.entries[0]?.highlight.text ?? '');

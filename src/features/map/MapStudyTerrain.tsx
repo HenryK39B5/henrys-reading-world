@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import type { MapViewport } from '../../domain/map.ts';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { mapScale, type MapViewport } from '../../domain/map.ts';
 import { MAP_COORDINATE_MAX, type MapContour, type MapDensity } from '../../domain/types.ts';
 
 export type MapStudyData = {
@@ -16,7 +16,7 @@ function bandRenderer(canvas: HTMLCanvasElement, data: MapStudyData, opacity = 1
     return {
         render(view, width, height) {
             ctx.clearRect(0, 0, width, height);
-            const scale = Math.min(width, height) / MAP_COORDINATE_MAX * view.zoom;
+            const scale = mapScale(view, width, height);
             for (const band of data.bands) {
                 const shape = new Path2D();
                 for (const polygon of band.coordinates) for (const ring of polygon) {
@@ -90,7 +90,7 @@ void main() {
             gl.useProgram(program);
             gl.viewport(0, 0, width, height);
             gl.uniform2f(gl.getUniformLocation(program, 'viewport'), width, height);
-            gl.uniform3f(gl.getUniformLocation(program, 'view'), view.centerX, view.centerY, view.zoom);
+            gl.uniform3f(gl.getUniformLocation(program, 'view'), view.centerX, view.centerY, mapScale(view, width, height) * MAP_COORDINATE_MAX / Math.min(width, height));
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         },
         dispose() {
@@ -102,7 +102,11 @@ void main() {
     };
 }
 
-export function MapStudyTerrain({ data, view, width, height }: { data: MapStudyData; view: MapViewport; width: number; height: number }) {
+export function MapStudyTerrain({ data, view: cssView, width, height }: { data: MapStudyData; view: MapViewport; width: number; height: number }) {
+    const ratio = Math.min(2, window.devicePixelRatio || 1);
+    // Terrain works in backing-store pixels; point/label geometry uses CSS pixels.
+    const view = useMemo(() => cssView.scaleBasis === undefined ? cssView
+        : { ...cssView, scaleBasis: cssView.scaleBasis * ratio }, [cssView, ratio]);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const bandCanvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<Renderer | null>(null);

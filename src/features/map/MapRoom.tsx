@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { compareWithBook, mapArrivalView, mapReadingWindow, otherBooksInWindow, sharedReviewedTags, MAP_READING_ZOOM, type MapReadingBook, type MapReadingEntry } from '../../domain/mapReading.ts';
+import { compareWithBook, mapArrivalView, mapReadingWindow, otherBooksInWindow, sharedReviewedTags, MAP_READING_ZOOM, type MapReadingBook, type MapReadingEntry, type MapReadingWindow } from '../../domain/mapReading.ts';
 import { coverUrl, useCoverAccent } from '../../app/covers.ts';
 import { sitePath } from '../../app/sitePath.ts';
 import { parseRoute, routePath } from '../../app/router.ts';
@@ -8,7 +8,7 @@ import { fitMapPoints, mapPointsForBook, mapPointsForTag, summarizeMapLabels } f
 import type { SnapshotIndex } from '../../domain/snapshot.ts';
 import type { Book, Highlight } from '../../domain/types.ts';
 import { TopicClues } from '../paths/TopicClues.tsx';
-import { MapCanvas } from './MapCanvas.tsx';
+import { MapCanvas, type MapCanvasSize } from './MapCanvas.tsx';
 import { MapBookPicker } from './MapBookPicker.tsx';
 import { useMapView } from './useMapView.ts';
 
@@ -79,7 +79,7 @@ function MapReadingBookRow({ group, anchor, comparison, index, onChoose, onOpenD
             </button>
             {selected && comparison !== undefined ? (
                 <div id={detailId} ref={comparisonBlock} className="map-reading-comparison" data-testid="map-reading-comparison">
-                    <p className="map-reading-compare-label">② 这本书在圆内最靠近①的一处</p>
+                    <p className="map-reading-compare-label">② 这本书在选定圆内最靠近①的一处</p>
                     <blockquote className="map-reading-passage">
                         <p>{comparison.highlight.text}</p>
                         <footer>——《{comparison.book.title}》{comparison.book.author}</footer>
@@ -93,7 +93,11 @@ function MapReadingBookRow({ group, anchor, comparison, index, onChoose, onOpenD
                         }}>在图上读②的详情</a>
                     <button type="button" className="map-reading-collapse" onClick={() => {
                         onChoose(group.book.id);
-                        choiceButton.current?.focus({ preventScroll: true });
+                        window.requestAnimationFrame(() => {
+                            const choice = choiceButton.current;
+                            const target = choice?.isConnected ? choice : document.querySelector<HTMLElement>('[data-testid="map-canvas"]');
+                            target?.focus({ preventScroll: true });
+                        });
                     }}>收起②，继续看这片</button>
                 </div>
             ) : null}
@@ -188,7 +192,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
     const primaryRelatedTagIds = relatedTagIds.slice(0, 6);
     const remainingRelatedTagIds = relatedTagIds.slice(6);
     const [expandedLists, setExpandedLists] = useState<Set<string>>(() => new Set());
-    const [mapSize, setMapSize] = useState({ width: 1, height: 1 });
+    const [mapSize, setMapSize] = useState<MapCanvasSize>({ width: 1, height: 1 });
     // Captured at room entry: internal ?h= changes must not overwrite the exit with another map URL.
     const sourceExit = useRef(mapSourceExit(previousPath)).current;
     const arrivalPending = useRef(highlightId !== null);
@@ -197,26 +201,26 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
         arrivalPending.current = false;
         const point = layout.points.find((entry) => entry.highlightId === highlightId);
         if (point === undefined) return;
-        const next = mapArrivalView(point, view.view, mapSize.width, mapSize.height);
+        const next = mapArrivalView(point, { ...view.view, scaleBasis: mapSize.scaleBasis }, mapSize.width, mapSize.height);
         if (next !== null) view.setView(next);
         // Only the incoming point on first mount may move the camera. A point chosen inside the map never does.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [layout, highlightId, mapSize.width, mapSize.height]);
     const [readingListLimit, setReadingListLimit] = useState(8);
-    const [comparisonPick, setComparisonPick] = useState<{ anchorId: string; otherId: string; centerX: number; centerY: number; zoom: number } | null>(null);
+    // A deliberate other-book choice captures the real window, not a camera-equality predicate.
+    // Its passages, candidate books and IDs survive pan/zoom and detail round trips.
+    const [comparisonPick, setComparisonPick] = useState<{ window: MapReadingWindow; otherId: string } | null>(null);
     const worldReadingAvailable = !__MAP_STUDY_ENDPOINT__ && effectiveTagId === null && effectiveBookId === null;
     const canReadWorld = worldReadingAvailable && highlight === undefined;
     const keepReadingWindow = worldReadingAvailable && view.view.zoom >= MAP_READING_ZOOM;
     const readingWorld = keepReadingWindow && highlight === undefined;
     const readingWindow = useMemo(
-        () => mapReadingWindow(index, view.view, mapSize.width, mapSize.height),
-        [index, mapSize.height, mapSize.width, view.view],
+        () => comparisonPick?.window ?? mapReadingWindow(index, { ...view.view, scaleBasis: mapSize.scaleBasis }, mapSize.width, mapSize.height),
+        [comparisonPick, index, mapSize.height, mapSize.width, mapSize.scaleBasis, view.view],
     );
     const firstReadingEntry = readingWindow.entries[0];
     const otherBooks = firstReadingEntry === undefined ? [] : otherBooksInWindow(readingWindow, firstReadingEntry);
-    const comparison = firstReadingEntry !== undefined && comparisonPick !== null &&
-        comparisonPick.anchorId === firstReadingEntry.highlight.id &&
-        comparisonPick.centerX === view.view.centerX && comparisonPick.centerY === view.view.centerY && comparisonPick.zoom === view.view.zoom
+    const comparison = firstReadingEntry !== undefined && comparisonPick !== null
         ? readingWindow.entries.find((entry) => entry.highlight.id === comparisonPick.otherId && entry.book.id !== firstReadingEntry.book.id)
         : undefined;
     const chooseComparison = (bookId: string): void => {
@@ -224,11 +228,8 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
         const next = compareWithBook(readingWindow, firstReadingEntry.highlight.id, bookId);
         if (next === null) return;
         setComparisonPick(comparison?.highlight.id === next.highlight.id ? null : {
-            anchorId: firstReadingEntry.highlight.id,
+            window: readingWindow,
             otherId: next.highlight.id,
-            centerX: view.view.centerX,
-            centerY: view.view.centerY,
-            zoom: view.view.zoom,
         });
     };
     const detailHeading = useRef<HTMLHeadingElement>(null);
@@ -399,8 +400,8 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
 
             <div className="map-stage" data-testid="map-stage">
                 <div className="map-stage-status" aria-hidden="true">
-                    <span>{readingWorld ? '正在看这片地方' : tag === undefined ? '世界总览' : `主题区域 · ${tag.title}`}</span>
-                    <span>{readingWorld ? '移动地图，看看别处的书' : '拖动 · 滚轮 / 双指缩放'}</span>
+                    <span>{readingWorld ? (comparisonPick === null ? '正在看这片地方' : '已停驻一组对读') : tag === undefined ? '世界总览' : `主题区域 · ${tag.title}`}</span>
+                    <span>{readingWorld ? (comparisonPick === null ? '移动地图，看看别处的书' : '地图可移动，原文留在这里') : '拖动 · 滚轮 / 双指缩放'}</span>
                 </div>
                 <MapCanvas
                     index={index}
@@ -409,7 +410,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                     activeTagId={effectiveTagId}
                     activeBookId={effectiveBookId}
                     activeHighlightId={highlight?.id ?? null}
-                    readingHighlightId={readingWorld ? readingWindow.entries[0]?.highlight.id ?? null : null}
+                    readingHighlightId={readingWorld ? firstReadingEntry?.highlight.id ?? null : null}
                     compareHighlightId={highlight === undefined ? comparison?.highlight.id ?? null : null}
                     onSizeChange={setMapSize}
                     bookAccent={bookAccent || DEFAULT_ACCENT}
@@ -428,13 +429,19 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                 {canReadWorld || keepReadingWindow ? (
                     <section className="map-reading-window" aria-labelledby={keepReadingWindow ? 'map-reading-heading' : undefined} aria-hidden={!readingWorld} inert={!readingWorld} hidden={!canReadWorld} data-testid={readingWorld ? 'map-reading-window' : undefined}>
                         {keepReadingWindow ? (<>
-                        <p className="room-kicker">地图上的这一片</p>
-                        <h2 id="map-reading-heading">这里的书与划线</h2>
+                        <p className="room-kicker">{comparisonPick === null ? '地图上的这一片' : '已停驻 · 移动地图不换句'}</p>
+                        <h2 id="map-reading-heading">{comparisonPick === null ? '这里的书与划线' : '刚才这片的对读'}</h2>
                         <nav className="map-reading-exits" aria-label="离开这一片地图">
                             <button type="button" className="room-exit" onClick={() => {
+                                setComparisonPick(null);
                                 view.reset();
                                 window.requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-testid="map-canvas"]')?.focus({ preventScroll: true }));
                             }}>回到世界总览</button>
+                            {comparisonPick === null ? null : <button type="button" className="room-exit" onClick={() => {
+                                setComparisonPick(null);
+                                setReadingListLimit(8);
+                                window.requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-testid="map-canvas"]')?.focus({ preventScroll: true }));
+                            }}>看地图当前位置</button>}
                             {sourceExit === null ? null : <a className="room-exit" href={sourceExit.href}>{sourceExit.label}</a>}
                         </nav>
                         {firstReadingEntry === undefined ? (
@@ -444,7 +451,7 @@ export function MapRoom({ index, tagId, bookId, highlightId, onNavigate, onShare
                                 <p className="map-reading-count">
                                     {String(readingWindow.entries.length)} 处划线 · 来自 {String(readingWindow.books.length)} 本书
                                 </p>
-                                <p className="map-reading-compare-label">① 当前圆心附近的一句</p>
+                                <p className="map-reading-compare-label">{comparisonPick === null ? '① 当前圆心附近的一句' : '① 停驻时圆心附近的一句'}</p>
                                 <blockquote className="map-reading-passage">
                                     <p>{firstReadingEntry.highlight.text}</p>
                                     <footer>——《{firstReadingEntry.book.title}》{firstReadingEntry.book.author}</footer>

@@ -13,7 +13,7 @@ export type LabelPlacement = {
     anchorY: number;
 };
 
-type Size = { width: number; height: number };
+type Size = { width: number; height: number; scaleBasis?: number };
 
 /** Screen typography grows with proximity, not with the popularity of a tag. */
 export function mapLabelFontSize(zoom: number, width: number, active: boolean, placeNames = false, fixedStudy = false): number {
@@ -69,7 +69,7 @@ function placeOneLabel(
 ): LabelPlacement | undefined {
     const active = summary.tagId === activeTagId;
     const anchor = mapToScreen(summary.label,
-        { centerX: MAP_COORDINATE_MAX / 2, centerY: MAP_COORDINATE_MAX / 2, zoom }, size.width, size.height);
+        { centerX: MAP_COORDINATE_MAX / 2, centerY: MAP_COORDINATE_MAX / 2, zoom, scaleBasis: size.scaleBasis }, size.width, size.height);
     const width = measure(summary.title, active);
     const fontSize = mapLabelFontSize(zoom, size.width, active, placeNames, fixedStudy);
     for (const offset of active ? LABEL_OFFSETS.slice(0, 1) : LABEL_OFFSETS) {
@@ -126,7 +126,7 @@ export function placeOverviewLabels(
     const ordered = orderMapLabels(labels, null, undefined);
     const eligible = ordered.filter((entry) => (entry.localHighlightCount ?? minimumLocalMembers) >= minimumLocalMembers);
     const positions = new Map(ordered.map((entry) => [entry.tagId, mapToScreen(entry.label,
-        { centerX: MAP_COORDINATE_MAX / 2, centerY: MAP_COORDINATE_MAX / 2, zoom: 1 }, size.width, size.height)]));
+        { centerX: MAP_COORDINATE_MAX / 2, centerY: MAP_COORDINATE_MAX / 2, zoom: 1, scaleBasis: size.scaleBasis }, size.width, size.height)]));
     const distance = (left: MapLabelSummary, right: MapLabelSummary): number => {
         const a = positions.get(left.tagId)!;
         const b = positions.get(right.tagId)!;
@@ -194,7 +194,7 @@ function plannedPlacement(
     placeNames: boolean,
 ): LabelPlacement {
     const active = entry.summary.tagId === activeTagId;
-    const fixedView = { centerX: MAP_COORDINATE_MAX / 2, centerY: MAP_COORDINATE_MAX / 2, zoom };
+    const fixedView = { centerX: MAP_COORDINATE_MAX / 2, centerY: MAP_COORDINATE_MAX / 2, zoom, scaleBasis: size.scaleBasis };
     const anchor = mapToScreen(entry.summary.label, fixedView, size.width, size.height);
     const x = anchor.x + entry.offset.x;
     const y = anchor.y + entry.offset.y;
@@ -314,7 +314,7 @@ export function visibleMapLabels(
     zoom: number,
     size: Size,
 ): LabelPlacement[] {
-    const scale = Math.min(size.width, size.height) / MAP_COORDINATE_MAX * zoom;
+    const scale = (size.scaleBasis ?? Math.min(size.width, size.height)) / MAP_COORDINATE_MAX * zoom;
     const dx = (MAP_COORDINATE_MAX / 2 - centerX) * scale;
     const dy = (MAP_COORDINATE_MAX / 2 - centerY) * scale;
     return placed.flatMap((entry) => {

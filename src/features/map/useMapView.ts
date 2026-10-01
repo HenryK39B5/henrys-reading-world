@@ -15,7 +15,7 @@ function savedWorldView(): MapViewport | null {
         const { centerX, centerY, zoom } = value as Record<string, unknown>;
         if (typeof centerX !== 'number' || typeof centerY !== 'number' || typeof zoom !== 'number' ||
             !Number.isFinite(centerX) || !Number.isFinite(centerY) || !Number.isFinite(zoom)) return null;
-        return clampMapView({ centerX, centerY, zoom });
+        return clampMapView({ centerX, centerY, zoom }, true);
     } catch { return null; }
 }
 
@@ -56,12 +56,16 @@ export function useMapView(index: SnapshotIndex, tagId: string | null): MapViewC
         } catch { /* Storage can be blocked; the in-memory return still works. */ }
     }, [renderedScope, view]);
 
-    const setView = (next: MapViewport): void => setViewState(clampMapView(next));
+    // Canvas may carry a CSS-pixel projection reference; persist only the logical camera.
+    const setView = (next: MapViewport): void => {
+        const valid = clampMapView(next, tagId === null);
+        setViewState({ centerX: valid.centerX, centerY: valid.centerY, zoom: valid.zoom });
+    };
     return {
         view,
         setView,
         reset: () => setViewState(initial),
-        zoomIn: () => setViewState((current) => clampMapView({ ...current, zoom: current.zoom * 1.25 })),
-        zoomOut: () => setViewState((current) => clampMapView({ ...current, zoom: current.zoom / 1.25 })),
+        zoomIn: () => setViewState((current) => clampMapView({ ...current, zoom: current.zoom * 1.25 }, tagId === null)),
+        zoomOut: () => setViewState((current) => clampMapView({ ...current, zoom: current.zoom / 1.25 }, tagId === null)),
     };
 }
