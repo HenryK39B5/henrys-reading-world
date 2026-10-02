@@ -17,12 +17,16 @@ Henry 亲自查看本机完整站点后反馈「效果挺棒的」，明确要�
 - 发布地址：`https://henryk39b5.github.io/henrys-reading-world/`；地图：`https://henryk39b5.github.io/henrys-reading-world/map/`。
 - Windows真实浏览器访问线上地址：Chromium和Playwright WebKit各1440/390px，**4/4**。首页/地图HTTP200；首页只有1次公开JSON请求；线上HTML指向正确的`/henrys-reading-world/assets/public-snapshot-oONKGPkN.json`；地理比例参照720/390正确。选真实① `h-1443` 与② `h-3600` 后方向键平移/放大保持两条全文，②详情/浏览器返回保持组合，「看地图当前位置」结束停驻，无横向溢出或pageerror。
 - 本机证据 `.private/review/map-continuity/live-second-release.{mjs,json}`、`live-{chromium,webkit}-{1440,390}.png`；发布前复核日志 `release-build.log`、`release-isolation.log`、`release-parity.log`。全部留在Git忽略的本机目录，不进公开构建。
-- 本次收口文档/README/维护状态随一个文档提交再次正常推送；不变更消费者源码、数据或构建契约。该提交触发的自动部署须同样等到success，不用手动重复dispatch。产品代码基线仍为`fcc495f`。
+- 本次收口文档/README/维护状态以`b4280d7`正常推送；不变更消费者源码、数据或构建契约。按该head匹配Actions **36892162747**并watch至`completed / success`，build30秒/deploy9秒，没有手动重复dispatch。产品代码基线仍为`fcc495f`。
 
 工作流有Pages actions的Node20运行时迁移提示，但未阻止构建/部署；本次不临时升级工作流或依赖。
 
+## 2026-10-02 · Henry实际手机反馈
+
+Henry随后实际在手机访问线上第二版，认为整体使用体验不错，虽然屏幕小，世界地图基本操作还是比较顺畅，交互逻辑比较清晰。记为**知情单人、真实手机使用的定性反馈**；未提供机型、浏览器、网络、操作时长或冷启动测量，不推定物理Safari、低端长时性能或独立首访验收。他同时提出新一轮根本建模/产品形式研究，见`docs/86`；这不是新的发布授权，也不启动blanket内容审核。
+
 ## 发布后的边界
 
-Henry 本次认可的是本人所见的完整站点效果，不能写成独立首访或设备/权利验收。实际手机冷启动和长期跟手感由 Henry 上线后体验反馈；Windows限速中位5.08→4.38秒不是手机承诺。Playwright WebKit不是物理Safari/iOS；读屏、低端长期GPU表现、独立首次访客、引文/封面权利仍未被这些检查证明。
+Henry认可的是本人所见的完整站点及手机使用体验，不能写成独立首访、全设备或权利验收。手机冷启动和长期跟手感尚无定量证据；Windows限速中位5.08→4.38秒不是手机承诺。Playwright WebKit不是物理Safari/iOS；读屏、低端长期GPU表现、独立首次访客、引文/封面权利仍未被这些检查证明。
 
 窄屏长②可使190px地图滚出视口的取舍仍在，本次没有偷偷改为强制sticky。发布后按证据做内容审核的范围和方法仍待讨论，不自动开始。未来新的内容范围、坐标、模型、功能或发布仍按对应授权与维护规则处理，不将本次push许可视为永久自动部署许可。
