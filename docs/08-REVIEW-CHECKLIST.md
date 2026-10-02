@@ -2,7 +2,15 @@
 
 上线后的未完成任务与状态统一维护在 `docs/48-MAINTENANCE-ROADMAP.md`；本文件继续按阶段追加实际执行证据，不作为第二份待办清单。2026-09-24 起，历史截图与专项审计 Playwright 配置位于 `e2e/config/`；下文更早的根目录调用命令保留为当时执行记录，重新运行时须改用新路径。
 
-## 2026-10-02 · 第二版真实手机反馈与R-02阅读世界范式研究（首轮方向完成；未实现新产品）
+## 2026-10-02 · R-02方法纠正与可复跑挖掘（本阶段数值完成；新产品未选）
+
+- **授权/纠正**：Henry明确主要做可复制、标准化的已有划线挖掘，不做内容生成/逐案策展；86的四种假设及A+D偏好不作共识或施工主线。原线上第二版仍有效；根本研究自由不等于部署、远程模型或人工内容安排许可。开始检查工作区干净、head a705776，本机10-02；复看86/48/54与数据工作流/skill/移植说明及既有研究代码。
+- **真实数值工作**：冻结public108本3462句/既有本机BGE1024缓存；逐条textHash与向量形状/有限数校验通过。按书籍量分位数自动选b-107/080/055/028（2/7/23/49，共81句），不按标题/内容挑选；6书对×3个ε×平衡/两个ρ=54次耦合，不是全库书对遍历。复用R4-E真实互选top16图3462节点/10278边/182分量/170孤点，在6个选书条件求势/净通量，额外反向控制；各194节点未锚定保持null，不添边。参数敏感性、小样本及集中现象保留，数值改变不是阅读收益。
+- **文件/证据**：新增`docs/87-REPRODUCIBLE-WORLD-MINING.md`、`scripts/research/distributionTransport.ts`、`scripts/research/study-world-transport.mjs`、`scripts/research/study-world-flux.mjs`、`tests/world-mining-transport.test.ts`；同步AGENTS/48/54/86。private目录world-mining保存论文原页/题名/状态/指纹、v1/v2原型与v3正式canonical/run/log。Node v24.13.1直接运行两驱动各两次，新目录不覆盖；正式transport SHA87b865b06d773965317404aa9f676daa9d8d23b527eb29ac1c84371c3e01b248、flux SHA81d807fe83bd2967d97f41596b42386d26075653a510d5f37c6bb61f84cca95d各复跑一致。只证明同机同输入；尚需未公开缓存，不保证clone即可/跨硬件位级一致。
+- **文献/失败**：公开HTTP抓取OT/UOT/GW/SBM一手页面、Crossref书目与POT/deeptime作者文档；论文大多摘要/元数据，方法文档读取正则/committor/通量定义，不称系统综述或原论文复现。PMLR vayer19a页404，以明确题名arXiv1811.02834补核，非声称原猜测2019论文已读。工具发现只见SiYuan代理网络能力等，未调用该服务/访问个人数据或冒称原生web_search。源码迁移多出右括号致首suite 0测试执行；修正8/8。typecheck索引undefined以边界访问器修复，不关闭strict；lint三个丢字段解构未使用改字段过滤。早期npx自动下载tsx4.23.15到npm缓存，无package/lock或语料外发，正式v3改现有原生Node。
+- **验证与阶段边界**：专项Vitest8/8；实际`npm run check`通过typecheck/lint、59文件412/412单测（含新增8）、公开快照/地形校验与构建；`npm run isolation:public` clean，JS gzip145.11KB。snapshot/terrain SHA未变、私有输入/产物Git忽略，新增文档源码路径/限定10文件范围检查通过。既有2030未reviewed Tag/原换行警告保留，不开内容审核；publication测试临时策略缺失/错误的预期stderr不触发初始化。没有本轮浏览器重跑，不冒称旧地图64/local130/Pages22。没有新UI/浏览器截图、模型调用/WeRead取数、人工语义关系或新增内容；消费者/src/public/Tag/生产坐标地形/依赖锁不变。阶段Gate为方法修正/数值可行/复跑可检查，非语义/产品/视觉Gate。继续信息增量/反例/简单基线/统一参数/书量度数偏置研究，先文字共同确定核心动作，再完整网站本机实现；GW/SBM未实现、不要求Henry批量策展评分。收口仅小步本地commit，**不push/deploy**。
+
+## 2026-10-02 · 第二版真实手机反馈与R-02阅读世界范式研究（首轮历史方向；已受方法纠正）
 
 - **授权与反馈**：Henry实际用手机访问已上线第二版，认为小屏基本操作顺畅、交互逻辑清晰、整体体验不错；未给设备/浏览器/网络/长时测量，不推为独立首访/全设备/读屏或权利Gate。给予广泛自由重新研究对象/关系/产品形式，可替换根本模型，不限定二维句子点，不以embedding/Tag位置小修为总目标；旧产品与研究作为有效对照，未来发布/远程模型仍另行许可。
 - **实际研究**：开始git status干净，head b4280d7。复看48/54/70–74/78/85及数据工作流/skill/移植说明；用公开Crossref题名检索和arXiv论文/检索网页核对几何学习、sheaf、结构映射、高阶网络、信息瓶颈等。2026 CANVAS读取介绍/相关工作及方法相关部分；其余多为一手摘要/元数据，不冒称全量综述/复现。九个先定旧案例h-3501/2288/4504/043/4422/3892/1597/4559/1244逐ID检查公开原文和实际tagIds，108本3462句SHA仍ccef39e7410ba7dd1618a8038762933464dd35c45a98f5fa48fb5e8c02c53a7c；不调用模型/WeRead，不读原始账号/凭证或无关服务。脚本inspect/supplement/followup/verify-primary及原文/网页/指纹/日志在`.private/research/world-paradigms/`，不提交全文。
