@@ -17,19 +17,17 @@
 .play-lit-book { font-size: 12px; color: #c6c9bc; margin: 14px 0 0; overflow-wrap: anywhere; }
 .play-experience { display: grid; grid-template-columns: minmax(0,1.45fr) minmax(290px,.8fr); align-items: start; gap: 0; margin-top: 14px; }
 .play-landscape { min-width: 0; }
-.play-stage { position: relative; height: clamp(440px,48vw,640px); isolation: isolate; border-radius: 6px; background: radial-gradient(ellipse at 50% 57%,#1d3448 0,#122533 39%,#091723 76%); overflow: hidden; }
+.play-stage { position: relative; height: clamp(430px,42vw,560px); isolation: isolate; border-radius: 18px 0 0 18px; background: radial-gradient(ellipse at 26% 30%,#25365070,transparent 52%),radial-gradient(ellipse at 76% 72%,#4a2d5e45,transparent 55%),radial-gradient(ellipse at 48% 48%,#14263e,#080f21 78%); overflow: hidden; }
 .play-stage canvas { display: block; touch-action: pan-y; }
 .play-stage > div { touch-action: pan-y; }
 .play-scene-signature { position: absolute; left: 22px; bottom: 18px; color: #adc0c363; letter-spacing: .18em; font-size: 8px; pointer-events: none; }
 .play-scene-labels { position: absolute; inset: 0; pointer-events: none; }
-.play-scene-labels .play-book-label { position: absolute; top: 0; left: 0; visibility: hidden; pointer-events: auto; }
+.play-scene-labels .play-film-label { position: absolute; top: 0; left: 0; visibility: hidden; pointer-events: auto; }
 .play-stage[data-play-context="fallback"] .play-scene-labels,
 .play-stage[data-play-context="lost"] .play-scene-labels { display: none; }
-.play-book-label { display: grid; align-content: center; gap: 5px; width: 112px; padding: 7px 8px; border-radius: 3px; border: 1px solid transparent; background: linear-gradient(0deg,#0e1e2ce8,#0e1e2c88); text-align: center; }
-.play-book-label small { font-size: 9px; letter-spacing: .12em; color: #afbfbd; }
-.play-book-label > span { font-family: var(--font-reading,"Songti SC",serif); font-size: 12px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.play-book-label[aria-pressed="true"] { border-color: #cdb17a77; background: #183040dd; }
-.play-book-label[aria-pressed="true"] small { color: var(--play-gold); }
+.play-film-label { width: 100px; padding: 4px 8px; border: 0; border-radius: 22px; background: #0b132377; text-align: center; color: #cbd7e7 !important; font-size: 11px !important; letter-spacing: .06em; }
+.play-film-label i { font-style: normal; color: #a6c7ec; margin-left: 8px; }
+.play-film-label[aria-pressed="true"] { background: #233252cc; color: #f0eff9 !important; box-shadow: inset 0 0 0 1px #b8c5f04d; }
 .play-scene-fallback { position: absolute; inset: 40% 12% auto; z-index: 5; line-height: 1.9; text-align: center; font-size: 14px; background: #101e2cee; padding: 20px; color: #ebd9b9; }
 .play-page-strip { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin-top: 10px; }
 .play-page-strip button { border: 1px solid #52677755; background: #0e1b28; border-radius: 3px; text-align: left; padding: 12px 13px; display: grid; align-content: start; gap: 7px; min-width: 0; }
@@ -69,7 +67,7 @@
  .play-heading h1 { font-size: 30px; letter-spacing: .08em; } .play-heading h1 span { font-size: 10px; line-height: 1.7; letter-spacing: .04em; }
  .play-heading .play-eyebrow { font-size: 8px; letter-spacing: .08em; } .play-new-pages { font-size: 11px !important; padding: 9px 12px; } .play-new-pages > span { margin-left: 3px; }
  .play-breadcrumb { font-size: 10px; gap: 8px; } .play-breadcrumb small { font-size: 10px; }
- .play-stage { height: 320px; } .play-book-label { width: 88px; padding: 6px; gap: 3px; } .play-book-label > span { font-size: 10px; } .play-book-label small { font-size: 8px; }
+ .play-stage { height: 350px; border-radius: 14px; } .play-film-label { width: 85px; font-size: 10px !important; padding: 3px 6px; }
  .play-scene-signature { left: 12px; bottom: 10px; font-size: 7px; }
  .play-page-strip { display: flex; overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: 8px; }
  .play-page-strip button { flex: 0 0 44%; scroll-snap-align: start; padding: 10px; } .play-page-strip strong { font-size: 11px; }

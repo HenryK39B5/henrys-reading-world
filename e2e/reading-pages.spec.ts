@@ -18,7 +18,7 @@ for(const width of [1440,390])test(`static Pages subpath reads and refreshes gen
     const selectedAddress=page.url();await page.getByRole('link',{name:'去这本书',exact:true}).click();await expect(page).toHaveURL(/\/henrys-reading-world\/books\/b-.*\/$/);
     await page.goBack();await expect(page.locator('.play-stage')).toHaveAttribute('data-play-context','ready',{timeout:90_000});expect(page.url()).toBe(selectedAddress);
     await page.getByRole('button',{name:'分享',exact:true}).click();await expect(page.getByRole('dialog')).toContainText(real?.text??'');await page.keyboard.press('Escape');
-    await page.locator('.play-stage').screenshot({path:`.private/review/reading-garden/static-${info.project.name}-${width}.png`});
+    await page.locator('.play-stage').screenshot({path:`.private/review/virtual-films/static-${info.project.name}-${width}.png`});
     expect(requests.some(url=>url.includes('/__'))).toBe(false);
     expect(requests.every(url=>new URL(url).origin==='http://127.0.0.1:5316')).toBe(true);
     expect(failed).toEqual([]);expect(errors).toEqual([]);expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);

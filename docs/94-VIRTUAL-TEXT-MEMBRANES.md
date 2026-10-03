@@ -20,8 +20,19 @@
 
 阶段一只纯helper/测试/本文/AGENTS/08小步本地提交，UI仍工作区继续，不称新美术/游戏体验通过。
 
-## 内部阶段二：完整站点与静态Pages（进行中）
+## 内部阶段二：完整站点与静态Pages（工程完成；新虚拟稿待体验）
 
-待实际新20浏览器例（含直接曲面点击/即时全文/稳定anchor相机/拖不误选/10次选取资源/idle/live reduced-motion/context损失恢复/真实scope/Back/触屏/最长文/320）、静态项目base4例、全check/隔离/公开投影、修后真实图和成本。旧93的18/426/4不是本轮成绩。reduced-motion取消曲面过渡/入场/升降/倾转，保留立即状态与稳定正文；demand帧只有限响应，不连续漂浮/粒子，隐藏后可唤醒；原正常React投影标签，不用Drei Html多root。
+本轮实际新22浏览器例（含直接曲面点击/即时全文/稳定anchor相机/拖不误选/10次选取资源/idle/live reduced-motion/context损失恢复/真实scope/Back/触屏/最长文/320）、静态项目base4例、全check/隔离/公开投影、修后真实图和成本已执行，细节见下节。旧93的18/426/4不是本轮成绩。reduced-motion取消曲面过渡/入场/升降/倾转，保留立即状态与稳定正文；demand帧只有限响应，不连续漂浮/粒子，隐藏后可唤醒；原正常React投影标签，不用Drei Html多root。
 
 未验：Henry新视觉/虚拟性/自然性与娱乐反馈、独立首访、实物手机/Safari、真实200%缩放、读屏、长时低端性能与权利。线上第二版继续有效；最终拟发布场景/关系与范围仍另决定。
+
+## 实际命令、反例、成本与收口
+
+- `npm run check`新**62文件430/430**、类型/lint/公开data/terrain/普通build通过；`isolation:public`、`publication:verify`、`validate:data:local`均过，原未审Tag/换行coverage不抹去。已批准snapshot/terrain/本机向量SHA仍与93完全相同。正常public还是index-x2roO1Xt.js477.35KB/145.11gzip、旧CSS/JSON，只有81modules，没有新Scene/Three包。
+- 同时跑两套Playwright时首次**21/22与3/4**，分别browserContext.close/apiRequestContext.dispose的trace/network ENOENT：共用test-results被另一套清理。未将其算成功，保存first日志，配置独立private results-local/results-pages后同断言重跑：`npx playwright test --config e2e/config/playwright.play-world.config.ts`**22/22**（11+11/1worker/4.7min），`...playwright.reading-pages.config.ts`**4/4**（2+2/1worker/1.8min）。没有删失败断言或用旧成绩代替。
+- 新增真实曲面直接射线点击：根据固定构图slot投影点，确切读取对应真实ID/全文、h变而anchor/相机不变，并捕获pageerror/console shader error；不是只点DOM列表。10次连续选择desktop geometry/texture计数与初始相同，live reduced-motion停止动画/一段无新帧；另有idle1s、真实WebGL损失恢复/noGL、模拟touch、scope/Back/父级/分享/源书/最长文/320/720×450缩放等效、非法关系额外vectors拒后诚实偶遇。计数不代表长期泄漏/VRAM/60fps或物理Safari证明。
+- 新static输出真实PlayWorldRoom-DlAXatAL.js**889,126B / 236,856B gzip**，CSS8245/2511；仍有>500KB警告，不改阈值隐藏。只有已批准公开材料和同源静态资源，两个private端点404、无/__请求、真实Pages base与刷新/书房往返/分享、无pageerror/网络404/横溢出。没有public模型邻接时明确只偶遇，不偷用本机API冒充可部署。
+- 图证：`virtual-films/first-*`保留小字/下方入口裁切，修24字80px字纹理/desktop视域11.8后读取final-chromium-1440/390、static-webkit-390；新的完整桌面whole-desktop-final、完整手机timing-whole-chromium-390已实际读取。无物理底座/书壳/书脊/封面/两叶，真文材质在单曲面，Native文本/出处/Tag/返回完整。材质为柔和发光膜，纹理微字仍不宜代替原文阅读，艺术/可玩自然性待Henry实际新稿反馈。
+- 分段计时（新独立dev390×900，各engine仅1样本，非受控/冷启动或生产）：Chromium dom523ms、真文1783、scene-ready1813、等待结束3317、整页截图3458、scene截图3574；WebKit分别20735/21645/21897/23407/23484/23645。该样本截图各只77–161ms，慢主要已在DOMContentLoaded之前，但**尚不知导航/资源/编译/工具或CPU具体原因，不作因果诊断/真机保证**。与初49s整段不是公平提速对照；WebKit开发成本未解决，不因为少shader就称性能好。
+- 偏差：首E2E沿用reading-garden/final与static名称，覆盖了旧93的8张场景图；旧93首图/失败图/whole-followup完整页证据仍存。之后改virtual-films专用截图/trace目录，不声称精确恢复旧final图。分段脚本只390，误读不存在的1440 timing图一次ENOENT，未称读取成功，随后单独生成并实际读whole-desktop-final。
+- 不新增依赖/模型/微信读书/内容/Tag/向量/原地形点位或公开导出；锁文件未动，旧eslint链audit高风险仍历史未解决，本轮未新跑audit或声称安全。阶段一`f061a5e`、阶段二小步本地commit，未push/deploy。127.0.0.1:5216 listener仍PID12916、map200，新薄片就在原完整站可看；浏览器工程通过不替Henry判新美术/娱乐Gate。

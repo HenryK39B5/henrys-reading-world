@@ -4,7 +4,6 @@ import type { Snapshot } from '../../domain/types.ts';
 import { parsePlayWorldData, playSnapshotIdentity, playfulEncounter, topicGates, topicMembers, type PlayWorldData } from '../../domain/playWorld.ts';
 import { readingAddress, readingFrame, readingPages, type ReadingFrame } from '../../domain/playExperience.ts';
 import { sitePath } from '../../app/sitePath.ts';
-import { coverUrl } from '../../app/covers.ts';
 import { ReadingScene, type ScenePage } from './ReadingScene.tsx';
 import './play.css';
 
@@ -63,7 +62,6 @@ export function PlayWorldRoom({ index, tagId, bookId, highlightId, worldTags = [
     const outside = highlightId !== null && !unknown && !members.some(h => h.id === highlightId);
     const scenePages: ScenePage[] = useMemo(() => pages.map(page => ({ id:page.highlight.id,
         title:index.booksById.get(page.highlight.bookId)?.title ?? '', preview:page.highlight.text,
-        cover:coverUrl(index.booksById.get(page.highlight.bookId)?.coverPath),
         kind:page.kind === 'candidate' ? '联想候选' : page.kind === 'encounter' ? '偶遇一页' : '从这里出发',
     })),[pages,index]);
     useEffect(() => {
@@ -155,7 +153,7 @@ export function PlayWorldRoom({ index, tagId, bookId, highlightId, worldTags = [
             </details>
         </section>
         {error!==null?<p className="play-data-note" role="status">{error}<button type="button" onClick={()=>{requests.delete(snapshot);setRetry(n=>n+1);}}>重试联想资料</button></p>:null}
-        <details className="play-notes"><summary>关于这片书页</summary><p>书与原文都来自已有真实划线。“联想候选”来自本机模型，不是作者之间的引用或观点一致；“偶遇”不表示内容相似。书的摆放只是构图，不是语义距离。主题入口只筛选已记录的标签，未标注的原文仍留在全部书页里。</p>
-            <p>这是未上线的新探索。没有模型资料时仍可静态运行并按书偶遇；完整文字、出处、书房、小径与分享不依赖3D。</p></details>
+        <details className="play-notes"><summary>关于这片书页</summary><p>书与原文都来自已有真实划线。“联想候选”来自本机模型，不是作者之间的引用或观点一致；“偶遇”不表示内容相似。悬浮薄片各承载一处真实划线，形状、颜色与摆放只是构图，不是语义距离或标签类别。主题入口只筛选已记录的标签，未标注的原文仍留在全部书页里。</p>
+            <p>这是未上线的虚拟文字薄片探索。薄片上的文字是该处原文的摘录，不模拟原书分页；完整原文立即显示，不必等舒展效果。没有模型资料时仍可静态运行并按书偶遇；完整文字、出处、书房、小径与分享不依赖3D。</p></details>
     </section>;
 }

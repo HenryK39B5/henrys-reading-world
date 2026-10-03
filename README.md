@@ -12,14 +12,14 @@
 
 ## 本机游玩式探索（未上线）
 
-首轮把球中世界、焦点曲面、展开曲面与拨动/光粒抵达接在同一完整网站里。**Henry实际反馈不好看且操作困惑，视觉/交互均未通过**；保留作失败对照，不是已认可方案。[3D专题](docs/92-3D-STACK-AND-EXPERIENCE-RESET-STUDY.md)后，Henry将技术选择交Agent、要求最终GitHub Pages可部署。现已用React/Three/R3F9/按需Drei在原整站本机重构为[书页之间](docs/93-PAGES-READY-READING-SCENE-REBUILD.md)：选真书页读原文，明确继续才换内容起点，固定相机；不再保留六组合/方向器。完整原文仍DOM、书房/小径/分享/返回共用。新美术/自然性尚未获认可，尤其WebKit开发成本与标签/构图仍需打磨；仅真实资料，不替换已发布第二版。
+首轮把球中世界、焦点曲面、展开曲面与拨动/光粒抵达接在同一完整网站里。**Henry实际反馈不好看且操作困惑，视觉/交互均未通过**；保留作失败对照，不是已认可方案。[3D专题](docs/92-3D-STACK-AND-EXPERIENCE-RESET-STUDY.md)后，Henry将技术选择交Agent、要求最终GitHub Pages可部署。现已用React/Three/R3F9/按需Drei在原整站本机重构为[书页之间](docs/93-PAGES-READY-READING-SCENE-REBUILD.md)：选真书页读原文，明确继续才换内容起点，固定相机；不再保留六组合/方向器。完整原文仍DOM、书房/小径/分享/返回共用。Henry实际看93认为视觉挺好、交互小巧有趣，但随后不偏好果盘/实体书过于写实，要求虚拟原生与游戏体验。现已在同整站完成[悬浮文字薄片一稿](docs/94-VIRTUAL-TEXT-MEMBRANES.md)：无实物底座/书壳/封面/书脊，单片微曲发光膜/真摘录，选择有限舒展、全文立即，明确继续再换窗口。新稿未判最终美术/游戏自然性通过，尤其WebKit开发成本未解决；仅真实资料，不替换已发布第二版。
 
 ```powershell
 npm run dev:play
 # http://127.0.0.1:5216/map
 ```
 
-完整本机范围需要已有private快照/封面；匹配派生图提供真实模型候选，无图仍可明确偶遇，不假造关联。已有embedding缓存才能首次`npm run play:prepare`；artifact/report拒覆盖，不自动抓取/调用模型。private mode拒正式build，普通local/public继续原地图。新工程18浏览器/426单测不等于美术通过；旧[91](docs/91-PLAYFUL-WORLD-LOCAL-EXPLORATION.md)保留失败对照。
+完整本机范围需要已有private快照/封面；匹配派生图提供真实模型候选，无图仍可明确偶遇，不假造关联。已有embedding缓存才能首次`npm run play:prepare`；artifact/report拒覆盖，不自动抓取/调用模型。private mode拒正式build，普通local/public继续原地图。新薄片工程22浏览器/430单测不等于美术通过；旧[91](docs/91-PLAYFUL-WORLD-LOCAL-EXPLORATION.md)保留失败对照。
 
 无需private语料/后台的Pages静态可行性检查只用已批准旧公开输入，输出仍private，不上线：
 
@@ -27,7 +27,7 @@ npm run dev:play
 npx playwright test --config e2e/config/playwright.reading-pages.config.ts
 ```
 
-该命令build显式play-static-check，使用仅静态文件的loopback5316检验真实`/henrys-reading-world/`子路径（双引擎×1440/390，4/4），不请求private端点或外部资产；不是新关系/新内容导出或push/deploy许可。细节/反例/成本见[93](docs/93-PAGES-READY-READING-SCENE-REBUILD.md)。
+该命令build显式play-static-check，使用仅静态文件的loopback5316检验真实`/henrys-reading-world/`子路径（双引擎×1440/390，4/4），不请求private端点或外部资产；不是新关系/新内容导出或push/deploy许可。旧静态结构见[93](docs/93-PAGES-READY-READING-SCENE-REBUILD.md)，新稿验证/反例/成本见[94](docs/94-VIRTUAL-TEXT-MEMBRANES.md)。
 
 ## 公开范围
 

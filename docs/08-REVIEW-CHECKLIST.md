@@ -2,6 +2,15 @@
 
 上线后的未完成任务与状态统一维护在 `docs/48-MAINTENANCE-ROADMAP.md`；本文件继续按阶段追加实际执行证据，不作为第二份待办清单。2026-09-24 起，历史截图与专项审计 Playwright 配置位于 `e2e/config/`；下文更早的根目录调用命令保留为当时执行记录，重新运行时须改用新路径。
 
+## 2026-10-03 · 虚拟文字薄片一稿 — 阶段二（工程完成；新稿待实际体验）
+
+- 原完整站ReadingScene改单曲面发光膜/真实24字摘录、无底座/书壳/书脊/封面/两叶、少量自有shader无新依赖；真实全文DOM立即，不等有限舒展/显露，选/继续/主题进出/来源返回仍同一核心。手机固定中心+2背景，desktop7；RNG色/曲面/位置仅构图，reduced-motion无变形入场升降倾转/idle静止，GL/noGL仍可读，无远程字体/环境/模型。
+- 新check62文件430/430、类型/lint/公开data/terrain/正常build通过；isolation/publication/local validate过，批准snapshot/terrain/向量SHA完全同93，普通public旧index-x2roO1Xt/CSS/JSON同名同尺寸，不含薄片/Three。原coverage与旧eslint链audit风险不冒消失，未新audit。小字/底部入口首图反例修24字80px/视域11.8并实际图读。
+- 首两套并行21/22、3/4，trace/network ENOENT是共用test-results清理冲突；保存first日志，独立private results-local/pages后同断言新**22/22（双engine11+11，1worker4.7m）**、**静态Pages4/4（1worker1.8m）**。新增直接曲面射线选确切ID/全文/稳定camera+anchor、console shader错误0、10次选取geo/texture计数不增长、idle/live reduce静止，包含触屏/320/最长文/缩放等效/GLloss恢复/noGL/真实scope父级刷新/分享书房/非法向量诚实偶遇；非实物/真实200%/首访/读屏/长时。
+- 真正已批准输入无后台staticPlay懒加载889126/236856gzip，仍>500KB警告保留，正确Pages base、刷新/真实来源往返/分享、同源、无/__请求/private端点404/无error/404/横溢出。新final与whole-desktop-final/手机timing图读取，膜微字不替完整阅读，新艺术虚拟性/好玩未替Henry判Gate。
+- 新独立dev390各1次分段Chrome DOM523/原文1783/scene1813ms；WebKit20735/21645/21897ms，截图成本77–161ms，慢在DOM前仍具体未定位/不称生产或提速，先49s整段样本保留。首E2E误用旧reading-garden名称覆盖93的8张final/static场景图（旧whole/first/失败证据仍在），已专用94目录且不称精确恢复；误读未生成1440 timing图ENOENT后另生成实际读取桌面图。详94含路径/命令/成本/未验项。
+- 5216仍PID12916/map200，新稿在原站本机，纯阶段f061a5e、本阶段小步local commit，未push/deploy/模型/WeRead/改内容Tag向量生产坐标地形。批次一稿结束，下一步基于同整站Henry真实体验迭代，不另立选引擎/隔离样本/批量评分门槛。
+
 ## 2026-10-03 · 虚拟文字薄片一稿 — 阶段一（装饰曲面/动作完成，整站续做）
 
 - Henry实看93评价视觉挺好/交互小巧神奇有趣，随后不偏好果盘实体写实，要虚拟原生/游戏交互；明确Agent最想做的文字薄片做一稿继续。新增94与filmGeometry helper/4tests，single membrane非书脊、stable ID装饰color/明确7或3slots不冒充语义、有限动效收敛/非finite报错。新4+旧14=18/18；无新依赖/模型/语料/Tag/原点位地形或发布。
