@@ -281,7 +281,7 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
                     />
                 );
             case 'map':
-                if (PlayWorldRoom !== null) return <Suspense fallback={<p role="status">正在打开本机世界……</p>}><PlayWorldRoom index={index} tagId={route.tagId} bookId={route.bookId} highlightId={route.highlightId} worldTags={route.worldTags ?? []} onNavigate={router.navigate} onShare={share.open} previousPath={router.previousPath} /></Suspense>;
+                if (PlayWorldRoom !== null) return <Suspense fallback={<p role="status">正在打开本机世界……</p>}><PlayWorldRoom index={index} tagId={route.tagId} bookId={route.bookId} highlightId={route.highlightId} worldTags={route.worldTags ?? []} playAnchorId={route.playAnchorId ?? null} onNavigate={router.navigate} onShare={share.open} previousPath={router.previousPath} /></Suspense>;
                 return (
                     <MapRoom
                         index={index}

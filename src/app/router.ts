@@ -29,7 +29,7 @@ export type RoomRoute =
     | { name: 'theme'; themeId: string }
     | { name: 'paths' }
     | { name: 'path'; tagId: string }
-    | { name: 'map'; tagId: string | null; bookId: string | null; highlightId: string | null; worldTags?: string[] }
+    | { name: 'map'; tagId: string | null; bookId: string | null; highlightId: string | null; worldTags?: string[]; playAnchorId?: string | null }
     | ({ name: 'books' } & BookFilters)
     /**
      * 书籍房间. It names a book and nothing else: the room walks that book's passages in rounds, so a
@@ -101,6 +101,7 @@ export function parseRoute(pathname: string, search = ''): RoomRoute {
             tagId: params.get('tag'),
             bookId: params.get('book'),
             highlightId: readHighlightId(params),
+            ...(typeof __PLAY_WORLD_ENABLED__ !== 'undefined' && __PLAY_WORLD_ENABLED__ && params.has('anchor') ? { playAnchorId: params.get('anchor') } : {}),
             ...(typeof __PLAY_WORLD_ENABLED__ !== 'undefined' && __PLAY_WORLD_ENABLED__ && params.has('world') ?
                 { worldTags: [...new Set((params.get('world') ?? '').split(',').filter(id => /^tag-\d{3}$/u.test(id)))].slice(0, 3) } : {}),
         };
@@ -146,6 +147,7 @@ export function routePath(route: RoomRoute): string {
             if (route.bookId !== null) params.set('book', route.bookId);
             if (route.highlightId !== null) params.set('h', route.highlightId);
             if (typeof __PLAY_WORLD_ENABLED__ !== 'undefined' && __PLAY_WORLD_ENABLED__ && route.worldTags !== undefined && route.worldTags.length > 0) params.set('world', route.worldTags.join(','));
+            if (typeof __PLAY_WORLD_ENABLED__ !== 'undefined' && __PLAY_WORLD_ENABLED__ && route.playAnchorId) params.set('anchor', route.playAnchorId);
             const query = params.toString();
             return query.length === 0 ? '/map' : `/map?${query}`;
         }

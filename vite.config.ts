@@ -375,6 +375,9 @@ export default defineConfig(({ command, mode }) => {
     const tagStudioMode = mode === 'tag-studio-private';
     const mapStudyMode = mode === 'map-study';
     const playMode = mode === 'play-private';
+    // Private output, approved inputs only: prove the new scene needs no runtime server on Pages.
+    const playStaticCheck = mode === 'play-static-check';
+    const outputDirectory = playStaticCheck ? '.private/play-static-check' : 'dist';
     const anyLocalMode = localMode || reviewMode || tagStudioMode || playMode;
 
     return {
@@ -409,7 +412,7 @@ export default defineConfig(({ command, mode }) => {
                 name: 'pages-room-entries',
                 apply: 'build',
                 async closeBundle() {
-                    const root = resolve('dist');
+                    const root = resolve(outputDirectory);
                     const entry = resolve(root, 'index.html');
                     const result = validateSnapshot(JSON.parse(await readFile(resolve('src/data/public-snapshot.json'), 'utf8')) as unknown,
                         { expectedVisibility: 'public' });
@@ -448,6 +451,7 @@ export default defineConfig(({ command, mode }) => {
             strictPort: true,
         },
         build: {
+            outDir: outputDirectory,
             sourcemap: false,
         },
         test: {
@@ -456,7 +460,7 @@ export default defineConfig(({ command, mode }) => {
         },
         define: {
             __LOCAL_MODE__: JSON.stringify(anyLocalMode && command === 'serve'),
-            __PLAY_WORLD_ENABLED__: JSON.stringify(playMode && command === 'serve'),
+            __PLAY_WORLD_ENABLED__: JSON.stringify((playMode && command === 'serve') || playStaticCheck),
             // Historical feature flag: the accepted study visuals now run in public and local map modes.
             __MAP_STUDY__: JSON.stringify(mapStudyMode || localMode || (!anyLocalMode && command === 'serve') || command === 'build'),
             __MAP_STUDY_ENDPOINT__: JSON.stringify(mapStudyMode && command === 'serve'),

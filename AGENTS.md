@@ -12,7 +12,7 @@
 
 ## 2026-10-03：Agent自主选栈，GitHub Pages静态约束与整站重构（现行）
 
-Henry明确技术栈由Agent专业选择，只须最终能GitHub Pages部署，要求继续工作，不再让其选引擎/预判赢家。现行见`docs/93-PAGES-READY-READING-SCENE-REBUILD.md`：已选React/Three0.180/R3F9.8.1/按需Drei10.7.9，静态资产+DOM阅读，无后台/模型/CDN字体/HDR或iframe。原整站本机实施“书页之间”：可辨真书页、受控相机，选择只读，“从这页继续”才重组anchor，主题进入/真实返回；模型候选和按书偶遇分别标注，物体摆放仅构图，球/分形/方向器/双参与三形态不强留。新增pure动作/地址测试14/14，本轮场景/Pages验证继续，首版比例/标签反例留存，不称新视觉已获认可。显式play-static-check仅已批准旧公开输入、产物private，用无后台项目子路径证明；正常public/local第二版不变，private模式不正式build。新公开关系/snapshot/Tag/生产点位地形或push/deploy仍单独授权；旧失败代码/图保留，不造假数据/语义故事、调远程模型或让Henry批量评分。原开工权限继续有效，不以此条新设讨论阻塞。
+Henry明确技术栈由Agent专业选择，只须最终能GitHub Pages部署，要求继续工作，不再让其选引擎/预判赢家。现行见`docs/93-PAGES-READY-READING-SCENE-REBUILD.md`：已选React/Three0.180/R3F9.8.1/按需Drei10.7.9，静态资产+DOM阅读，无后台/模型/CDN字体/HDR或iframe。原整站本机实施“书页之间”：可辨真书页、受控相机，选择只读，“从这页继续”才重组anchor，主题进入/真实返回；模型候选和按书偶遇分别标注，物体摆放仅构图，球/分形/方向器/双参与三形态不强留。新增pure动作/地址14/14，场景首轮12/18的DOM清理/拖误选修后18/18，Pages cwd/JSON import两次失败修后静态4/4，check61文件426；隔离/投影/本机数据/原SHA不变。构图空区/重复封面/标签叠边与WebKit开发成本仍需打磨，首版及新反例留存，不称新视觉已获认可。显式play-static-check仅已批准旧公开输入、产物private，用无后台项目子路径证明；正常public/local第二版不变，private模式不正式build。新公开关系/snapshot/Tag/生产点位地形或push/deploy仍单独授权；旧失败代码/图保留，不造假数据/语义故事、调远程模型或让Henry批量评分。原开工权限继续有效，不以此条新设讨论阻塞。
 
 ## 2026-10-03：首轮视觉/交互未通过；3D专题与重新定向（历史；选栈已由93接续）
 

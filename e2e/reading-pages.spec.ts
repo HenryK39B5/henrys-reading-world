@@ -1,0 +1,27 @@
+import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import type { Snapshot } from '../src/domain/types.ts';
+const snapshot=JSON.parse(readFileSync('src/data/public-snapshot.json','utf8')) as Snapshot;
+const anchor=snapshot.highlights.find(h=>h.id==='h-3501')??snapshot.highlights[0];if(anchor===undefined)throw Error('Approved originals required');
+for(const width of [1440,390])test(`static Pages subpath reads and refreshes genuine pages at ${width}`,async({page,request},info)=>{
+    await page.setViewportSize({width,height:900});const errors:string[]=[];const requests:string[]=[];const failed:string[]=[];
+    page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>requests.push(r.url()));page.on('response',r=>{if(r.status()>=400)failed.push(`${r.status()} ${r.url()}`);});
+    await page.goto(`/henrys-reading-world/map/?h=${anchor.id}`);
+    await expect(page.locator('.play-stage')).toHaveAttribute('data-play-context','ready',{timeout:90_000});
+    await expect(page.locator('.play-original blockquote > p')).toHaveText(anchor.text);
+    await expect(page.getByTestId('play-world')).toHaveAttribute('data-play-data','ready');
+    expect(await page.locator('.play-page-kind').allTextContents()).not.toContain('联想候选');
+    await page.locator('.play-page-strip button').nth(1).click();
+    const id=await page.locator('.play-original').getAttribute('data-play-reading-highlight');const real=snapshot.highlights.find(h=>h.id===id);expect(real).toBeDefined();
+    expect(new URL(page.url()).pathname).toBe('/henrys-reading-world/map/');await expect(page.locator('.play-original blockquote > p')).toHaveText(real?.text??'');
+    await page.reload();await expect(page.locator('.play-stage')).toHaveAttribute('data-play-context','ready',{timeout:90_000});await expect(page.locator('.play-original blockquote > p')).toHaveText(real?.text??'');
+    const selectedAddress=page.url();await page.getByRole('link',{name:'去这本书',exact:true}).click();await expect(page).toHaveURL(/\/henrys-reading-world\/books\/b-.*\/$/);
+    await page.goBack();await expect(page.locator('.play-stage')).toHaveAttribute('data-play-context','ready',{timeout:90_000});expect(page.url()).toBe(selectedAddress);
+    await page.getByRole('button',{name:'分享',exact:true}).click();await expect(page.getByRole('dialog')).toContainText(real?.text??'');await page.keyboard.press('Escape');
+    await page.locator('.play-stage').screenshot({path:`.private/review/reading-garden/static-${info.project.name}-${width}.png`});
+    expect(requests.some(url=>url.includes('/__'))).toBe(false);
+    expect(requests.every(url=>new URL(url).origin==='http://127.0.0.1:5316')).toBe(true);
+    expect(failed).toEqual([]);expect(errors).toEqual([]);expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+    expect((await request.get('/__local_snapshot')).status()).toBe(404);expect((await request.get('/__play_world_geometry')).status()).toBe(404);
+    const response=await request.get('/henrys-reading-world/map/');expect(response.status()).toBe(200);
+});

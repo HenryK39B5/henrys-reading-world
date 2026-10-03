@@ -21,6 +21,7 @@ export type MapRoomProps = {
     highlightId: string | null;
     /** Loopback play-world context only. It never changes production map qualification. */
     worldTags?: string[];
+    playAnchorId?: string | null;
     onNavigate: (path: string) => void;
     onShare: (highlightId: string) => void;
     previousPath: string | null;

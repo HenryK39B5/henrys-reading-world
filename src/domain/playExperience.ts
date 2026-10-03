@@ -16,7 +16,7 @@ export function pageRandom(seed: string): () => number {
     };
 }
 
-/** One stable scene. Selecting a page does not change its anchor, membership, or arrangement. */
+/** One stable content window. Selection does not change its anchor or membership; renderer controls presentation. */
 export function readingPages(members: readonly Highlight[], anchorId: string | null,
     data: PlayWorldData | null, limit = 7): ReadingPage[] {
     if (limit <= 0) return [];

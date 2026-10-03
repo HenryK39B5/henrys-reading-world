@@ -2,6 +2,15 @@
 
 上线后的未完成任务与状态统一维护在 `docs/48-MAINTENANCE-ROADMAP.md`；本文件继续按阶段追加实际执行证据，不作为第二份待办清单。2026-09-24 起，历史截图与专项审计 Playwright 配置位于 `e2e/config/`；下文更早的根目录调用命令保留为当时执行记录，重新运行时须改用新路径。
 
+## 2026-10-03 · Pages约束下整站重构 — 内部阶段二（工程完成；新视觉/自然性未过）
+
+- 原整站本机新ReadingScene/PlayWorldRoom/CSS与anchor路由接通，固定正交相机/真实封面/选中翻开摘录纸页、明确继续才重组起点、真实主题父级/刷新/分享/书房Back；手机选中居固定中心，正文DOM全字/作者/Tags。无六组合/方向器/OrbitControls/运行时模型/远程字体HDR；纸页为真文摘录物件非声称原书真实分页。
+- 首18例12过6红，4×DOM移除异常+2×拖误选h-2261；保留e2e-first原日志/图，废Drei Html多root而用正常React投影标签、统一7px拖动阈值、取消reduced-motion升降、晚到封面cache不删新entry。修后本机**18/18**双引擎9+9/1worker/4.5min，包括同canvas/相机、全部真文、h/anchor明确、scope/父级/Back/刷新、分享/书房、keyboard/720×450等效缩放/320/最长真文/live motion/模拟touch/真实GL损失恢复与noGL、只读/禁私有向量、未知/范围外/非法vector字段诚实偶遇、idle1s不绘制。
+- 显式play-static-check只旧批准public输入到private产物；首cwd找不到index.html、第二Node24 JSON import attribute失败/No tests found，修复后**4/4**双引擎×1440/390/1worker/2.1min，真正仅静态文件host5316、正确项目base/刷新/h/anchor/书房/Back/分享、同源、无/__请求/private端点404/无pageerror/404/横溢出。新场景包~952KB/260gzip，>500KB警告留存，非正式deploy或关系export。
+- `npm run check`**61文件426/426**、类型/lint/公开数据/地形/正常build；isolation/publication/local validate通过，原未审Tag/换行警告不变。普通public仍index-x2roO1Xt.js477.35KB/145.11gzip、旧CSS/JSON，无Scene/Three包；批准snapshot/terrain/向量SHA与92相同。audit仍1high在既有eslint→minimatch→brace-expansion5.0.9，不新auto fix或称安全。
+- 四张完整页最终图whole-followup双引擎×1440/390实际一canvas/73按钮/无错误溢出，相机0,4.8,10；此前whole-final只Chrome2过/WebKit30s导航timeout保留，改domcontentloaded/90s后4过，脚本终点4.996/4.054/46.145/45.589s含等待截图且非受控dev，尤其WebKit慢，未定位，不称首内容/3D/手机/生产延迟或加速。codemode图片转发invalid output未成功，改direct read实际看整页/场景图，失败不隐去。
+- Agent读图：比旧点粒子控制台更明确，但空区/同书多真句重复封面/标签叠边仍不惊艳，未替Henry过视觉/自然/娱乐Gate。来源全文/命令/log/反例/路径见93，普通local/public第二版仍有效；无新假数据/Tags/原点位地形/模型/WeRead/push/deploy，仅小步本地commit，loopback5216复查PID12916/map200。下一步基于同完整站体验打磨，不评分表/新隔离小样/再选引擎；真机/真实200%缩放/独立访客/读屏/长时/权利仍未验。
+
 ## 2026-10-03 · Pages约束下整站重构 — 内部阶段一（纯动作/技术基础完成）
 
 - Henry把技术选择交Agent，只要求最终GitHub Pages，继续整站本机开发，不再选引擎。新增`docs/93-PAGES-READY-READING-SCENE-REBUILD.md`，选React/现有Three/R3F9.8.1/少量Drei10.7.9，精确npm安装47包、不升级其余，audit仍1 high未fix；纯readingFrame/pages/address将select与anchor/open分离，真实候选/偶遇标记、去重/按书/稀薄、h与anchor稳定ID。
