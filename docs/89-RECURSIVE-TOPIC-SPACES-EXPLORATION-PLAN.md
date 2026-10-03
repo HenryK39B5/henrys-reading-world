@@ -4,6 +4,8 @@
 
 状态：**Henry已允许继续探索各候选，不要求他先选出赢家；最终核心/布局/技术栈未选。** 本轮完成提案、公开方法核对与记录，未实施递归数据算法/新界面。下述步骤是Agent建议的工作方式，不把本稿本身记成用户已逐项批准的施工规格。
 
+> **同日后续定位与顺序更新**：见`docs/90-PLAYFUL-READING-WORLD-GAME-INSPIRATION.md`及`docs/54 §4.13`。Henry强调偏娱乐/体验而非严肃知识研究，借《茧》等游戏交互融合候选，要求先讨论完再开发。本文是前轮计划，不能自动开工；每步知识增量/超过普通筛选不再是产品硬门槛，精致与游玩感本身可有价值，仍不得伪造内容/关系或把模型当事实。
+
 关联记录：`docs/88-SINGLE-ANCHOR-READING-WORLD-DISCUSSION.md`保留前轮三形态与单点讨论；`docs/87-REPRODUCIBLE-WORLD-MINING.md`保留数值方法；`docs/48-MAINTENANCE-ROADMAP.md`为唯一进度入口；`docs/54-MULTIVIEW-MAP-RESEARCH-CHARTER.md`§4.12记录新授权。
 
 ## 1. 本轮新增要求与授权理解
