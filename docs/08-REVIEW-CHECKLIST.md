@@ -2,6 +2,15 @@
 
 上线后的未完成任务与状态统一维护在 `docs/48-MAINTENANCE-ROADMAP.md`；本文件继续按阶段追加实际执行证据，不作为第二份待办清单。2026-09-24 起，历史截图与专项审计 Playwright 配置位于 `e2e/config/`；下文更早的根目录调用命令保留为当时执行记录，重新运行时须改用新路径。
 
+## 2026-10-03 · Fancy整站本机探索 — 内部阶段二（首轮工程完成，待Henry体验）
+
+- 接d3abaf2在原整站接两参与/三形态、真实主题交集/原文/全部Tag/来源/分享/来路、Book Aura与只读loopback插件；普通local/public原地图不变。拨动与光粒抵达都试，不称完整人物步行/携带解谜或已选最终游戏。原向量/数值报告private，无新模型/WeRead/Tag/生产点位地形或公开范围改动。
+- GPU画布/环境/程序复用、DPR≤1.5、静止/离屏不绘制、live reduced-motion、GL损失恢复及无GL真实阅读退路。留过曝/标签挤/手机裁切首图并修尺寸/光照/避让；两lint依赖警告修正不关规则。误查不存在public/map-terrain.json后改实际src/data路径；文档codemode两次语法失败均未执行，改直接精确工具编辑，不报假成功。
+- 最后新E2E20/20（Chromium10/WebKit10、1worker、4.6min）：1440/390两参与三形态、原文/分享/书房返还、递归/Back/刷新、键盘/live reduced-motion/720×450的200%等价及320/真实最长文、Book Aura、原生touch tap、GL loss/restore/退路、未知ID/extra-vector拒绝、只读/原向量路径拒绝。不是实物手机/Safari、实际200%缩放/读屏或独立访客。12形态图/两最终390/首版全页与14→18→20日志在.private/review/play-world。
+- 单次390×844/DPR2开发样本首文/3D Chrome3.648/3.835s、WebKit5.678/6.285s；约16MB开发模块/source maps、86请求、几何1、外部0，不是发布包/受控冷启动或手机成绩。六次同canvas切换Chrome384–686ms/WebKit200–247ms，geometry19/20、纹理1、程序7/8不单调增；静止1s计数不变。不作60fps/VRAM/长时泄漏或物理GPU证明。早期WebKit14–15s另存，不冒称跨批次提速。
+- check60文件419、类型/lint/公开数据/地形/build、local验证、isolation clean/publication verify通过，原公开JS/CSS/JSON同名/大小，snapshot ccef39…/terrain a94db8…/vector49dbdb…未变。路径穿越、artifact/report覆盖、private build拒绝，无public测试文件。
+- 完整实现/性能及未验项见`docs/91-PLAYFUL-WORLD-LOCAL-EXPLORATION.md`。回链检查发现本执行记录只有简称91，补完整路径后再收口。实查server127.0.0.1:5216/PID11004；同步91/AGENTS/48/54§4.14/README，本地commit，不push/deploy。Henry请继续只接续收口，不是发布许可；实际游戏/美术、手机长时/读屏/独立首访/权利未验，直接逛完整demo，不预选winner/批量评分。
+
 ## 2026-10-03 · Fancy整站本机探索 — 内部阶段一（真实集合/数值基础完成）
 
 - Henry允许两种参与风格都尝试，要求更fancy，并接受加载/资源成本由Agent平衡，明确要求开始后续工作；不再停留90讨论边界。开工HEAD df99d07、工作区干净。完整阅读数据工作流/项目skill及适配、当前V3数据/视觉/施工权威和研究/整站实现；只读已有本机缓存，无WeRead/模型调用或私有文字外发。

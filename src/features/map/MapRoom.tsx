@@ -19,6 +19,8 @@ export type MapRoomProps = {
     tagId: string | null;
     bookId: string | null;
     highlightId: string | null;
+    /** Loopback play-world context only. It never changes production map qualification. */
+    worldTags?: string[];
     onNavigate: (path: string) => void;
     onShare: (highlightId: string) => void;
     previousPath: string | null;

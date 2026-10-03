@@ -1,13 +1,20 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
+import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { Matrix, EigenvalueDecomposition } from 'ml-matrix';
 import { highlightTextHash } from '../embeddings/core.ts';
 import { playSnapshotIdentity, parsePlayWorldData, PLAY_WORLD_VERSION } from '../../src/domain/playWorld.ts';
 
 const output = process.argv[2] ?? '.private/play-world-exact-v2.json';
-if (!output.replaceAll('\\', '/').startsWith('.private/')) throw Error('Research output must stay in .private');
-if (fs.existsSync(output)) throw Error('Existing artifact: keep it, or choose a new version before regenerating.');
+const privateRoot=resolve('.private');
+const inside=(file)=>{const name=relative(privateRoot,file);return name!==''&&!isAbsolute(name)&&!name.startsWith('..');};
+if (!inside(resolve(output))) throw Error('Research output must stay in .private');
+let existingParent=dirname(resolve(output));while(!fs.existsSync(existingParent))existingParent=dirname(existingParent);
+const realParent=fs.realpathSync(existingParent);
+if(fs.realpathSync(privateRoot)!==privateRoot || (realParent!==privateRoot&&!inside(realParent)))throw Error('Output parent leaves the real private directory');
+if (fs.existsSync(output)||fs.existsSync(`${output}.study.json`)) throw Error('Existing artifact/report: keep it, or choose a new version before regenerating.');
+fs.mkdirSync(dirname(resolve(output)),{recursive:true});
 const start = performance.now();
 const snapshot = JSON.parse(fs.readFileSync('.private/local-snapshot.json', 'utf8'));
 const cacheFile = '.private/embeddings/vectors/local--xenova-bge-large-zh-v1.5-a48549b-q8-cls--1024.json';

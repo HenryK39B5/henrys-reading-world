@@ -10,6 +10,17 @@
 
 第二次上线已由 Henry 体验确认并授权发布：可阅读的地图、跨书真句对读、稳定停驻、多尺度地名、连续阅读比例与新站点图标已上线。公开内容范围、地图坐标与地形保持不变；实施与性能边界见 [阅读连续性与冷启动](docs/84-READING-CONTINUITY-AND-COLD-START.md)，部署与线上复核见 [第二次上线记录](docs/85-SECOND-RELEASE-CLOSEOUT.md)。
 
+## 本机游玩式探索（未上线）
+
+首轮把球中世界、焦点曲面、展开曲面与拨动/光粒抵达接在同一完整网站里。只用真实资料，最终玩法与美术未选，不替换已发布第二版。
+
+```powershell
+npm run dev:play
+# http://127.0.0.1:5216/map
+```
+
+需要已有本机private快照/embedding缓存及匹配派生几何。首次用`npm run play:prepare`；已有artifact/report拒覆盖，资料变更需显式新版本/新private输出，不自动抓取/调用模型。不是纯clone的公开入口，private mode拒绝生产build，普通local/public继续原地图。实际测试/成本/未验项见[本机探索记录](docs/91-PLAYFUL-WORLD-LOCAL-EXPLORATION.md)，无push/deploy许可。
+
 ## 公开范围
 
 公开版包含已审核决定展示的 108 本书、3,462 条划线、56 个主题标签及 108 张封面。每个地图点对应一条真实划线；标签只给有可靠人工复核结果的划线命名，其余划线仍参与地形。访客浏览时不调用 AI 服务。单句呈现不构成访问限制：已批准的文字随公开快照交付给浏览器。

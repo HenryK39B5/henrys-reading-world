@@ -31,10 +31,22 @@ Henry对直接操作世界和在世界里旅行没有明显偏好，允许两种
 
 一手核对通过Node HTTPS保存Three官网文档壳和r180的OrbitControls/RoomEnvironment源码及SHA；阅读RoomEnvironment的PBR/PMREM用法与dispose实现。官网壳返回200不等于完整API/全部源码审阅，不冒称provider-hosted搜索。
 
-## 3. 内部阶段二：整站世界与阅读（进行中）
+## 3. 内部阶段二：整站世界与阅读（首轮工程完成；待Henry体验）
 
-本机mode `play-private` / `npm run dev:play`，计划默认127.0.0.1:5216；需实际启动核对。普通dev:local和公开构建继续既有地图；新lazy分支只在该模式开启，生产build拒绝private模式，不设新的公开入口。
+本机mode `play-private` / `npm run dev:play`已实际启动，入口 `http://127.0.0.1:5216/map`，进程11004。普通dev:local和公开构建继续既有地图；新lazy分支只在该模式开启，生产build拒绝private模式，不设新的公开入口。
 
 共用真实原文/小径/书房/分享与导航；独立私有端点只提供上述派生几何，不开放任意文件、模型、写接口或Studio权限。两种参与与三容器是探索选择，不把局部世界强立唯一父子主题分类。候选在局部只使用全局邻居的成员内子图，尚未做局部重新建邻居对照。
 
-界面、返回、键盘/触屏/reduced-motion、布局与加载/运行成本需要新浏览器证据。当前没有完成这些验收，不沿用旧地图测试成绩，也不称已选最终风格/游戏核心。首访、物理Safari/iOS、低端机持续性能、读屏、权利和Henry视觉反馈仍另行未验。
+实现 `src/features/play/PlayWorldRoom.tsx`、`PlayScene.ts`、`play.css`、只读loopback插件及原整站lazy分支。拨动采用轨道相机/直接触碰；走进采用光粒抵达/跟随视点和可见真点方向控制，不是完整人物自由步行。球、聚焦曲面、弯折曲面共用真实集合/候选/原文；显示点密度形成起伏，PBR、光晕、轨道与折叠是艺术表现，不是现实地理或确定语义。小球含有限真实成员预览，最多8个可视入口，全部入口另有列表；不创建4,663个DOM按钮。`world`条件查询只在此mode识别，原文仍绑定稳定h；已有实际来路可返回，刷新可回总世界，书房/审核小径/分享仍在原整站。点亮书籍用真实成员及真实封面Aura。原文片段可停下读完整原文/全部Tag/出处，未知ID有不可用说明，未将替代原文伪装成请求ID。
+
+画布/环境/共享程序复用，换世界只更新几何，离开释放；DPR≤1.5，静止/离屏不绘制，媒体reduced-motion实时取消抵达与阻尼。GPU失去时继续读，恢复重建环境；无GL有真实阅读退路。未实施携带/双物件组合/连续人物走路/声音/关卡，不称这些已通过体验。
+
+## 4. 新验收、成本与边界
+
+- 最后 `npm run check`：60文件419单测，类型/lint、公开数据/地形/build通过；本机数据验证、`isolation:public`clean、`publication:verify`通过。公开JS/CSS/JSON仍同名同大小。snapshot ccef39…、terrain a94db8…、vector49dbdb…保持，生产点位/标签不变。输出穿越、已有artifact/report覆盖、private build均实际拒绝，没有public测试文件。
+- 最后新浏览器矩阵 **20/20**（Chromium10 + WebKit10、1worker、120s/test，实际4.6min）：1440/390两参与三形态、原文/分享/书房返回、递归/Back/刷新、键盘/live reduced-motion、720×450的200%等价布局/320窄屏/真实最长文、Book Aura、原生touch tap进入/退出、GL损失/恢复及无GL、未知ID/extra-vector拒绝、端点只读/原向量拒绝。命令 `npx playwright test --config e2e/config/playwright.play-world.config.ts`。这不是实物Safari/iOS、真实浏览器200%缩放或读屏成绩。
+- `.private/review/play-world/`保留12张形态×引擎×1440/390截图、两最终390图、首版full-page及14/18/20三轮日志。浅白/拥挤与首版手机球体裁切未删，已修光照、避让和初始相机同步尺寸。两effect依赖/cleanup lint警告已修，不关规则。曾先误查不存在的public/map-terrain.json，改查实际src/data/public-map-terrain.json完成指纹；曾两次codemode文档脚本语法失败且未执行，改独立精确编辑，没有将失败报为成功。
+- 单次现有本机开发站点、新页面390×844/DPR2：首文/首次3D Chromium3.648/3.835s，WebKit5.678/6.285s；没有清除全部Vite/GPU缓存，不是受控冷启动或手机网络成绩。早期WebKit14–15s抓图另保留，不能把不同批次差异称普遍提速。
+- 开发传输 **15,997,346 encoded bytes / 86 requests**，包含开发模块/source maps等，不是未来发布包；派生几何GET一次，外部请求0。六次切换Chrome384–686ms/WebKit200–247ms（含自动化点击/等待），均同一canvas；geometry计数19/20、纹理1、程序7/8轮换不单调增长，最后静止1s渲染计数不变。不是VRAM/堆内存/长期泄漏排除、60fps或硬件排名；renderer查询字符串不作物理GPU证明。脚本 `.private/research/play-world/performance.mjs`，报告/原页/失败/构建/拒绝日志均private。
+
+阶段一已本地提交 `d3abaf2`，本阶段仍小步本地提交，不push/deploy。最终玩法/艺术未选，Henry实际游玩与审美、独立首访、物理Safari/iOS、读屏、低端长时、权利仍未验；旧线上第二版继续有效。Henry随后“请继续”接续收口，不是新增发布或远程许可。

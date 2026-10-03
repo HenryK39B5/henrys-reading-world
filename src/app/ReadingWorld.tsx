@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { indexSnapshot } from '../domain/snapshot.ts';
 import type { Snapshot } from '../domain/types.ts';
@@ -32,6 +32,8 @@ import './page.css';
 import '../features/rooms/rooms.css';
 import '../features/paths/paths.css';
 import '../features/map/map.css';
+
+const PlayWorldRoom = __PLAY_WORLD_ENABLED__ ? lazy(() => import('../features/play/PlayWorldRoom.tsx').then(module => ({ default: module.PlayWorldRoom }))) : null;
 
 export type ReadingWorldProps = {
     snapshot: Snapshot;
@@ -279,6 +281,7 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
                     />
                 );
             case 'map':
+                if (PlayWorldRoom !== null) return <Suspense fallback={<p role="status">正在打开本机世界……</p>}><PlayWorldRoom index={index} tagId={route.tagId} bookId={route.bookId} highlightId={route.highlightId} worldTags={route.worldTags ?? []} onNavigate={router.navigate} onShare={share.open} previousPath={router.previousPath} /></Suspense>;
                 return (
                     <MapRoom
                         index={index}

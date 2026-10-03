@@ -21,6 +21,7 @@ import type { Snapshot } from './src/domain/types.ts';
 import { validateSnapshot } from './src/domain/validate.ts';
 import { publicRoomPaths } from './scripts/public-route-entries.ts';
 import { matchesMapTerrain } from './scripts/embeddings/mapTerrainArtifact.ts';
+import { playWorldPlugin } from './scripts/research/playWorldPlugin.ts';
 
 const LOCAL_SNAPSHOT_FILE = '.private/local-snapshot.json';
 const LOCAL_COVER_DIR = '.private/covers';
@@ -373,7 +374,8 @@ export default defineConfig(({ command, mode }) => {
     const reviewMode = mode === 'review-private';
     const tagStudioMode = mode === 'tag-studio-private';
     const mapStudyMode = mode === 'map-study';
-    const anyLocalMode = localMode || reviewMode || tagStudioMode;
+    const playMode = mode === 'play-private';
+    const anyLocalMode = localMode || reviewMode || tagStudioMode || playMode;
 
     return {
         base: command === 'build' ? '/henrys-reading-world/' : '/',
@@ -401,6 +403,7 @@ export default defineConfig(({ command, mode }) => {
             } as Plugin] : []),
             localSnapshotPlugin({ snapshot: anyLocalMode, publication: reviewMode, tags: tagStudioMode }),
             localMapTerrainPlugin(anyLocalMode),
+            playWorldPlugin(playMode),
             ...(mapStudyMode ? [mapStudyPlugin()] : []),
             {
                 name: 'pages-room-entries',
@@ -425,7 +428,7 @@ export default defineConfig(({ command, mode }) => {
             host: '127.0.0.1',
             strictPort: true,
             // Its own port, so the reviewer and the reading preview can be open side by side.
-            port: reviewMode ? 5174 : tagStudioMode ? 5175 : mapStudyMode ? 5176 : 5173,
+            port: playMode ? 5216 : reviewMode ? 5174 : tagStudioMode ? 5175 : mapStudyMode ? 5176 : 5173,
             fs: {
                 strict: true,
                 deny: [
@@ -453,6 +456,7 @@ export default defineConfig(({ command, mode }) => {
         },
         define: {
             __LOCAL_MODE__: JSON.stringify(anyLocalMode && command === 'serve'),
+            __PLAY_WORLD_ENABLED__: JSON.stringify(playMode && command === 'serve'),
             // Historical feature flag: the accepted study visuals now run in public and local map modes.
             __MAP_STUDY__: JSON.stringify(mapStudyMode || localMode || (!anyLocalMode && command === 'serve') || command === 'build'),
             __MAP_STUDY_ENDPOINT__: JSON.stringify(mapStudyMode && command === 'serve'),
