@@ -49,6 +49,10 @@ export function PlayWorldRoom({ index, tagId, bookId, highlightId, worldTags = [
     const history = useRef(new Map<string,ReadingFrame[]>());
     const source = useRef(previousPath !== null && !previousPath.startsWith('/map') ? previousPath : null);
     const original = useRef<HTMLElement>(null);
+    const [readingOpen,setReadingOpen] = useState(highlightId!==null);
+    const readTrigger = useRef<HTMLElement|null>(null);
+    const openReading = ():void => {readTrigger.current=document.activeElement instanceof HTMLElement?document.activeElement:null;setReadingOpen(true);};
+    const closeReading = ():void => {setReadingOpen(false);requestAnimationFrame(()=>{const button=document.querySelector<HTMLButtonElement>('.play-read-current');(button??readTrigger.current)?.focus();});};
     const {frame} = session;
     const members = useMemo(() => topicMembers(snapshot.highlights,frame.tags),[snapshot,frame.tags]);
     const gates = useMemo(() => topicGates(snapshot.highlights,frame.tags),[snapshot,frame.tags]);
@@ -76,6 +80,7 @@ export function PlayWorldRoom({ index, tagId, bookId, highlightId, worldTags = [
     useEffect(() => {
         if (handled.current === signature) return;
         handled.current = signature;
+        if(highlightId!==null)setReadingOpen(true);
         const tags = requestedKey === '' ? [] : requestedKey.split(',');
         const scope = topicMembers(snapshot.highlights,tags);
         const next = readingFrame(scope,tags,highlightId,playAnchorId,Math.random);
@@ -87,6 +92,7 @@ export function PlayWorldRoom({ index, tagId, bookId, highlightId, worldTags = [
     };
     const select = (id: string): void => {
         if (!members.some(h => h.id === id)) return;
+        openReading();
         commit({...session,frame:{...frame,selectedId:id}});
     };
     const continueFromHere = (): void => {
@@ -112,7 +118,7 @@ export function PlayWorldRoom({ index, tagId, bookId, highlightId, worldTags = [
     };
     return <section className="play-room" data-testid="play-world" data-play-data={settled?'ready':'loading'}>
         <header className="play-heading"><div><p className="play-eyebrow">HENRY’S READING WORLD · 本机新探索</p>
-            <h1>书页之间<span>从一处文字，走向另一处。</span></h1></div>
+            <h1>暮光庭院<span>可以先逛一会儿，再读一处。</span></h1></div>
             <button className="play-new-pages" type="button" onClick={encounter} disabled={members.length < 2}>换一片书页 <span aria-hidden="true">↗</span></button>
         </header>
         <nav className="play-breadcrumb" aria-label="阅读来路">
@@ -126,7 +132,8 @@ export function PlayWorldRoom({ index, tagId, bookId, highlightId, worldTags = [
         {outside ? <p role="status">请求的原文不属于这一片主题。<button type="button" onClick={()=>commit({...session,frame:readingFrame(snapshot.highlights,[],highlightId,null,Math.random),parents:[]})}>打开请求的原文</button></p> : null}
         <div className="play-experience">
             <div className="play-landscape">
-                <ReadingScene pages={scenePages} selectedId={frame.selectedId} onSelect={select} />
+                <ReadingScene pages={scenePages} selectedId={frame.selectedId} onSelect={select} onRead={openReading} readingOpen={readingOpen}/>
+                <details className="play-page-menu"><summary>文字目录 <span>{pages.length}</span></summary>
                 <div className="play-page-strip" role="group" aria-label="选择书页">
                     {pages.map(page => <button type="button" key={page.highlight.id} aria-pressed={page.highlight.id === frame.selectedId}
                         data-highlight-id={page.highlight.id} onClick={()=>select(page.highlight.id)}>
@@ -134,10 +141,11 @@ export function PlayWorldRoom({ index, tagId, bookId, highlightId, worldTags = [
                         <strong>{index.booksById.get(page.highlight.bookId)?.title}</strong><span>{Array.from(page.highlight.text).slice(0,44).join('')}{page.highlight.text.length>44?'…':''}</span>
                     </button>)}
                 </div>
+                </details>
                 {!settled ? <p role="status" className="play-data-note">原文已经可以读，正在准备周围的书页……</p> : null}
             </div>
-            <article className="play-original" ref={original} tabIndex={-1} aria-label="当前完整原文" data-play-reading-highlight={current?.id}>
-                <div className="play-reading-top"><p className="play-eyebrow">{currentKind}</p><span aria-hidden="true">“</span></div>
+            <article className="play-original" hidden={!readingOpen} ref={original} tabIndex={-1} aria-label="当前完整原文" data-play-reading-highlight={current?.id}>
+                <div className="play-reading-top"><p className="play-eyebrow">{currentKind}</p><button type="button" onClick={closeReading}>收起阅读 <span aria-hidden="true">×</span></button></div>
                 {current === undefined ? <p>这片主题暂时没有原文，可以返回全部书页。</p> : <>
                     <blockquote><p>{current.text}</p><footer><span>《{book?.title}》</span><span>{book?.author}</span></footer></blockquote>
                     <div className="play-clues">{current.tagIds.map(id=><a key={id} href={sitePath(`/paths/${id}?h=${current.id}`)}>#{index.tagsById.get(id)?.title}</a>)}</div>
@@ -153,7 +161,7 @@ export function PlayWorldRoom({ index, tagId, bookId, highlightId, worldTags = [
             </details>
         </section>
         {error!==null?<p className="play-data-note" role="status">{error}<button type="button" onClick={()=>{requests.delete(snapshot);setRetry(n=>n+1);}}>重试联想资料</button></p>:null}
-        <details className="play-notes"><summary>关于这片书页</summary><p>书与原文都来自已有真实划线。“联想候选”来自本机模型，不是作者之间的引用或观点一致；“偶遇”不表示内容相似。悬浮薄片各承载一处真实划线，形状、颜色与摆放只是构图，不是语义距离或标签类别。主题入口只筛选已记录的标签，未标注的原文仍留在全部书页里。</p>
-            <p>这是未上线的虚拟文字薄片探索。薄片上的文字是该处原文的摘录，不模拟原书分页；完整原文立即显示，不必等舒展效果。没有模型资料时仍可静态运行并按书偶遇；完整文字、出处、书房、小径与分享不依赖3D。</p></details>
+        <details className="play-notes"><summary>关于这片书页</summary><p>书与原文都来自已有真实划线。“联想候选”来自本机模型，不是作者之间的引用或观点一致；“偶遇”不表示内容相似。庭院是独立设计的装饰场景，不是从语料生成的地理或作者关系；点亮的入口各绑定一处真实划线。主题入口只筛选已记录的标签，未标注的原文仍留在全部书页里。</p>
+            <p>这是未上线的游戏式场景探索。拨动光与浮桥是纯视觉游玩，不改变阅读候选、标签或原文，不需解锁才能阅读。完整原文立即显示，不必等动作效果。没有模型资料时仍可静态运行并按书偶遇；完整文字、出处、书房、小径与分享不依赖3D。</p></details>
     </section>;
 }

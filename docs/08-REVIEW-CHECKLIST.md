@@ -2,6 +2,15 @@
 
 上线后的未完成任务与状态统一维护在 `docs/48-MAINTENANCE-ROADMAP.md`；本文件继续按阶段追加实际执行证据，不作为第二份待办清单。2026-09-24 起，历史截图与专项审计 Playwright 配置位于 `e2e/config/`；下文更早的根目录调用命令保留为当时执行记录，重新运行时须改用新路径。
 
+## 2026-10-04 · 暮光庭院 — 阶段B（工程收口；艺术/体验待Henry实看）
+
+- 接2cb62f7在原完整站点完成96：自制回廊/台地/细阶栏杆/柏树/水池/暮色水面/暖色天体。直接拖光与金色桥机关改变场景，不改内容/URL/anchor/camera；range/按钮为原生替代。去旧薄片/永久全文板/默认卡片矩阵，普通map先景，h深链即时原文，读/收起与焦点返回、真实select/继续/scope/父级/来源/分享仍DOM。窄窗3个44px无重叠入口、全7处目录，GPU退路仍可读。无新依赖/模型/素材下载/假内容/数据改动。
+- 本次真实完整check最终63文件434/434、类型/lint/data/terrain/正常build；隔离/publication/local验证过。首次同时两套browser导致8项已有heavy单测5000ms超时，单独同命令两次过，未改断言或超时；并行竞争仅推断，不把反例删除。公开snapshot/terrain/向量SHA与94一致，普通public仍旧JS/CSS/JSON、不含庭院/Three；原warnings/audit不称清除。
+- 最终Chromium13/13；WebKit串行在外层600s截止前11项过，余2相同源码/断言另跑2/2过；逐项26覆盖，不写成一次完整26/26。初WebKit至8项6过2红（来路timeout/geometry89→91）外层480s中止；geometry改常量octahedron+scale避免点击重建，资源相等断言保留。测试覆盖直接Sun/桥射线、真ID/原文/camera+anchor不变、read-close-focus、phone3矩形/全目录、scope/back/刷新/来源分享、长文/320/等效缩放/模拟touch/reduce/idle/GL损失恢复/noGL/非法图诚实偶遇。
+- StaticPages初并行3/4，WebKit1440分享click总150s超时；单独同断言4/4（46.9s），无retry/force-click/改timeout，真实files-only、批准旧public输入、same-origin/正确base刷新/书房返回分享/无private端点。独立private lazy897111/238856gzip、CSS9797/2733，>500KB警告保留，未发布新数据。
+- 新独立`.private/review/twilight-garden`两轮反例、final整站双engine1440/390、played/static实图与logs/traces保留并实际读取desktop/phone/WebKit390；不覆盖旧图。诊断从上一帧0改渲染后RAF，不称0资源；最终desktop104draw/89geo、phone92/81、2texture/5program，非VRAM/60fps/长期证明。最后完整截图Chrome2.810/2.414s、WebKit15.251/15.098s包含等待截图，不称冷启动/真实设备，首次20–42s和单例44–65s未定位仍留。
+- 完成范围/代码/命令/偏差/未验项详`docs/96-TWILIGHT-GARDEN-PLAYABLE-SCENE.md`。5216仍PID12916/map200已新庭院；小步local commit，无push/deploy。Henry艺术/好玩/自然性尚未知，物理设备/Safari/独立首访/真实200%/读屏/低端长时等不被替代。批次一稿结束，基于同完整站点真实体验继续，不让Henry选引擎/隔离样本/评分。
+
 ## 2026-10-03 · 暮光庭院 — 阶段A（构图/响应基础，整站继续施工）
 
 - Henry明确继续与Agent自由取舍授权，新增`docs/96-TWILIGHT-GARDEN-PLAYABLE-SCENE.md`，选择原创暮色/天体/回廊/阶梯/水面/柏树的完整空间，不靠阅读卡片或薄片形变组织美术。不称用户已认可；普通map先景，真实h深链立即完整阅读，拨光/浮桥独立游玩，不冒充语义发现。
