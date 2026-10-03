@@ -9,7 +9,7 @@
 - 最后新E2E20/20（Chromium10/WebKit10、1worker、4.6min）：1440/390两参与三形态、原文/分享/书房返还、递归/Back/刷新、键盘/live reduced-motion/720×450的200%等价及320/真实最长文、Book Aura、原生touch tap、GL loss/restore/退路、未知ID/extra-vector拒绝、只读/原向量路径拒绝。不是实物手机/Safari、实际200%缩放/读屏或独立访客。12形态图/两最终390/首版全页与14→18→20日志在.private/review/play-world。
 - 单次390×844/DPR2开发样本首文/3D Chrome3.648/3.835s、WebKit5.678/6.285s；约16MB开发模块/source maps、86请求、几何1、外部0，不是发布包/受控冷启动或手机成绩。六次同canvas切换Chrome384–686ms/WebKit200–247ms，geometry19/20、纹理1、程序7/8不单调增；静止1s计数不变。不作60fps/VRAM/长时泄漏或物理GPU证明。早期WebKit14–15s另存，不冒称跨批次提速。
 - check60文件419、类型/lint/公开数据/地形/build、local验证、isolation clean/publication verify通过，原公开JS/CSS/JSON同名/大小，snapshot ccef39…/terrain a94db8…/vector49dbdb…未变。路径穿越、artifact/report覆盖、private build拒绝，无public测试文件。
-- 完整实现/性能及未验项见`docs/91-PLAYFUL-WORLD-LOCAL-EXPLORATION.md`。回链检查发现本执行记录只有简称91，补完整路径后再收口。实查server127.0.0.1:5216/PID11004；同步91/AGENTS/48/54§4.14/README，本地commit，不push/deploy。Henry请继续只接续收口，不是发布许可；实际游戏/美术、手机长时/读屏/独立首访/权利未验，直接逛完整demo，不预选winner/批量评分。
+- 完整实现/性能及未验项见`docs/91-PLAYFUL-WORLD-LOCAL-EXPLORATION.md`。回链检查发现本执行记录只有简称91，补完整路径后再收口。最初实查server127.0.0.1:5216/PID11004；代码阶段be383d1提交后最终HTTP检查发现原server已停，检查PID身份发现被无关进程复用，未杀该进程，新启Vite PID12916，/map与几何GET均200（560179bytes）。同步91/AGENTS/48/54§4.14/README，本地commit，不push/deploy。Henry请继续只接续收口，不是发布许可；实际游戏/美术、手机长时/读屏/独立首访/权利未验，直接逛完整demo，不预选winner/批量评分。
 
 ## 2026-10-03 · Fancy整站本机探索 — 内部阶段一（真实集合/数值基础完成）
 
