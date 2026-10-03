@@ -2,7 +2,15 @@
 
 上线后的未完成任务与状态统一维护在 `docs/48-MAINTENANCE-ROADMAP.md`；本文件继续按阶段追加实际执行证据，不作为第二份待办清单。2026-09-24 起，历史截图与专项审计 Playwright 配置位于 `e2e/config/`；下文更早的根目录调用命令保留为当时执行记录，重新运行时须改用新路径。
 
-## 2026-10-03 · Fancy整站本机探索 — 内部阶段二（首轮工程完成，待Henry体验）
+## 2026-10-03 · 首轮视觉/交互未通过 — 3D专题与重新定向
+
+- Henry实际体验反馈不好看、操作奇怪/困惑，即便开发者知道方向仍不知怎么操作；91双Gate未过，不再待首次体验，不以20/419抵消。分形/球中世界是可有可无的灵感，不是指定照搬游戏。继续专题/后续工作，原开发许可未撤回。
+- 新增`docs/92-3D-STACK-AND-EXPERIENCE-RESET-STUDY.md`：源代码与390球/1440弯片两真实旧图复盘对象层级、模式负担、镜头与内容耦合、方向双义、图文距离和噪点通用材质构图；Agent判断非独立访客研究。比较Three/R3F、Babylon、PlayCanvas React、Pixi、Godot/Unity，推荐React+R3F9/Three/少量Drei+DOM作为优先试行，不是最终栈/安装/实测性能胜出。
+- 实际联网用Windows Node公开HTTPS/Bing6查询，4无结果、PlayCanvas相关、Godot/Unity错位论坛拒用；原页/正文、official registry、HTTP/最终URL/SHA/日期在.private/research/3d-stack三个捕获目录。未调用provider-hosted web.run/个人服务，不称调用过。PlayCanvas旧路径空壳、Three/Blender旧路径404、Blender关键词命中目录、Geometric/cocoon404都保留后改核正文。Godot/Unity mobile/WebGPU不是旧印象背书；Unity6000.3支持部分手机，R3F10 alpha不充稳定，9.8.1/React19.3 peer吻合不是安装测试。
+- 本轮仅研究/文档，未改消费者/数据/Tag/点位地形/向量/锁/依赖，未装引擎/Blender/下载素材/造新UI/模型/WeRead/推送发布。新脚本只public source查询，不执行回包指令、注册或登录。原20/419、16MB和首3D时长是历史，未作本轮新的运行成绩。
+- 同步AGENTS/48/54§4.15/91/README；具体化select-open-back/稳定镜头/可辨对象及美术资产流程后原完整本机站点重构，不继续六组合加效、补教程或盲选/评分门槛。次轮真实手机/可理解/审美/独立首访/读屏/权利仍待；实际`npm run typecheck`通过，`git diff --check`/研究回链与15项来源索引检查通过，snapshot ccef39…/terrain a94db8…/vector49dbdb…实查不变，private来源捕获被Git忽略；只文档本地提交，不push。
+
+## 2026-10-03 · Fancy整站本机探索 — 内部阶段二（历史工程完成；Henry视觉/交互未通过）
 
 - 接d3abaf2在原整站接两参与/三形态、真实主题交集/原文/全部Tag/来源/分享/来路、Book Aura与只读loopback插件；普通local/public原地图不变。拨动与光粒抵达都试，不称完整人物步行/携带解谜或已选最终游戏。原向量/数值报告private，无新模型/WeRead/Tag/生产点位地形或公开范围改动。
 - GPU画布/环境/程序复用、DPR≤1.5、静止/离屏不绘制、live reduced-motion、GL损失恢复及无GL真实阅读退路。留过曝/标签挤/手机裁切首图并修尺寸/光照/避让；两lint依赖警告修正不关规则。误查不存在public/map-terrain.json后改实际src/data路径；文档codemode两次语法失败均未执行，改直接精确工具编辑，不报假成功。
