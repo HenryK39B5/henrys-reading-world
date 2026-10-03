@@ -2,7 +2,9 @@
 
 日期：**2026-10-03（本机 UTC+8）**。按本轮会话归纳，不是逐字转录。
 
-状态：**Henry要求先讨论这个点，讨论完再实际开发。** 游戏式体验是新增探索方向，不等于已选游戏类型、具体风格、角色/机关/渲染技术或完整交互。当前仅来源核对、提案与归档，没有实际产品开发/数据算法试验。
+后续：Henry已明确允许两种参与方式都尝试、追求更fancy并接受合理资源/加载成本，授权开始后续工作；现行本机实施见`docs/91-PLAYFUL-WORLD-LOCAL-EXPLORATION.md`。下文保留当轮讨论，不再作为阻止开发的边界。
+
+状态（当轮历史）：**Henry要求先讨论这个点，讨论完再实际开发。** 游戏式体验是新增探索方向，不等于已选游戏类型、具体风格、角色/机关/渲染技术或完整交互。当前仅来源核对、提案与归档，没有实际产品开发/数据算法试验。
 
 关联记录：`docs/88-SINGLE-ANCHOR-READING-WORLD-DISCUSSION.md`保留单点网络/三形态；`docs/89-RECURSIVE-TOPIC-SPACES-EXPLORATION-PLAN.md`保留递归主题空间；`docs/87-REPRODUCIBLE-WORLD-MINING.md`保留数学试验；`docs/54-MULTIVIEW-MAP-RESEARCH-CHARTER.md`§4.13记录本轮反馈；进度入口仍为`docs/48-MAINTENANCE-ROADMAP.md`。
 
