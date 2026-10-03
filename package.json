@@ -91,6 +91,8 @@
     "@eslint/js": "^10.0.1",
     "@huggingface/transformers": "4.3.0",
     "@playwright/test": "^1.63.0",
+    "@react-three/drei": "10.7.9",
+    "@react-three/fiber": "9.8.1",
     "@types/d3-contour": "3.0.6",
     "@types/node": "^22.20.2",
     "@types/react": "^19.3.0",

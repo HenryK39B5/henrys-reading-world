@@ -2,6 +2,12 @@
 
 上线后的未完成任务与状态统一维护在 `docs/48-MAINTENANCE-ROADMAP.md`；本文件继续按阶段追加实际执行证据，不作为第二份待办清单。2026-09-24 起，历史截图与专项审计 Playwright 配置位于 `e2e/config/`；下文更早的根目录调用命令保留为当时执行记录，重新运行时须改用新路径。
 
+## 2026-10-03 · Pages约束下整站重构 — 内部阶段一（纯动作/技术基础完成）
+
+- Henry把技术选择交Agent，只要求最终GitHub Pages，继续整站本机开发，不再选引擎。新增`docs/93-PAGES-READY-READING-SCENE-REBUILD.md`，选React/现有Three/R3F9.8.1/少量Drei10.7.9，精确npm安装47包、不升级其余，audit仍1 high未fix；纯readingFrame/pages/address将select与anchor/open分离，真实候选/偶遇标记、去重/按书/稀薄、h与anchor稳定ID。
+- 新7+旧7 pure测试14/14。首次typecheck nullable纹理/class override四错，修复后通过，lint未关。原整站Scene草稿4例（Chromium/WebKit×1440/390）一canvas、无pageerror/横溢出；5.034/3.256/21.863/16.871s只开发样本。已看两图，封面小/底座空大/标签杂，保留反例继续改，不冒称视觉Gate。
+- 阶段一提交只包/锁/纯模块/测试/93与AGENTS/08，UI仍工作区续做，下一步有真内容完整站点阅读/手机/GL/静态项目子路径验收；不隔离小样、不fake原文或让Henry评分。生产/public/Tag/向量/地形/发布不变，新静态检查仅旧批准输入、产物private。无push/远程模型/WeRead。
+
 ## 2026-10-03 · 首轮视觉/交互未通过 — 3D专题与重新定向
 
 - Henry实际体验反馈不好看、操作奇怪/困惑，即便开发者知道方向仍不知怎么操作；91双Gate未过，不再待首次体验，不以20/419抵消。分形/球中世界是可有可无的灵感，不是指定照搬游戏。继续专题/后续工作，原开发许可未撤回。
