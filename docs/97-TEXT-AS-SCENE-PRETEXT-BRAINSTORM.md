@@ -10,7 +10,7 @@ Henry提出Pretext灵感：文字渲染灵活，文字可飞舞、靠近时闪�
 
 ## 本轮实际资料核对
 
-实际使用web搜索并打开作者README、官方demo目录与editorial-engine源码、MDN Canvas说明。仅正文/源码阅读，**未在浏览器游玩官方demo、未安装Pretext、未测试本站中文/动画/字体或做性能比较**。
+本轮可发现工具未返回provider-hosted web search（codemode searchTools结果空）；实际以Windows Node HTTPS进行公开Bing检索并读取作者README、官方demo目录与editorial-engine源码、MDN Canvas说明。五页实际HTTP200，原文/状态/最终URL/时间/SHA保存在`.private/research/pretext-brainstorm/sources-20261005`，脚本`verify.mjs`；不声称调用web.run。已以read/Select-String核对README的prepare/layout/逐行API、emoji DOM边界、editorial的span/div、demo目录ASCII/绕排与MDN bitmap段。仅正文/源码阅读，**未在浏览器游玩官方demo、未安装Pretext、未测试本站中文/动画/字体或做性能比较**。
 
 - 作者库： https://github.com/chenglou/pretext
 - 当前原始README： https://raw.githubusercontent.com/chenglou/pretext/main/README.md

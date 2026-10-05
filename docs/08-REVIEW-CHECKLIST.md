@@ -5,7 +5,7 @@
 ## 2026-10-05 · 庭院废案/关系自然性否决 — 文字场景与Pretext brainstorm
 
 - Henry指出庭院虽可好看，但物体/太阳和阅读没有天然联系，强加绑定生硬，建议废案；96关系/自然性未通过，不写成新美术失败或继续待认可。源码/图片/434等历史证据保留，不删代码或装修庭院；同步97/96/AGENTS/48/README。
-- 用户明确先brainstorm再介绍，举Pretext/字飞舞/鼠标靠近闪开为灵感，不作确认核心。实际web搜索作者库并打开raw README、官方demo目录/editorial-engine源码与MDN Canvas语义说明；澄清是测量/布局库，不是完整渲染/物理引擎，不要求全部弃DOM，源码editorial用span/div，Canvas位图本身不提供语义阅读。记录字风场、可推开的排版、同字片段回声3提案与Agent前两者组合倾向，全部未选/未实施；不造字句/象征/作者故事或把字形屏保当阅读。
+- 用户明确先brainstorm再介绍，举Pretext/字飞舞/鼠标靠近闪开为灵感，不作确认核心。provider-hosted web search发现为空，实际Windows Node HTTPS公开Bing检索并读raw README、官方demo目录/editorial-engine源码与MDN Canvas语义说明，五页200，状态/原文/时间/SHA在private/pretext-brainstorm，未声称调用web.run；澄清是测量/布局库，不是完整渲染/物理引擎，不要求全部弃DOM，源码editorial用span/div，Canvas位图本身不提供语义阅读。记录字风场、可推开的排版、同字片段回声3提案与Agent前两者组合倾向，全部未选/未实施；不造字句/象征/作者故事或把字形屏保当阅读。
 - 仅公开资料正文/源码核对，未运行官方demo、安装Pretext/改依赖、开发renderer/数据算法/模型或新截图/性能/全量测试。不称中文/shaping/可选可复制/手机/静态Pages/审美/性能已过；docs diff/回链检查、小步local commit，无push/deploy。修正阶段草稿误写AGENTS标题为unused后恢复正确新旧标题，未改无关段落。干净f6ed882开工，普通public/local第二版和真实数据/Tag/原点位地形/向量不动。先讨论文字/动作，不以旧权限越过本轮brainstorm或新立评分/隔离样板。
 
 ## 2026-10-04 · 暮光庭院 — 阶段B（历史工程收口；96关系/自然性已否决）
