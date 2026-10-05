@@ -2,6 +2,12 @@
 
 上线后的未完成任务与状态统一维护在 `docs/48-MAINTENANCE-ROADMAP.md`；本文件继续按阶段追加实际执行证据，不作为第二份待办清单。2026-09-24 起，历史截图与专项审计 Playwright 配置位于 `e2e/config/`；下文更早的根目录调用命令保留为当时执行记录，重新运行时须改用新路径。
 
+## 2026-10-05（UTC）· 两稿多处文字 · 阶段A真实采样/时序/排版基础
+
+- Henry要求同时多处而非单句自动播放，认可潮汐探索感，可做两稿网站后一起看。Agent选择原整站本机河流/潮汐两稿，桌面7/窄屏4，持续流与批潮不同；未指定最终选型/艺术，不发布/替换主入口。
+- 干净cbfdeb4、registry实际核对Pretext0.0.9/MIT并精确安装dev依赖1包，读安装types/metadata，7项真公开快照纯测通过/typecheck/lint通过；初ctx/root窄化失败改const箭头，未弱化strict。npm仍1high不autofix。首双引擎双尺寸两形态实际capture/read桌面/手机图，多处真实字行可辨、未记录pageerror，不称艺术已过；codemode图片转发失败后直接read。WebKit脚本仍慢、未定位，不是冷启动真机/fps。无原5216listener，本机启动Vite PID25304，日志private。
+- 100/AGENTS和本记录、textFlow纯函数/7测/依赖小步基础commit；完整Canvas/Room改稿留工作区待交互测试，未用旧434或旧浏览器成绩。公开snapshot/terrain hash吻合，无Tag/向量/坐标/新数据或模型/push/deploy。99仅讨论由新两稿授权接续；新图独立private/text-flow不覆盖旧证据。
+
 ## 2026-10-05 · 保留随机一句 — 文字流抓放/复流讨论
 
 - Henry认为随机漫步重复主入口且要自己选接续有负担，现有下一句好、不必改；文字可以流过，感兴趣时抓出、稍固定而其他继续，探索或放回。河流/瀑布是灵感非指定，明确继续讨论求更妙idea。不能把此转成两个模式施工或新用户独立研究证明。

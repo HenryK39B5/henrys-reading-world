@@ -88,6 +88,7 @@
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
+    "@chenglou/pretext": "0.0.9",
     "@eslint/js": "^10.0.1",
     "@huggingface/transformers": "4.3.0",
     "@playwright/test": "^1.63.0",
