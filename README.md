@@ -12,22 +12,22 @@
 
 ## 本机游玩式探索（未上线）
 
-首轮把球中世界、焦点曲面、展开曲面与拨动/光粒抵达接在同一完整网站里。**Henry实际反馈不好看且操作困惑，视觉/交互均未通过**；保留作失败对照，不是已认可方案。[3D专题](docs/92-3D-STACK-AND-EXPERIENCE-RESET-STUDY.md)后，Henry将技术选择交Agent、要求最终GitHub Pages可部署。现已用React/Three/R3F9/按需Drei在原整站本机重构为[书页之间](docs/93-PAGES-READY-READING-SCENE-REBUILD.md)：选真书页读原文，明确继续才换内容起点，固定相机；不再保留六组合/方向器。完整原文仍DOM、书房/小径/分享/返回共用。Henry实际看93认为视觉挺好、交互小巧有趣，但随后不偏好果盘/实体书过于写实，要求虚拟原生与游戏体验。现已在同整站完成[悬浮文字薄片一稿](docs/94-VIRTUAL-TEXT-MEMBRANES.md)：无实物底座/书壳/封面/书脊，单片微曲发光膜/真摘录，选择有限舒展、全文立即，明确继续再换窗口。**Henry实看94已明确否决其诡异/无美感，美术未通过**；下一步[游戏场景美术优先](docs/95-GAME-ART-FIRST-EXPERIENCE-RESET.md)，要求即使不读内容也值得体验，不继续薄片加效小修。随后Henry明确Agent自由发挥并继续；已在原整站本机完成[暮光庭院一稿](docs/96-TWILIGHT-GARDEN-PLAYABLE-SCENE.md)：原创暮色/回廊/阶梯/水面/柏树/天体完整构图，直接拖光/浮桥独立游玩，真实阅读按需打开/收起、h深链立即全文，手机3独立入口与全7文字目录。**Henry随后认为庭院与阅读没有天然联系、物体绑定文字生硬，建议作为废案**；历史工程保留，不继续装修。现为[文字本身成场景与Pretext brainstorm](docs/97-TEXT-AS-SCENE-PRETEXT-BRAINSTORM.md)：仅资料/设计讨论，未安装库或开发新版本。Henry继续强调先确定[交互模式](docs/98-TEXT-WORLD-CORE-INTERACTION-MODES.md)，随后指出随机漫步重复现有随机一句、选择接续有负担，原下一句不改；当前为[文字流抓放](docs/99-FLOWING-TEXT-CATCH-AND-RELEASE-DISCUSSION.md)讨论：流过/留住/探索或放回，河流/潮汐/拨动均未选，不安装或实施，不以字效或98旧倾向代替批准模式。WebKit开发成本仍未解决。仅真实资料，不替换已发布第二版。
+首轮把球中世界、焦点曲面、展开曲面与拨动/光粒抵达接在同一完整网站里。**Henry实际反馈不好看且操作困惑，视觉/交互均未通过**；保留作失败对照，不是已认可方案。[3D专题](docs/92-3D-STACK-AND-EXPERIENCE-RESET-STUDY.md)后，Henry将技术选择交Agent、要求最终GitHub Pages可部署。现已用React/Three/R3F9/按需Drei在原整站本机重构为[书页之间](docs/93-PAGES-READY-READING-SCENE-REBUILD.md)：选真书页读原文，明确继续才换内容起点，固定相机；不再保留六组合/方向器。完整原文仍DOM、书房/小径/分享/返回共用。Henry实际看93认为视觉挺好、交互小巧有趣，但随后不偏好果盘/实体书过于写实，要求虚拟原生与游戏体验。现已在同整站完成[悬浮文字薄片一稿](docs/94-VIRTUAL-TEXT-MEMBRANES.md)：无实物底座/书壳/封面/书脊，单片微曲发光膜/真摘录，选择有限舒展、全文立即，明确继续再换窗口。**Henry实看94已明确否决其诡异/无美感，美术未通过**；下一步[游戏场景美术优先](docs/95-GAME-ART-FIRST-EXPERIENCE-RESET.md)，要求即使不读内容也值得体验，不继续薄片加效小修。随后Henry明确Agent自由发挥并继续；已在原整站本机完成[暮光庭院一稿](docs/96-TWILIGHT-GARDEN-PLAYABLE-SCENE.md)：原创暮色/回廊/阶梯/水面/柏树/天体完整构图，直接拖光/浮桥独立游玩，真实阅读按需打开/收起、h深链立即全文，手机3独立入口与全7文字目录。**Henry随后认为庭院与阅读没有天然联系、物体绑定文字生硬，建议作为废案**；历史工程保留，不继续装修。经[Pretext brainstorm](docs/97-TEXT-AS-SCENE-PRETEXT-BRAINSTORM.md)、[模式讨论](docs/98-TEXT-WORLD-CORE-INTERACTION-MODES.md)、[文字流抓放](docs/99-FLOWING-TEXT-CATCH-AND-RELEASE-DISCUSSION.md)，Henry指出随机漫步重复原随机一句且有选择负担，原下一句不改；随后要求同时多处可辨文字、认可潮汐探索感并允许Agent选方向或两稿。现在原整站本机已完成[河流与潮汐两稿](docs/100-RIVER-AND-TIDE-TEXT-WORLD-TRIAL.md)：Pretext0.0.9排版+Canvas2D/DOM，桌面7/窄屏4，多处持续经过或批潮到来/停留/退去；靠近局部稳住、轻点全文留到主动放回、其他字流让白继续、回看/真实范围探索。无水景物体/拼句/作者故事，文字本身共场；两稿待Henry实看，非最终选型或艺术通过。WebKit开发成本仍未解决。仅真实资料，不替换已发布第二版。
 
 ```powershell
 npm run dev:play
 # http://127.0.0.1:5216/map
 ```
 
-完整本机范围需要已有private快照/封面；匹配派生图提供真实模型候选，无图仍可明确偶遇，不假造关联。已有embedding缓存才能首次`npm run play:prepare`；artifact/report拒覆盖，不自动抓取/调用模型。private mode拒正式build，普通local/public继续原地图。新庭院434单测通过，Chromium13与WebKit11+2分段逐项复核、静态Pages4过，不称一次完整26套通过或艺术验收；薄片旧22/430仍属已否决稿。旧[91](docs/91-PLAYFUL-WORLD-LOCAL-EXPLORATION.md)保留失败对照。
+完整本机范围需要已有private快照/封面；匹配派生图提供真实模型候选，无图仍可明确偶遇，不假造关联。已有embedding缓存才能首次`npm run play:prepare`；artifact/report拒覆盖，不自动抓取/调用模型。private mode拒正式build，普通local/public继续原地图。当前文字两稿64文件441检查通过，新浏览器一次22/22（双引擎各11）、静态4/4、模拟touch2/2；320碰撞/动态capture稳定等待失败与修复留存，艺术/自然性/实机/读屏/长时尚未过。旧庭院434/13+11+2/Pages4与薄片22/430为历史证据，不能抵消否决。旧[91](docs/91-PLAYFUL-WORLD-LOCAL-EXPLORATION.md)保留失败对照。
 
 无需private语料/后台的Pages静态可行性检查只用已批准旧公开输入，输出仍private，不上线：
 
 ```powershell
-npx playwright test --config e2e/config/playwright.reading-pages.config.ts
+npx playwright test --config e2e/config/playwright.text-flow-pages.config.ts
 ```
 
-该命令build显式play-static-check，使用仅静态文件的loopback5316检验真实`/henrys-reading-world/`子路径（双引擎×1440/390，4/4），不请求private端点或外部资产；不是新关系/新内容导出或push/deploy许可。旧静态结构见[93](docs/93-PAGES-READY-READING-SCENE-REBUILD.md)，新稿验证/反例/成本见[94](docs/94-VIRTUAL-TEXT-MEMBRANES.md)。
+该命令build显式play-static-check，使用仅静态文件的loopback5316检验真实`/henrys-reading-world/`子路径（双引擎×1440/390，4/4），不请求private端点或外部资产；不是新关系/新内容导出或push/deploy许可。旧静态结构见[93](docs/93-PAGES-READY-READING-SCENE-REBUILD.md)，文字两稿验证/反例/成本见[100](docs/100-RIVER-AND-TIDE-TEXT-WORLD-TRIAL.md)，正常public/普通local仍是有效第二版，新私有懒块63,876B/gzip23,242B不是全站总量。原完整本机交互回归命令：`npx playwright test --config e2e/config/playwright.text-flow.config.ts`。
 
 ## 公开范围
 

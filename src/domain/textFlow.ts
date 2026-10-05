@@ -29,7 +29,7 @@ export function textFlowPose(mode:TextFlowMode,time:number,index:number,count:nu
     }
     const cycle=Math.floor(time/TIDE_DURATION);const local=time%TIDE_DURATION;
     const arrival=smooth((local-250-index*210)/4500);const leaving=smooth((local-25500-index*210)/7000);
-    return {x,phase:base,opacity:arrival*(1-leaving),drift:(1-arrival)*28-leaving*25,cycle};
+    return {x,phase:base,opacity:arrival*(1-leaving),drift:(1-arrival)*70-leaving*42,cycle};
 }
 export function stepFlowClock(time:number,delta:number,active:boolean):number{
     if(!Number.isFinite(time)||!Number.isFinite(delta))throw Error('Invalid text-flow clock');
