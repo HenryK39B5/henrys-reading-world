@@ -3,7 +3,8 @@ import {readFileSync,mkdirSync} from 'node:fs';
 import type {Snapshot} from '../src/domain/types.ts';
 import {topicGates,topicMembers,type PlayWorldData,playNeighbours} from '../src/domain/playWorld.ts';
 const snapshot=JSON.parse(readFileSync('.private/local-snapshot.json','utf8')) as Snapshot;const byId=new Map(snapshot.highlights.map(h=>[h.id,h]));
-mkdirSync('.private/review/text-flow/final',{recursive:true});
+const evidence=process.env.TEXT_FLOW_EVIDENCE??'.private/review/text-flow/final';
+mkdirSync(evidence,{recursive:true});
 async function ready(page:Page){await expect(page.getByTestId('text-flow')).toHaveAttribute('data-flow-state','ready');}
 async function original(page:Page,id:string){await expect(page.locator('.play-original')).toBeVisible();await expect(page.locator('.play-original')).toHaveAttribute('data-play-reading-highlight',id);await expect(page.locator('.play-original blockquote > p')).toHaveText(byId.get(id)?.text??'');}
 async function menu(page:Page){const d=page.locator('.play-page-menu');if(await d.getAttribute('open')===null)await d.locator('summary').click();}
@@ -14,7 +15,7 @@ for(const width of [1440,390,320])test(`both forms show several distinct genuine
  const boxes=await page.locator('.text-flow-hit:visible').evaluateAll(bs=>bs.map(b=>{const r=b.getBoundingClientRect();return{id:(b as HTMLElement).dataset.highlightId,x:r.x,y:r.y,w:r.width,h:r.height};}));
  expect(new Set(boxes.map(b=>b.id)).size).toBe(width===1440?7:4);expect(boxes.every(b=>byId.has(b.id??''))).toBe(true);
  for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++){const a=boxes[i],b=boxes[j];if(a===undefined||b===undefined)throw Error('Missing box');expect(a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y).toBe(false);}
- await page.getByTestId('text-flow').screenshot({path:`.private/review/text-flow/final/${info.project.name}-${width}-${mode}.png`});
+ await page.getByTestId('text-flow').screenshot({path:`${evidence}/${info.project.name}-${width}-${mode}.png`});
  }expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);expect(errors).toEqual([]);
 });
 test('direct catch reads exactly, selection is not exploration; release, source, share and refresh work',async({page})=>{
@@ -60,6 +61,14 @@ test('drag is not catch; keyboard focus holds a moving target until activation',
  await page.mouse.move(box.x+20,box.y+20);await page.mouse.down();await page.mouse.move(box.x+60,box.y+20,{steps:5});await page.mouse.up();await expect(page.locator('.play-original')).toBeHidden();
  await target.focus();await expect(stage).toHaveAttribute('data-flow-paused','true');await page.waitForTimeout(100);const time=await stage.getAttribute('data-flow-time');await page.waitForTimeout(300);expect(await stage.getAttribute('data-flow-time')).toBe(time);
  const id=await target.getAttribute('data-highlight-id');await page.keyboard.press('Enter');await original(page,id??'');await expect(stage).toHaveAttribute('data-flow-paused','false');
+});
+test('second tide keeps an asymmetric composition and a stable reading centre across several catches',async({page})=>{
+ await page.goto('/map');await ready(page);await page.getByRole('button',{name:'潮汐',exact:true}).click();await expect(page.getByTestId('text-flow')).toHaveAttribute('data-flow-edition','shore-2');
+ const coordinates=await page.locator('.text-flow-hit:visible').evaluateAll(buttons=>buttons.map(b=>Math.round(b.getBoundingClientRect().x)));expect(new Set(coordinates).size).toBe(7);
+ await menu(page);for(const i of [1,3,5]){const button=page.locator('.play-page-strip button').nth(i);const id=await button.getAttribute('data-highlight-id');await button.click();await original(page,id??'');await expect(page.locator('.play-original')).toBeFocused();
+ await expect.poll(async()=>Number(await page.getByTestId('text-flow').getAttribute('data-flow-visible'))).toBeGreaterThanOrEqual(2);
+ const safe=await page.locator('.text-flow-hit:visible').evaluateAll(buttons=>buttons.every(b=>{const top=b.getBoundingClientRect().top;const caption=document.querySelector('.text-flow-caption')?.getBoundingClientRect();return caption===undefined||top>caption.bottom;}));expect(safe).toBe(true);
+ await page.getByRole('button',{name:'放回流中',exact:false}).click();await expect(page.locator('.play-original')).toBeHidden();}
 });
 test('Canvas2D unavailable still permits complete genuine reading through native directory',async({page})=>{
  await page.addInitScript(()=>{HTMLCanvasElement.prototype.getContext=(()=>null) as typeof HTMLCanvasElement.prototype.getContext;});await page.goto('/map?h=h-3501');await expect(page.getByTestId('text-flow')).toHaveAttribute('data-flow-state','fallback');await original(page,'h-3501');await menu(page);const b=page.locator('.play-page-strip button').nth(1);await b.click();await original(page,await b.getAttribute('data-highlight-id')??'');

@@ -21,7 +21,7 @@ function geometry(snapshot:Snapshot):Promise<PlayWorldData>{
         if(hash!==value.snapshotHash)throw Error('联想资料与原文不匹配；不使用这份关系。');return value;
     });requests.set(snapshot,pending);return pending;
 }
-function savedMode():TextFlowMode{try{return sessionStorage.getItem('reading-world-text-flow')==='river'?'river':'tide';}catch{return 'tide';}}
+function savedMode():TextFlowMode{try{return sessionStorage.getItem('reading-world-text-flow-v2')==='river'?'river':'tide';}catch{return 'tide';}}
 function address(frame:ReadingFrame,anchor:string|null,bookId:string|null):string{
     const query=new URLSearchParams();if(bookId!==null)query.set('book',bookId);
     if(frame.selectedId!==null)query.set('h',frame.selectedId);
@@ -93,9 +93,9 @@ export function PlayWorldRoom({index,tagId,bookId,highlightId,worldTags=[],playA
     },[signature,requestedKey,highlightId,playAnchorId,snapshot,data]);
     // Matching graph arrival only changes an explicitly requested model scope, never the base stream.
     useEffect(()=>{if(session.anchor===null)return;setSession(old=>({...old,items:flowBatch(pool,7,Math.random)}));},[pool,session.anchor]);
-    const changeMode=(value:TextFlowMode)=>{setMode(value);try{sessionStorage.setItem('reading-world-text-flow',value);}catch{/* preference is optional */}};
-    return <section className="play-room" data-testid="play-world" data-play-data="ready">
-        <header className="play-heading"><div><p className="play-eyebrow">HENRY’S READING WORLD · 文字本身的风景</p><h1>{mode==='tide'?'潮汐拾句':'文字河流'}<span>不必选下一步，喜欢的就留一会儿。</span></h1></div>
+    const changeMode=(value:TextFlowMode)=>{setMode(value);try{sessionStorage.setItem('reading-world-text-flow-v2',value);}catch{/* preference is optional */}};
+    return <section className={`play-room play-edition-${mode}`} data-testid="play-world" data-play-data="ready">
+        <header className="play-heading"><div><p className="play-eyebrow">HENRY’S READING WORLD · 文字本身的风景</p><h1>{mode==='tide'?'潮汐 · 第二稿':'文字河流 · 前稿'}<span>不必选下一步，喜欢的就留一会儿。</span></h1></div>
             <div className="text-flow-modes" role="group" aria-label="两种文字流"><button type="button" aria-pressed={mode==='river'} onClick={()=>changeMode('river')}>河流</button><button type="button" aria-pressed={mode==='tide'} onClick={()=>changeMode('tide')}>潮汐</button></div></header>
         <nav className="play-breadcrumb" aria-label="阅读来路">{frame.tags.length>0||session.anchor!==null?<button type="button" onClick={back}>← {session.parents.length>0?'回到刚才的流':'回到全部'}</button>:<span>按书偶遇 · 多处同时经过</span>}
             {frame.tags.map(id=><span key={id}>{index.tagsById.get(id)?.title??'未知主题'}</span>)}<small>{new Set(pool.map(h=>h.bookId)).size} 本书 · {pool.length} 处划线{session.anchor!==null?' · 本机模型联想候选':''}</small>{source.current!==null?<a href={sitePath(source.current)}>回到刚才的房间</a>:null}</nav>

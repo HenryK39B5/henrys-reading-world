@@ -7,7 +7,7 @@ export function tidePlacement(index:number,width:number,height:number,held:boole
         const slot=slots[index%4] as TidePlacement;
         return {...slot,fontSize:width<300?slot.fontSize-2:slot.fontSize};
     }
-    if(held){return {x:index%2===0?.035:.79,y:.15+Math.floor(index/2)*.20,width:.18,fontSize:18,lines:3};}
+    if(held){return {x:index%2===0?.035:.79,y:.23+Math.floor(index/2)*.17,width:.18,fontSize:18,lines:3};}
     const slots:TidePlacement[]=[
         {x:.055,y:.235,width:.29,fontSize:32,lines:3},
         {x:.53,y:.14,width:.24,fontSize:21,lines:3},
