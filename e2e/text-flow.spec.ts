@@ -62,13 +62,23 @@ test('drag is not catch; keyboard focus holds a moving target until activation',
  await target.focus();await expect(stage).toHaveAttribute('data-flow-paused','true');await page.waitForTimeout(100);const time=await stage.getAttribute('data-flow-time');await page.waitForTimeout(300);expect(await stage.getAttribute('data-flow-time')).toBe(time);
  const id=await target.getAttribute('data-highlight-id');await page.keyboard.press('Enter');await original(page,id??'');await expect(stage).toHaveAttribute('data-flow-paused','false');
 });
-test('second tide keeps an asymmetric composition and a stable reading centre across several catches',async({page})=>{
- await page.goto('/map');await ready(page);await page.getByRole('button',{name:'潮汐',exact:true}).click();await expect(page.getByTestId('text-flow')).toHaveAttribute('data-flow-edition','shore-2');
+test('water tide keeps an asymmetric composition and a stable reading centre across several catches',async({page})=>{
+ await page.goto('/map');await ready(page);await page.getByRole('button',{name:'潮汐',exact:true}).click();await expect(page.getByTestId('text-flow')).toHaveAttribute('data-flow-edition','water-shore-3');
  const coordinates=await page.locator('.text-flow-hit:visible').evaluateAll(buttons=>buttons.map(b=>Math.round(b.getBoundingClientRect().x)));expect(new Set(coordinates).size).toBe(7);
  await menu(page);for(const i of [1,3,5]){const button=page.locator('.play-page-strip button').nth(i);const id=await button.getAttribute('data-highlight-id');await button.click();await original(page,id??'');await expect(page.locator('.play-original')).toBeFocused();
  await expect.poll(async()=>Number(await page.getByTestId('text-flow').getAttribute('data-flow-visible'))).toBeGreaterThanOrEqual(2);
  const safe=await page.locator('.text-flow-hit:visible').evaluateAll(buttons=>buttons.every(b=>{const top=b.getBoundingClientRect().top;const caption=document.querySelector('.text-flow-caption')?.getBoundingClientRect();return caption===undefined||top>caption.bottom;}));expect(safe).toBe(true);
  await page.getByRole('button',{name:'放回流中',exact:false}).click();await expect(page.locator('.play-original')).toBeHidden();}
+});
+test('tide water withdrawal carries the same genuine passages outward before renewal',async({page},info)=>{
+ await page.clock.install();await page.goto('/map');await ready(page);const stage=page.getByTestId('text-flow');await expect(stage).toHaveAttribute('data-flow-edition','water-shore-3');
+ const measure=async(id:string|null)=>stage.evaluate((root,wanted)=>{const targets=Array.from(root.querySelectorAll<HTMLElement>('.text-flow-hit'));const target=wanted===null?targets.find(b=>getComputedStyle(b).visibility==='visible'):targets.find(b=>b.dataset.highlightId===wanted);if(target===undefined)throw Error('Missing genuine water target');return {id:target.dataset.highlightId??'',x:target.getBoundingClientRect().x,width:root.getBoundingClientRect().width,surge:Number((root as HTMLElement).dataset.waterSurge)};},id);
+ const before=await measure(null);await page.clock.runFor(22000);await expect(stage).toHaveAttribute('data-water-phase','outgoing');const after=await measure(before.id);expect(after.surge).toBeLessThan(before.surge);
+ expect(Math.abs(after.x-before.x-(before.surge-after.surge)*.58*before.width)).toBeLessThan(1);await stage.screenshot({path:`${evidence}/${info.project.name}-tide-outgoing.png`});
+});
+test('release visibly returns the caught passage, and reduced motion returns immediately',async({page})=>{
+ await page.goto('/map?h=h-3501');await ready(page);await original(page,'h-3501');await page.getByRole('button',{name:'放回流中',exact:false}).click();await expect(page.getByTestId('text-flow')).toHaveAttribute('data-flow-returning','h-3501');await expect(page.locator('.play-original')).toBeHidden();await expect(page.getByTestId('text-flow')).toHaveAttribute('data-flow-returning','',{timeout:5000});
+ await page.emulateMedia({reducedMotion:'reduce'});await menu(page);const button=page.locator('.play-page-strip button').first();const id=await button.getAttribute('data-highlight-id');await button.click();await original(page,id??'');await page.getByRole('button',{name:'放回流中',exact:false}).click();await expect(page.getByTestId('text-flow')).toHaveAttribute('data-flow-returning','');
 });
 test('Canvas2D unavailable still permits complete genuine reading through native directory',async({page})=>{
  await page.addInitScript(()=>{HTMLCanvasElement.prototype.getContext=(()=>null) as typeof HTMLCanvasElement.prototype.getContext;});await page.goto('/map?h=h-3501');await expect(page.getByTestId('text-flow')).toHaveAttribute('data-flow-state','fallback');await original(page,'h-3501');await menu(page);const b=page.locator('.play-page-strip button').nth(1);await b.click();await original(page,await b.getAttribute('data-highlight-id')??'');

@@ -21,7 +21,7 @@ function geometry(snapshot:Snapshot):Promise<PlayWorldData>{
         if(hash!==value.snapshotHash)throw Error('联想资料与原文不匹配；不使用这份关系。');return value;
     });requests.set(snapshot,pending);return pending;
 }
-function savedMode():TextFlowMode{try{return sessionStorage.getItem('reading-world-text-flow-v2')==='river'?'river':'tide';}catch{return 'tide';}}
+function savedMode():TextFlowMode{try{return sessionStorage.getItem('reading-world-water-world')==='river'?'river':'tide';}catch{return 'tide';}}
 function address(frame:ReadingFrame,anchor:string|null,bookId:string|null):string{
     const query=new URLSearchParams();if(bookId!==null)query.set('book',bookId);
     if(frame.selectedId!==null)query.set('h',frame.selectedId);
@@ -93,9 +93,9 @@ export function PlayWorldRoom({index,tagId,bookId,highlightId,worldTags=[],playA
     },[signature,requestedKey,highlightId,playAnchorId,snapshot,data]);
     // Matching graph arrival only changes an explicitly requested model scope, never the base stream.
     useEffect(()=>{if(session.anchor===null)return;setSession(old=>({...old,items:flowBatch(pool,7,Math.random)}));},[pool,session.anchor]);
-    const changeMode=(value:TextFlowMode)=>{setMode(value);try{sessionStorage.setItem('reading-world-text-flow-v2',value);}catch{/* preference is optional */}};
+    const changeMode=(value:TextFlowMode)=>{setMode(value);try{sessionStorage.setItem('reading-world-water-world',value);}catch{/* preference is optional */}};
     return <section className={`play-room play-edition-${mode}`} data-testid="play-world" data-play-data="ready">
-        <header className="play-heading"><div><p className="play-eyebrow">HENRY’S READING WORLD · 文字本身的风景</p><h1>{mode==='tide'?'潮汐 · 第二稿':'文字河流 · 前稿'}<span>不必选下一步，喜欢的就留一会儿。</span></h1></div>
+        <header className="play-heading"><div><p className="play-eyebrow">HENRY’S READING WORLD · 文字本身的风景</p><h1>{mode==='tide'?'潮汐 · 水岸':'河流 · 河湾'}<span>不必选下一步，喜欢的就留一会儿。</span></h1></div>
             <div className="text-flow-modes" role="group" aria-label="两种文字流"><button type="button" aria-pressed={mode==='river'} onClick={()=>changeMode('river')}>河流</button><button type="button" aria-pressed={mode==='tide'} onClick={()=>changeMode('tide')}>潮汐</button></div></header>
         <nav className="play-breadcrumb" aria-label="阅读来路">{frame.tags.length>0||session.anchor!==null?<button type="button" onClick={back}>← {session.parents.length>0?'回到刚才的流':'回到全部'}</button>:<span>按书偶遇 · 多处同时经过</span>}
             {frame.tags.map(id=><span key={id}>{index.tagsById.get(id)?.title??'未知主题'}</span>)}<small>{new Set(pool.map(h=>h.bookId)).size} 本书 · {pool.length} 处划线{session.anchor!==null?' · 本机模型联想候选':''}</small>{source.current!==null?<a href={sitePath(source.current)}>回到刚才的房间</a>:null}</nav>
@@ -118,6 +118,6 @@ export function PlayWorldRoom({index,tagId,bookId,highlightId,worldTags=[],playA
         </article></div>
         <section className="play-topics" aria-label="主题入口"><div><p className="play-eyebrow">想有个方向时</p><h2>沿主题看一会儿</h2></div><details className="play-entrances"><summary>浏览主题 <span>{gates.length}</span></summary>{gates.length===0?<p>这里不再划出更小的范围，仍可以继续看文字经过。</p>:<ul>{gates.map(g=><li key={g.tagIds.join('|')}><button type="button" onClick={()=>enter(g.tagIds[0] as string)}><span>{g.tagIds.map(id=>index.tagsById.get(id)?.title).join(' / ')}</span><small>{g.bookCount} 本书 · {g.memberIds.length} 处划线</small></button></li>)}</ul>}</details></section>
         {error!==null?<p className="play-data-note" role="status">{error}<button type="button" onClick={()=>{requests.delete(snapshot);setRetry(n=>n+1);}}>重试联想资料</button></p>:null}
-        <details className="play-notes"><summary>关于这片文字</summary><p>文字来自真实划线。河流持续经过，潮汐成批到来/停留/退去；位置、节奏与图形只是排版，不表示语义距离。“沿这处流一会儿”仅在匹配的本机资料中取实际模型候选，不是作者引用或观点一致；没有资料时仍可按书偶遇、阅读与分享。主题只筛选已有正标签，未标注仍留在全部文字。</p><p>这是原网站中的本机两稿探索，现有“随机一句”与已发布第二版不变。完整原文不等动画、不定时放走、不用拼字或完成任务。可以暂停动态，也可以通过原生目录选择、复制正文、去书房/主题小径或分享稳定原文。</p></details>
+        <details className="play-notes"><summary>关于这片文字</summary><p>文字来自真实划线。河流持续经过，潮汐成批到来/停留/退去；水路、岸线与文字位置是原创场景构图，不表示语义距离。“沿这处流一会儿”仅在匹配的本机资料中取实际模型候选，不是作者引用或观点一致；没有资料时仍可按书偶遇、阅读与分享。主题只筛选已有正标签，未标注仍留在全部文字。</p><p>这是原网站中的本机水岸探索，现有“随机一句”与已发布第二版不变。完整原文不等动画、不定时放走、不用拼字或完成任务。可以暂停动态，也可以通过原生目录选择、复制正文、去书房/主题小径或分享稳定原文。</p></details>
     </section>;
 }
