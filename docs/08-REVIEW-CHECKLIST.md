@@ -8,7 +8,7 @@
 - 初整套35/36，WebKit88虚拟秒单例耗尽150s，失败快照原文仍在；按模式各44秒拆例保留断言/150s并查模式切换，累计预算增加，不说原单例性能已修。新38集外层中断时33过（Chrome19+WebKit14），续WebKit6/6含320长文重复1，最终38逐项覆盖非一次38/38。首次18/18 Chrome与拆分前失败均保留。
 - 最终check67文件460/type/lint/data/terrain/build，隔离/公开投影/local过、snapshot/terrain/vector3SHA不变，旧public产物/4663local保持。新static4/4（52.9s）、模拟touch2/2、原生最长h-231 wheel只滚正文/End2/2。新final两形态宽窄/held/return/整站图、long-final，实读Chrome1440tide/WebKit390tide-held；旧103不覆盖。
 - 性能同机31秒×双引擎宽窄before与after-layered实采：Chrome中位33→约17ms、WebKit41/38→29/27ms，p95均改善但非稳定60/GPU/真机/固定内容A/B。未采用主Canvas全分辨水/sprite的结果也保留。WebKit真实首帧/成本尚未全定位，不用测试或数字替新体验。
-- 最终截图首连接拒绝因已无5216 listener，核对后仅重启workspace PID11060，capture/long/touch重跑通过。新懒块73254/26564gzip、CSS13163/3056非总量。基础e6b91c2接续本地验收commit，104/103/AGENTS/48/README同步，无新依赖素材/模型/WeRead/Tag向量生产点位地形/公开范围/push/deploy。新顺滑/精致、实机Safari/读屏/独立首访/实200%/低端长期仍待。
+- 最终截图首连接拒绝因已无5216 listener，核对后仅重启workspace PID11060，capture/long/touch重跑通过；收口listener再次退出，后以Win32_Process启动同workspace Vite PID24888，跨工具监听/map200确认，不改配置/安全控制。新懒块73254/26564gzip、CSS13163/3056非总量。基础e6b91c2接续本地验收commit，104/103/AGENTS/48/README同步，无新依赖素材/模型/WeRead/Tag向量生产点位地形/公开范围/push/deploy。新顺滑/精致、实机Safari/读屏/独立首访/实200%/低端长期仍待。
 
 ## 2026-10-25 · 连续水面与小巧文字 · 阶段A
 
