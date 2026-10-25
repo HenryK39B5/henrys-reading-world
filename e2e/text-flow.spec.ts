@@ -31,13 +31,15 @@ test('direct catch reads exactly, selection is not exploration; release, source,
 test('river approach steadies only that paragraph and direct click catches its original',async({page})=>{
  await page.goto('/map');await ready(page);await page.getByRole('button',{name:'河流',exact:true}).click();const target=page.locator('.text-flow-hit:visible').nth(1);const id=await target.getAttribute('data-highlight-id');const initial=await target.boundingBox();if(initial===null)throw Error('Missing real river target');await page.mouse.move(initial.x+initial.width/2,initial.y+initial.height/2);await page.waitForTimeout(100);const rect=await target.boundingBox();const time=Number(await page.getByTestId('text-flow').getAttribute('data-flow-time'));await page.waitForTimeout(400);expect(await target.boundingBox()).toEqual(rect);expect(Number(await page.getByTestId('text-flow').getAttribute('data-flow-time'))).toBeGreaterThan(time);await target.click();await original(page,id??'');
 });
-test('a caught original survives automatic renewal while other text keeps moving in both forms',async({page})=>{
+// Each mode still advances 44 seconds with all original assertions. Separate cases avoid putting
+// twice as many animation callbacks (now every rAF) into one 150-second traced test budget.
+for(const label of ['河流','潮汐'])test(`a caught original survives automatic renewal in ${label} and remains after mode switch`,async({page})=>{
  await page.clock.install();await page.goto('/map?h=h-3501');await ready(page);await original(page,'h-3501');
- for(const label of ['河流','潮汐']){await page.getByRole('button',{name:label,exact:true}).click();const before=await page.getByTestId('text-flow').getAttribute('data-flow-ids');
+ await page.getByRole('button',{name:label,exact:true}).click();const before=await page.getByTestId('text-flow').getAttribute('data-flow-ids');
  await page.clock.runFor(44000);await original(page,'h-3501');await expect(page.getByTestId('text-flow')).toHaveAttribute('data-flow-held','h-3501');
  expect(Number(await page.getByTestId('text-flow').getAttribute('data-flow-time'))).toBeGreaterThan(40000);expect(await page.getByTestId('text-flow').getAttribute('data-flow-ids')).not.toBe(before);
  const ids=(await page.getByTestId('text-flow').getAttribute('data-flow-ids')??'').split(',');expect(new Set(ids).size).toBe(ids.length);expect(ids.every(id=>byId.has(id))).toBe(true);
- }
+ await page.getByRole('button',{name:label==='河流'?'潮汐':'河流',exact:true}).click();await original(page,'h-3501');await expect(page.getByTestId('text-flow')).toHaveAttribute('data-flow-held','h-3501');
 });
 test('pause, live reduced motion, keyboard, longest text and cached measurement',async({page})=>{
  await page.goto('/map');await ready(page);await page.waitForTimeout(700);const prepares=await page.getByTestId('text-flow').getAttribute('data-flow-prepares');await page.waitForTimeout(700);expect(await page.getByTestId('text-flow').getAttribute('data-flow-prepares')).toBe(prepares);

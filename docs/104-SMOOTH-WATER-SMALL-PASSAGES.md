@@ -37,4 +37,16 @@ Henry已实看103，认为更精致、喜欢，同时指出潮水进退有卡顿
 - 新首Chrome18/18（2.9分钟），旧17个行为检查保留，新增同rAF水/字帧计数与纹理不重建、小巧预览hit高度/44px、无pickup ghost与正文不动画检查；旧实际水/字同步1px误差仍保留，不降断言/timeout。
 - 新双引擎宽窄两形态/held/return首图完成，实际readChrome1440tide（主Canvas绘水阶段）；最终分层方案新图/完整双引擎/静态/check隔离与SHA待收口，旧103图不覆盖。
 
-不将103正面反馈当104通过。真实手机Safari/读屏/独立首访/实际200%/低端长时仍待，WebKit首帧/运行成本仍未全定位。无新依赖/素材/WeRead/模型/Tag/向量/生产点位地形/公开范围/push/deploy，随机一句/普通local/线上第二版不变。
+## 第二阶段验收与交付
+
+- 初完整双引擎35/36。WebKit原单例顺序推进河流44秒+潮汐44秒，逐帧绘制增加回调量后耗尽150秒测试时限，错误快照的article及原文仍在；不能把expect后续未执行误读为正文被带走。日志/trace/原失败保留。重组为按模式两例：各自仍44秒、全部原文/候选更新/去重断言与单例150秒不变，另验证切换模式后原文保持。总允许测试预算增加，属于测试组织调整，不称修复原单例性能或真实WebKit卡顿。
+- 新38项完整运行被外层中断，不是测试红灯：中断时33项已过（Chrome19、WebKit14），含两个WebKit44秒单例及切模式；用户要求继续后核对进程/日志，再补WebKit6项（含重复320长文1项），6/6。**最终38项逐项覆盖，不称一次38/38完整运行**。新同rAF/纹理缓存/小巧两行/44px/无ghost，以及所有先前真实原文/ID/全Tag/书房分享/范围来路/长文/reduced/Canvas退路断言保留。
+- `npm run check` **67文件460单测**、typecheck/lint/真实public数据/terrain/build通过；isolation:public、publication:verify、validate:data:local通过。public snapshot/terrain/1024向量三个SHA与103一致：ccef39…c53a7c、a94db8…b1f7、49dbdb…14431e。普通public产物仍第二版，local4663/130、2969未知Tag警告仍诚实。
+- 新static Pages双引擎×宽窄 **4/4（52.9秒）**；仅旧批准公开输入→private静态产物、无private API/外部资源、子路径/分享/刷新/真实原文均验证，非发布。新hasTouch390双引擎tap/放回2/2、真实最长h-231原生wheel只滚正文及End探针2/2，非物理设备/读屏证明。
+- 最终分层版专用`final`双引擎1440/390×tide/river含held/return/整站，实际readChrome1440tide和WebKit390tide-held；新long-final/静态图独立，不覆盖103或本轮first。最终capture第一次ERR_CONNECTION_REFUSED：中断及测试后已无5216 listener，检查确认后只重启本workspace Vite，**当前PID11060/127.0.0.1:5216**，重新capture/长文/touch正常；不把进程不存在说成应用绘图失败，原失败log不删。
+- 私有懒块`PlayWorldRoom-CGrwPFvB.js`73,254B/gzip26,564B，CSS`PlayWorldRoom-DwjtKIMZ.css`13,163B/gzip3,056B，非全站总量。没有新依赖素材/模型调用或安全审计结论。
+- 证据在`.private/review/water-finesse`：before/after-first/after-layered/after-sprites性能实测、first/final/long-final图、e2e-complete初35/36、e2e-final中断33过、e2e-resume6过、check/isolation/publication/local/pages/touch日志，必要UTF16日志另转UTF8。脚本在`.private/research/water-finesse`。基础commit e6b91c2，续以验收/测试拆分/文档小步本地commit。
+
+## 未验证
+
+不将103正面反馈当104通过，本轮新实际美感/顺滑体验待Henry同站看。真实手机Safari/读屏/独立首访/实际200%/低端长时仍待，WebKit首帧/运行成本未全定位，实测仍不如Chrome稳定。性能为同机单轮、随机不同真句条件观察，不是固定语料A/B或GPU/生产指标；无声称所有卡顿已消失。无新依赖/素材/WeRead/模型/Tag/向量/生产点位地形/公开范围/push/deploy，随机一句/普通local/线上第二版不变。
