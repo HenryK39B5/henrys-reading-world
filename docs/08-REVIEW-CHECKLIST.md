@@ -2,6 +2,14 @@
 
 上线后的未完成任务与状态统一维护在 `docs/48-MAINTENANCE-ROADMAP.md`；本文件继续按阶段追加实际执行证据，不作为第二份待办清单。2026-09-24 起，历史截图与专项审计 Playwright 配置位于 `e2e/config/`；下文更早的根目录调用命令保留为当时执行记录，重新运行时须改用新路径。
 
+## 2026-10-25 · 水岸打磨 · 阶段B整站收口
+
+- 固定DOM全文+真实预览拾取过渡，分河/潮归还路径、归还期ID保护/手机隐藏slot可见去重，原生长文body滚动/真实边界/模式留位/换句复位，岸边微起伏/分层湿岸/局部浅水亮色已接整站。
+- 首完整34/34+static4/4后实图发现阅读边缘半行残句，改整段避开阅读区而非clip片段；再新完整Chrome/WebKit各17共34/34（9.5min），check67文件458/type/lint/data/terrain/build，隔离/公开投影/local通过、3protectedSHA与旧public产物一致。新static4/4。
+- 最后实图发现正文已结束、只有出处/操作待滚时“原文还未结束”误导，改中性“继续向下阅读”；只文案后type/lint/窄屏长文定点双引擎4/4及静态4/4复核，不称又跑全34。长文原生wheel不滚document/End2/2重跑，touch模拟2/2，均非真机。无降断言/timeout，TS闭包strict首错留记录。
+- 新water-polish/first/final/finished/long-final/long-copy-final/regression-final/static-copy-final与日志独立，实读最终Chrome1440river-held/WebKit390long及前轮tide图；不复用102。私有懒块73091/26450gzip、CSS13150/3060非总量。基础1bc8d33接整站local commit，103/102/AGENTS/48/README同步，PID26520/5216。无模型/WeRead/新依赖素材/数据Tag向量原点位地形/公开范围/push/deploy。
+- 102方向获肯定，103新效果待同站实看；真机Safari/读屏/独立首访/实200%/低端长时、WebKit首帧成本尚待，不增玩法/节奏复杂度，不把测试当美感接受。
+
 ## 2026-10-25 · 水岸打磨 · 阶段A连续阅读基础
 
 - Henry实看102认可水岸方向/意境但非完美，本轮明确授权打磨画面体验。103记录，干净f6dfa5e/原5216/PID26520继续，不新加模式或范式。

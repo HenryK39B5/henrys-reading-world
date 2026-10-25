@@ -3,6 +3,7 @@ import { prepareWithSegments,layoutWithLines,clearCache,type LayoutLinesResult }
 import { flowExcerpt,stepFlowClock,type TextFlowMode,type TextFlowPose } from '../../domain/textFlow.ts';
 import { tidePlacement } from './tideComposition.ts';
 import { paintWater } from './paintWater.ts';
+import { readingTransfer } from './readingMotion.ts';
 import { waterPassage,waterTide,returnProgress } from './waterWorld.ts';
 import { useReducedMotion } from '../encounter/useReducedMotion.ts';
 export type FlowText={id:string;text:string;title:string};
@@ -20,6 +21,7 @@ export function TextFlowScene(props:Props){
         let frame:number|null=null,disposed=false,inView=true,last=performance.now(),lastPaint=0,time=props.mode==='tide'?6500:0;
         let width=0,height=0,prepares=0,batches=0;const cycles=new Map<number,number>();const cache=new Map<string,Layout>();const displayed=new Map<string,TextFlowPose>();
         const waterLayer=document.createElement('canvas');const waterContext=waterLayer.getContext('2d',{alpha:false});let paintedWaterTime=-Infinity;let paintedReduced=latest.current.reduced;
+        const previews=new Map<string,{x:number;y:number;text:Layout}>();let pickup:{id:string;start:number;x:number;y:number;text:Layout}|null=null;
         let priorHeld=latest.current.heldId;let lastReader:{x:number;y:number}|null=null;let returning:{id:string;start:number;x:number;y:number}|null=null;
         const family=getComputedStyle(root).fontFamily;const compact=()=>width<1000;
         const schedule=()=>{if(disposed||frame!==null)return;frame=requestAnimationFrame(paint);};
@@ -56,7 +58,11 @@ export function TextFlowScene(props:Props){
             const reader=root.parentElement?.parentElement?.querySelector<HTMLElement>('.play-original');
             const rb=held&&reader!==null&&reader!==undefined&&!reader.hidden?reader.getBoundingClientRect():null;const box=root.getBoundingClientRect();
             if(priorHeld!==null&&state.heldId===null&&lastReader!==null)returning={id:priorHeld,start:now,...lastReader};
-            priorHeld=state.heldId;if(rb!==null)lastReader={x:rb.x-box.x+24,y:rb.y-box.y+100};
+            const paragraph=rb===null?null:reader?.querySelector('blockquote > p')?.getBoundingClientRect();
+            const readingBody=rb===null?null:reader?.querySelector('.play-reading-body')?.getBoundingClientRect();
+            if(priorHeld!==state.heldId){const preview=state.heldId===null?undefined:previews.get(state.heldId);pickup=preview===undefined||state.reduced?null:{id:state.heldId as string,start:now,...preview};}
+            priorHeld=state.heldId;if(rb!==null)lastReader={x:(paragraph?.x??rb.x+24)-box.x,y:Math.max(paragraph?.y??rb.y+100,readingBody?.y??rb.y)-box.y};
+            previews.clear();if(pickup!==null&&(now-pickup.start>=460||state.reduced||pickup.id!==state.heldId))pickup=null;
             if(returning!==null&&returnProgress(now-returning.start,state.reduced)===1)returning=null;
             if(rb!==null){const calm=ctx.createRadialGradient(rb.x-box.x+rb.width*.5,rb.y-box.y+rb.height*.5,0,rb.x-box.x+rb.width*.5,rb.y-box.y+rb.height*.5,Math.max(rb.width,rb.height)*.8);calm.addColorStop(0,'rgba(12,36,38,.90)');calm.addColorStop(.55,'rgba(12,36,38,.74)');calm.addColorStop(1,'rgba(12,36,38,0)');ctx.fillStyle=calm;ctx.fillRect(0,0,width,height);}
             ctx.save();if(rb!==null){ctx.beginPath();ctx.rect(0,0,width,height);ctx.rect(rb.x-box.x-10,rb.y-box.y-10,rb.width+20,rb.height+20);ctx.clip('evenodd');}
@@ -67,7 +73,7 @@ export function TextFlowScene(props:Props){
                 const live={x:tide?water.offsetX*width:water.x,phase:water.progress,opacity:water.alpha,drift:water.offsetY*height,cycle:water.cycle};tideCycle=live.cycle;
                 const underPointer=hovered.current===item.id;const phase=underPointer?(displayed.get(item.id)??live):live;displayed.set(item.id,phase);
                 const previous=cycles.get(index);cycles.set(index,phase.cycle);
-                if(previous!==undefined&&previous!==phase.cycle&&running&&!underPointer&&item.id!==state.heldId){
+                if(previous!==undefined&&previous!==phase.cycle&&running&&!underPointer&&item.id!==state.heldId&&item.id!==returning?.id){
                     if(state.mode==='river'){state.onAdvance(index);batches++;}
                 }
                 if(item.id===state.heldId)continue;
@@ -78,27 +84,31 @@ export function TextFlowScene(props:Props){
                 const travel=Math.max(120,bottom-top);
                 let x=tide?width*placement.x+phase.x:width*phase.x-textWidth/2;
                 let y=tide?height*placement.y+phase.drift:top+phase.phase*travel-textHeight/2+phase.drift;
-                if(returning?.id===item.id){const k=returnProgress(now-returning.start,state.reduced);x=returning.x+(x-returning.x)*k;y=returning.y+(y-returning.y)*k;}
-                const alpha=state.reduced?.94:phase.opacity;
+                const release=returning?.id===item.id?returnProgress(now-returning.start,state.reduced):null;
+                if(returning!==null&&release!==null){const position=readingTransfer(state.mode,returning,{x,y},release);x=position.x;y=position.y;}
+                const alpha=state.reduced?.94:Math.max(phase.opacity,release===null?0:.94*(1-release));
+                const hiddenByReader=rb!==null&&x+textWidth>rb.x-box.x-10&&x<rb.right-box.x+10&&y+textHeight>rb.y-box.y-10&&y<rb.bottom-box.y+10;
+                // Keep whole passages outside the reading bank; never leave clipped stray lines at its edge.
+                if(hiddenByReader)continue;
                 if(alpha>.1){ctx.globalAlpha=alpha*.18;ctx.strokeStyle='#d9dfc3';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(x+textWidth*.5,y+textHeight+9,textWidth*.48,5,0,0,Math.PI);ctx.stroke();}
                 ctx.globalAlpha=alpha*(held?.50:1);ctx.font=text.font;ctx.textBaseline='top';
                 ctx.fillStyle=hovered.current===item.id?'#ffe2ae':tide?(index===0||index===3?'#f2dbb3':'#d5e0d8'):index===0?'#f3dfb5':'#e5e5d7';
                 text.result.lines.forEach((line,i)=>ctx.fillText(line.text,x,y+i*text.lineHeight));
                 if(tide&&underPointer){ctx.strokeStyle='#dfc79a';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y-13);ctx.lineTo(x+24,y-13);ctx.stroke();}
                 ctx.font=`11px ${family}`;ctx.fillStyle='#a8bbb6';ctx.fillText('— '+text.source,x,y+text.result.height+7);
-                const hiddenByReader=rb!==null&&x+textWidth>rb.x-box.x-10&&x<rb.right-box.x+10&&y+textHeight>rb.y-box.y-10&&y<rb.bottom-box.y+10;
-                if(alpha>.15&&!hiddenByReader){visible++;const button=labels.get(item.id);if(button!==undefined){
+                if(alpha>.15){previews.set(item.id,{x,y,text});visible++;const button=labels.get(item.id);if(button!==undefined){
                     button.style.left=(x-10)+'px';button.style.top=(y-10)+'px';button.style.width=(textWidth+20)+'px';button.style.height=Math.max(44,textHeight+15)+'px';button.style.visibility='visible';
                 }}
             }}catch{setFailed(true);disposed=true;}
             ctx.restore();ctx.globalAlpha=1;
-            if(state.mode==='tide'&&tideCycle>=0){const old=cycles.get(-1);const inspecting=hovered.current!==null&&hovered.current!==state.heldId;
+            if(pickup!==null&&lastReader!==null){const t=Math.min(1,(now-pickup.start)/460);const position=readingTransfer(state.mode,pickup,lastReader,1-Math.pow(1-t,3));ctx.save();ctx.globalAlpha=.85*Math.pow(1-t,2);ctx.font=pickup.text.font;ctx.fillStyle='#f2dfb9';ctx.textBaseline='top';const movingText=pickup.text;movingText.result.lines.forEach((line,i)=>ctx.fillText(line.text,position.x,position.y+i*movingText.lineHeight));ctx.restore();}
+            if(state.mode==='tide'&&tideCycle>=0){const old=cycles.get(-1);const inspecting=(hovered.current!==null&&hovered.current!==state.heldId)||returning!==null;
                 if(old===undefined||!inspecting)cycles.set(-1,tideCycle);if(old!==undefined&&old!==tideCycle&&running&&!inspecting){state.onAdvance(null);batches++;}}
             root.dataset.flowState='ready';root.dataset.flowFrames=String(Number(root.dataset.flowFrames??'0')+1);
             root.dataset.flowTime=Math.round(time).toString();root.dataset.flowVisible=String(visible);root.dataset.flowCount=String(count);
             root.dataset.flowPrepares=String(prepares);root.dataset.flowBatches=String(batches);root.dataset.flowIds=state.items.map(i=>i.id).join(',');
-            root.dataset.flowEdition=tide?'water-shore-3':'water-river-2';root.dataset.waterSurge=waterTide(time,state.reduced).surge.toFixed(4);root.dataset.waterPhase=waterTide(time,state.reduced).phase;root.dataset.flowReturning=returning?.id??'';root.dataset.flowHeld=state.heldId??'';root.dataset.flowReduced=String(state.reduced);root.dataset.flowPaused=String(state.paused||document.hidden||!inView||focusTarget);
-            if((running||returning!==null)&&!disposed)schedule();
+            root.dataset.flowEdition=tide?'water-shore-3':'water-river-2';root.dataset.waterSurge=waterTide(time,state.reduced).surge.toFixed(4);root.dataset.waterPhase=waterTide(time,state.reduced).phase;root.dataset.flowPickup=pickup?.id??'';root.dataset.flowReturning=returning?.id??'';root.dataset.flowHeld=state.heldId??'';root.dataset.flowReduced=String(state.reduced);root.dataset.flowPaused=String(state.paused||document.hidden||!inView||focusTarget);
+            if((running||returning!==null||pickup!==null)&&!disposed)schedule();
         }
         const observer=new ResizeObserver(resize);observer.observe(root);
         const intersection=new IntersectionObserver(entries=>{inView=entries[0]?.isIntersecting??true;last=performance.now();if(inView)schedule();});intersection.observe(root);
@@ -113,7 +123,7 @@ export function TextFlowScene(props:Props){
         <canvas ref={canvas} aria-hidden="true"/>
         <div className="text-flow-caption"><span>{props.mode==='tide'?'WHAT THE TIDE BRINGS':'BY THE RIVER, WORDS PASS'}</span><h2>{props.mode==='tide'?'潮来拾句':'临流读字'}</h2><p>{props.mode==='tide'?'水把文字带来，喜欢的留在身边。':'在这里坐一会儿，让文字经过。'}</p></div>
         <div className="text-flow-targets">{props.items.map(item=><button type="button" key={item.id} className="text-flow-hit" data-highlight-id={item.id}
-            aria-label={`留住《${item.title}》的划线：${flowExcerpt(item.text,24)}`} onClick={event=>{const rect=event.currentTarget.getBoundingClientRect();const root=host.current;const article=root?.parentElement?.parentElement?.querySelector<HTMLElement>('.play-original');if(root!==null&&article!==null&&article!==undefined){const box=root.getBoundingClientRect();article.style.setProperty('--pickup-x',`${Math.max(-250,Math.min(250,rect.x-box.x-box.width*.25))}px`);article.style.setProperty('--pickup-y',`${Math.max(-180,Math.min(180,rect.y-box.y-180))}px`);}props.onCatch(item.id);}}
+            aria-label={`留住《${item.title}》的划线：${flowExcerpt(item.text,24)}`} onClick={()=>props.onCatch(item.id)}
             onFocus={()=>{hovered.current=item.id;requestDraw.current();}} onBlur={()=>{hovered.current=null;requestDraw.current();}}
             onPointerEnter={()=>{hovered.current=item.id;requestDraw.current();}} onPointerLeave={()=>{hovered.current=null;requestDraw.current();}}>
             <span className="text-flow-sr">{item.text}</span></button>)}</div>

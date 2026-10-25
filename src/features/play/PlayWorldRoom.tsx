@@ -6,6 +6,7 @@ import { readingFrame,type ReadingFrame } from '../../domain/playExperience.ts';
 import { flowBatch,flowExcerpt,type TextFlowMode } from '../../domain/textFlow.ts';
 import { sitePath } from '../../app/sitePath.ts';
 import { TextFlowScene,type FlowText } from './TextFlowScene.tsx';
+import { useReadingViewport } from './useReadingViewport.ts';
 import './play.css';
 type Place={frame:ReadingFrame;anchor:string|null};
 type Session={frame:ReadingFrame;anchor:string|null;parents:Place[];items:Highlight[];recent:string[]};
@@ -45,6 +46,7 @@ export function PlayWorldRoom({index,tagId,bookId,highlightId,worldTags=[],playA
     const source=useRef(previousPath!==null&&!previousPath.startsWith('/map')?previousPath:null);
     const original=useRef<HTMLElement>(null);
     const frame=session.frame;
+    const reading=useReadingViewport(frame.selectedId,readingOpen,mode);
     const members=useMemo(()=>topicMembers(snapshot.highlights,frame.tags),[snapshot,frame.tags]);
     const gates=useMemo(()=>topicGates(snapshot.highlights,frame.tags),[snapshot,frame.tags]);
     const pool=useMemo(()=>session.anchor===null?members:data===null?[]:playNeighbours(data,session.anchor,members,16),[members,session.anchor,data]);
@@ -56,7 +58,7 @@ export function PlayWorldRoom({index,tagId,bookId,highlightId,worldTags=[],playA
     const nextCandidates=useMemo(()=>current===undefined||data===null?[]:playNeighbours(data,current.id,members,16),[current,data,members]);
     const sceneItems:FlowText[]=useMemo(()=>session.items.map(h=>({id:h.id,text:h.text,title:index.booksById.get(h.bookId)?.title??''})),[session.items,index]);
     const open=()=>{setReadingOpen(true);requestAnimationFrame(()=>original.current?.focus({preventScroll:true}));};
-    const close=()=>{setReadingOpen(false);setSession(old=>{const held=index.highlightsById.get(old.frame.selectedId??'');return held===undefined||old.items.some(h=>h.id===held.id)?old:{...old,items:[held,...old.items].slice(0,7)};});requestAnimationFrame(()=>document.querySelector<HTMLButtonElement>('.text-flow-controls button')?.focus());};
+    const close=()=>{setReadingOpen(false);setSession(old=>{const held=index.highlightsById.get(old.frame.selectedId??'');const slot=old.items.findIndex(h=>h.id===held?.id);const visible=(original.current?.parentElement?.querySelector('.play-stage')?.clientWidth??1000)<760?4:7;return held===undefined||(slot>=0&&slot<visible)?old:{...old,items:[held,...old.items.filter(h=>h.id!==held.id)].slice(0,7)};});requestAnimationFrame(()=>document.querySelector<HTMLButtonElement>('.text-flow-controls button')?.focus());};
     const navigate=(next:Session)=>{
         handled.current=`${next.frame.tags.join(',')}#${next.frame.selectedId??''}#${next.anchor??''}#${bookId??''}`;
         setSession(next);history.current.set(`${next.frame.tags.join(',')}#${next.anchor??''}`,next.parents);
@@ -109,12 +111,16 @@ export function PlayWorldRoom({index,tagId,bookId,highlightId,worldTags=[],playA
             </div></details><button type="button" onClick={newBatch} disabled={pool.length<2}>换一批文字 ↗</button></div>
             {session.anchor!==null&&pool.length===0?<p role="status">这里暂时没有可用的联想候选。原文仍可读，也可以返回全部文字。</p>:null}
         </div>
-        <article className="play-original" hidden={!readingOpen} ref={original} tabIndex={-1} aria-label="当前完整原文" data-play-reading-highlight={current?.id}>
+        <article className="play-original" hidden={!readingOpen} ref={original} tabIndex={-1} aria-label="当前完整原文" data-play-reading-highlight={current?.id} data-reading-more={reading.edges.below} data-reading-above={reading.edges.above}
+            onKeyDown={event=>{if(event.target!==event.currentTarget)return;const body=reading.viewport.current;if(body===null)return;const distance=event.key==='ArrowDown'?40:event.key==='ArrowUp'?-40:event.key==='PageDown'?body.clientHeight*.8:event.key==='PageUp'?-body.clientHeight*.8:event.key==='End'?body.scrollHeight:event.key==='Home'?-body.scrollHeight:0;if(distance!==0){event.preventDefault();reading.scroll(distance);}}}>
             <div className="play-reading-top"><p className="play-eyebrow">留住的这一处</p><button type="button" onClick={close}>放回流中 <span aria-hidden="true">↗</span></button></div>
+            <div className="play-reading-body" ref={reading.viewport} onScroll={reading.measure} tabIndex={0} role="region" aria-label="完整原文，可上下滚动"><div ref={reading.content}>
             {current===undefined?<p>这个范围暂时没有原文，可以回到全部文字。</p>:<><blockquote><p>{current.text}</p><footer><span>《{book?.title}》</span><span>{book?.author}</span></footer></blockquote>
                 <div className="play-clues">{current.tagIds.map(id=><a key={id} href={sitePath(`/paths/${id}?h=${current.id}`)}>#{index.tagsById.get(id)?.title}</a>)}</div>
                 <div className="play-reading-actions"><button type="button" onClick={explore} disabled={nextCandidates.length===0||session.anchor===current.id}>沿这处流一会儿 →</button><a href={sitePath(`/books/${current.bookId}`)}>去这本书</a><button type="button" onClick={()=>onShare(current.id)}>分享</button></div>
             </>}
+            </div></div>
+            {reading.edges.below?<button type="button" className="play-reading-more" onClick={()=>reading.scroll((reading.viewport.current?.clientHeight??300)*.75)}>继续向下阅读 <span aria-hidden="true">↓</span></button>:<p className="play-reading-end">原文至此 <span aria-hidden="true">·</span></p>}
         </article></div>
         <section className="play-topics" aria-label="主题入口"><div><p className="play-eyebrow">想有个方向时</p><h2>沿主题看一会儿</h2></div><details className="play-entrances"><summary>浏览主题 <span>{gates.length}</span></summary>{gates.length===0?<p>这里不再划出更小的范围，仍可以继续看文字经过。</p>:<ul>{gates.map(g=><li key={g.tagIds.join('|')}><button type="button" onClick={()=>enter(g.tagIds[0] as string)}><span>{g.tagIds.map(id=>index.tagsById.get(id)?.title).join(' / ')}</span><small>{g.bookCount} 本书 · {g.memberIds.length} 处划线</small></button></li>)}</ul>}</details></section>
         {error!==null?<p className="play-data-note" role="status">{error}<button type="button" onClick={()=>{requests.delete(snapshot);setRetry(n=>n+1);}}>重试联想资料</button></p>:null}

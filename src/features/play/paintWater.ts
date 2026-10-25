@@ -5,6 +5,8 @@ export function paintWater(ctx:CanvasRenderingContext2D,w:number,h:number,time:n
     const t=reduced?10000:time;const seconds=t/1000;
     ctx.globalAlpha=1;
     const bank=ctx.createLinearGradient(0,0,w,h);bank.addColorStop(0,'#253c3b');bank.addColorStop(.45,'#5c685b');bank.addColorStop(1,'#9b9475');ctx.fillStyle=bank;ctx.fillRect(0,0,w,h);
+    // Sparse, fixed sediment marks: bank texture does not shimmer with the animation clock.
+    for(let n=0;n<48;n++){const u=(Math.sin(n*71.7)*9187.1)%1,v=(Math.sin(n*39.2)*3711.4)%1;const x=Math.abs(u)*w,y=Math.abs(v)*h;ctx.strokeStyle=n%3===0?'rgba(211,202,160,.10)':'rgba(17,46,43,.12)';ctx.lineWidth=.7;ctx.beginPath();ctx.moveTo(x,y);ctx.quadraticCurveTo(x+5,y-2,x+9+n%7,y-1);ctx.stroke();}
     const tide=waterTide(t,reduced);const edge=(y:number)=>shoreline(y,tide.surge)*w;
     const left=(y:number)=>(riverCentre(y)-.485)*w,right=(y:number)=>(riverCentre(y)+.485)*w;
     const boundary=(offset=0)=>{
@@ -15,18 +17,22 @@ export function paintWater(ctx:CanvasRenderingContext2D,w:number,h:number,time:n
         }ctx.closePath();
     };
     // Damp margin remains behind the leading wash; translucent shallows meet the deeper channel.
-    boundary(-26);ctx.fillStyle='rgba(16,53,52,.30)';ctx.fill();
+    boundary(-30);ctx.fillStyle='rgba(29,66,59,.16)';ctx.fill();
+    boundary(-18);ctx.fillStyle='rgba(16,53,52,.20)';ctx.fill();
+    boundary(-7);ctx.fillStyle='rgba(13,48,48,.24)';ctx.fill();
     boundary();const water=ctx.createLinearGradient(mode==='tide'?w*.1:0,0,w,h*.3);
     water.addColorStop(0,'#527c74');water.addColorStop(.24,'#2d6664');water.addColorStop(.62,'#124b55');water.addColorStop(1,'#092f40');ctx.fillStyle=water;ctx.fill();
     ctx.save();ctx.clip();
     const light=ctx.createRadialGradient(w*.74,h*.20,0,w*.74,h*.20,w*.67);light.addColorStop(0,'rgba(190,204,168,.19)');light.addColorStop(.5,'rgba(103,169,159,.07)');light.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=light;ctx.fillRect(0,0,w,h);
+    // Shallow-water light stays near the actual moving edge, rather than lighting the entire canvas equally.
+    for(let band=0;band<3;band++){const offset=8+band*10;ctx.beginPath();for(let j=0;j<=60;j++){const y=j/60;const x=mode==='tide'?edge(y)+offset:left(y)+offset;if(j===0)ctx.moveTo(x,0);else ctx.lineTo(x,y*h);}ctx.lineWidth=12-band*3;ctx.strokeStyle=`rgba(166,192,154,${.07-band*.018})`;ctx.stroke();}
     // Moving streaks follow the channel, not independent decorative particles.
     if(mode==='river')for(let lane=0;lane<15;lane++){
         const lateral=(lane-7)*.063;ctx.beginPath();
         for(let j=0;j<=70;j++){const y=j/70;const x=(riverCentre(y)+lateral+Math.sin(y*16+seconds*.25+lane)*.003)*w;if(j===0)ctx.moveTo(x,y*h);else ctx.lineTo(x,y*h);}
         ctx.lineWidth=lane%4===0?1.1:.6;ctx.strokeStyle=`rgba(175,212,192,${lane%4===0?.10:.035})`;ctx.stroke();
     }
-    for(let n=0;n<64;n++){
+    for(let n=0;n<40;n++){
         const seed=Math.sin(n*147.31)*43758.5453;const u=seed-Math.floor(seed);
         const y=((n*.047+seconds*(mode==='river'?.022:.003))%1+1)%1;
         const x=mode==='river'?(riverCentre(y)+(u-.5)*.88)*w:(.20+u*.85)*w;
@@ -47,7 +53,8 @@ export function paintWater(ctx:CanvasRenderingContext2D,w:number,h:number,time:n
     if(mode==='tide')for(let wave=0;wave<5;wave++){
         const offset=wave*34+Math.sin(seconds*.5+wave)*5;
         ctx.beginPath();for(let j=0;j<=100;j++){const y=j/100;const x=edge(y)+offset+Math.sin(y*35+seconds*.7+wave)*2;if(j===0)ctx.moveTo(x,0);else ctx.lineTo(x,y*h);}
-        ctx.strokeStyle=`rgba(218,231,209,${wave===0?.48:.12-wave*.019})`;ctx.lineWidth=wave===0?1.7:.8;ctx.stroke();
+        ctx.strokeStyle=`rgba(218,231,209,${wave===0?.36:.12-wave*.019})`;ctx.lineWidth=wave===0?1.4:.8;
+        if(wave===0){ctx.setLineDash([26,3,12,2,47,6]);ctx.lineDashOffset=seconds*.7;}ctx.stroke();ctx.setLineDash([]);ctx.lineDashOffset=0;
     }
     ctx.restore();
     // A quiet near bank frames the reading foreground. Soft vignette is not a modal panel.
