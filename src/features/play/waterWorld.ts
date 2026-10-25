@@ -18,8 +18,9 @@ export function waterPassage(mode:TextFlowMode,time:number,index:number,count:nu
         return {offsetX:(1-tide.surge)*.58,offsetY:-(1-tide.surge)*.10,alpha:smooth(tide.surge*1.8),cycle:tide.cycle,progress:tide.surge,x:0};
     }
     const columns=compact?1:3,column=index%columns,rows=Math.ceil((count-column)/columns),base=(Math.floor(index/columns)+.5)/rows;
-    const travelled=(reduced?0:time/WATER_RIVER_PERIOD)+base;
+    const stagger=compact?0:column===1?.035:column===2?-.025:0;
+    const travelled=(reduced?0:time/WATER_RIVER_PERIOD)+base+stagger;
     const progress=travelled-Math.floor(travelled),lane=compact?0:column-1;
     return {offsetX:0,offsetY:0,alpha:Math.min(smooth(progress/.055),smooth((1-progress)/.055)),cycle:Math.floor(travelled),progress,x:riverCentre(progress)+lane*.295};
 }
-export function returnProgress(elapsed:number,reduced=false){if(!Number.isFinite(elapsed))throw Error('Invalid return time');return reduced?1:smooth(elapsed/1100);}
+export function returnProgress(elapsed:number,reduced=false){if(!Number.isFinite(elapsed))throw Error('Invalid return time');return reduced?1:smooth(elapsed/600);}

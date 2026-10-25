@@ -3,22 +3,22 @@ export type TidePlacement={x:number;y:number;width:number;fontSize:number;lines:
 export function tidePlacement(index:number,width:number,height:number,held:boolean):TidePlacement{
     if(!Number.isFinite(width)||!Number.isFinite(height)||width<=0||height<=0||index<0||index>6)throw Error('Invalid tide composition');
     if(width<760){
-        const slots=[{x:.08,y:.23,width:.79,fontSize:23,lines:3},{x:.22,y:.43,width:.70,fontSize:18,lines:3},{x:.08,y:.62,width:.74,fontSize:21,lines:2},{x:.27,y:.79,width:.64,fontSize:18,lines:2}];
+        const slots=[{x:.10,y:.25,width:.72,fontSize:19,lines:2},{x:.24,y:.43,width:.65,fontSize:18,lines:2},{x:.10,y:.62,width:.69,fontSize:18,lines:2},{x:.28,y:.79,width:.61,fontSize:18,lines:2}];
         const slot=slots[index%4] as TidePlacement;
-        return {...slot,fontSize:width<300?slot.fontSize-2:slot.fontSize};
+        return {...slot,fontSize:Math.max(17,slot.fontSize-(width<300?1:0))};
     }
-    if(held){return {x:index%2===0?.035:.79,y:.23+Math.floor(index/2)*.17,width:.18,fontSize:18,lines:3};}
+    if(held){return {x:index%2===0?.035:.79,y:.23+Math.floor(index/2)*.17,width:.18,fontSize:18,lines:2};}
     const slots:TidePlacement[]=[
-        {x:.055,y:.235,width:.29,fontSize:32,lines:3},
-        {x:.53,y:.14,width:.24,fontSize:21,lines:3},
-        {x:.79,y:.37,width:.175,fontSize:19,lines:3},
-        {x:.39,y:.43,width:.29,fontSize:25,lines:3},
-        {x:.085,y:.68,width:.22,fontSize:21,lines:3},
-        {x:.49,y:.76,width:.23,fontSize:20,lines:3},
-        {x:.80,y:.76,width:.16,fontSize:18,lines:3},
+        {x:.09,y:.25,width:.23,fontSize:21,lines:2},
+        {x:.51,y:.17,width:.23,fontSize:19,lines:2},
+        {x:.79,y:.36,width:.17,fontSize:18,lines:2},
+        {x:.37,y:.46,width:.24,fontSize:20,lines:2},
+        {x:.12,y:.68,width:.21,fontSize:19,lines:2},
+        {x:.49,y:.77,width:.22,fontSize:18,lines:2},
+        {x:.78,y:.73,width:.18,fontSize:18,lines:2},
     ];
     const slot=slots[index] as TidePlacement;
-    return {...slot,fontSize:width<1000?Math.round(slot.fontSize*.85):slot.fontSize};
+    return {...slot,fontSize:width<1000?Math.max(18,slot.fontSize-1):slot.fontSize};
 }
 export const TIDE_REDESIGN_PERIOD=36000;
 const ease=(v:number)=>{const t=Math.max(0,Math.min(1,v));return t*t*(3-2*t);};

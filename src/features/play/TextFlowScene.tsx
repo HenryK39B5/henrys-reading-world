@@ -1,8 +1,8 @@
-import { useEffect,useRef,useState } from 'react';
+import { useEffect,useLayoutEffect,useRef,useState } from 'react';
 import { prepareWithSegments,layoutWithLines,clearCache,type LayoutLinesResult } from '@chenglou/pretext';
 import { flowExcerpt,stepFlowClock,type TextFlowMode,type TextFlowPose } from '../../domain/textFlow.ts';
 import { tidePlacement } from './tideComposition.ts';
-import { paintWater } from './paintWater.ts';
+import { createWaterArt,paintWater,type WaterArt } from './paintWater.ts';
 import { readingTransfer } from './readingMotion.ts';
 import { waterPassage,waterTide,returnProgress } from './waterWorld.ts';
 import { useReducedMotion } from '../encounter/useReducedMotion.ts';
@@ -12,25 +12,25 @@ type Layout={result:LayoutLinesResult;font:string;lineHeight:number;source:strin
 export function TextFlowScene(props:Props){
     const host=useRef<HTMLDivElement>(null),canvas=useRef<HTMLCanvasElement>(null);
     const reduced=useReducedMotion();const [paused,setPaused]=useState(false),[failed,setFailed]=useState(false);
-    const latest=useRef({...props,reduced,paused});const requestDraw=useRef<()=>void>(()=>{});
+    const latest=useRef({...props,reduced,paused});const requestDraw=useRef<(immediate?:boolean)=>void>(()=>{});
     const hovered=useRef<string|null>(null);const pointer=useRef<{x:number;y:number;distance:number}|null>(null);
-    useEffect(()=>{latest.current={...props,reduced,paused};requestDraw.current();},[props,reduced,paused]);
+    useLayoutEffect(()=>{const changed=latest.current.heldId!==props.heldId;latest.current={...props,reduced,paused};requestDraw.current(changed);},[props,reduced,paused]);
     useEffect(()=>{
         const root=host.current,element=canvas.current;if(root===null||element===null)return;
         const ctx=element.getContext('2d',{alpha:false});if(ctx===null){setFailed(true);return;}
-        let frame:number|null=null,disposed=false,inView=true,last=performance.now(),lastPaint=0,time=props.mode==='tide'?6500:0;
+        let frame:number|null=null,disposed=false,inView=true,last=performance.now(),time=props.mode==='tide'?6500:0;
         let width=0,height=0,prepares=0,batches=0;const cycles=new Map<number,number>();const cache=new Map<string,Layout>();const displayed=new Map<string,TextFlowPose>();
-        const waterLayer=document.createElement('canvas');const waterContext=waterLayer.getContext('2d',{alpha:false});let paintedWaterTime=-Infinity;let paintedReduced=latest.current.reduced;
-        const previews=new Map<string,{x:number;y:number;text:Layout}>();let pickup:{id:string;start:number;x:number;y:number;text:Layout}|null=null;
+        const waterLayer=document.createElement('canvas'),waterContext=waterLayer.getContext('2d',{alpha:false});
+        let waterArt:WaterArt|null=null,textureBuilds=0,waterFrames=0;let buttonItems:FlowText[]|null=null;let labels=new Map<string|undefined,HTMLButtonElement>();
         let priorHeld=latest.current.heldId;let lastReader:{x:number;y:number}|null=null;let returning:{id:string;start:number;x:number;y:number}|null=null;
         const family=getComputedStyle(root).fontFamily;const compact=()=>width<1000;
         const schedule=()=>{if(disposed||frame!==null)return;frame=requestAnimationFrame(paint);};
-        requestDraw.current=schedule;
-        const resize=()=>{const box=root.getBoundingClientRect();width=box.width;height=box.height;
+        requestDraw.current=immediate=>{if(disposed)return;if(immediate){if(frame!==null)cancelAnimationFrame(frame);frame=null;paint(performance.now());}else schedule();};
+        const resize=()=>{const box=root.getBoundingClientRect();if(box.width===width&&box.height===height)return;width=box.width;height=box.height;if(width<=0||height<=0)return;
             const dpr=Math.min(devicePixelRatio||1,1.5);element.width=Math.round(width*dpr);element.height=Math.round(height*dpr);
-            element.style.width=width+'px';element.style.height=height+'px';ctx.setTransform(dpr,0,0,dpr,0,0);waterLayer.width=Math.min(640,Math.round(width));waterLayer.height=Math.round(height*waterLayer.width/width);paintedWaterTime=-Infinity;cache.clear();schedule();};
+            element.style.width=width+'px';element.style.height=height+'px';ctx.setTransform(dpr,0,0,dpr,0,0);waterLayer.width=Math.min(640,Math.round(width));waterLayer.height=Math.round(height*waterLayer.width/width);waterArt=createWaterArt(waterContext??ctx,waterContext===null?width:waterLayer.width,waterContext===null?height:waterLayer.height,latest.current.mode);textureBuilds++;cache.clear();schedule();};
         const layout=(item:FlowText,index:number,availableWidth:number,displaySize?:number,maxLines?:number):Layout=>{
-            const narrow=compact();const size=displaySize??(narrow?18:index===0?23:19);const lineHeight=size*1.57;
+            const narrow=compact();const size=displaySize??(narrow?18:index===0?20:18);const lineHeight=size*1.57;
             const maxWidth=availableWidth;
             const font=`400 ${size}px ${family}`;const key=`${item.id}|${font}|${maxWidth}|${maxLines??0}`;
             const saved=cache.get(key);if(saved!==undefined)return saved;
@@ -46,23 +46,20 @@ export function TextFlowScene(props:Props){
             const value={result,font,lineHeight,source,size};cache.set(key,value);return value;
         };
         const paint=(now:number)=>{
-            frame=null;if(disposed)return;const state=latest.current;const focusTarget=state.heldId===null&&document.activeElement instanceof HTMLElement&&document.activeElement.classList.contains('text-flow-hit');const running=!state.paused&&!state.reduced&&!document.hidden&&inView&&!focusTarget;
+            frame=null;if(disposed)return;const paintStart=performance.now();const state=latest.current;const focusTarget=state.heldId===null&&document.activeElement instanceof HTMLElement&&document.activeElement.classList.contains('text-flow-hit');const running=!state.paused&&!state.reduced&&!document.hidden&&inView&&!focusTarget;
             const delta=now-last;last=now;time=stepFlowClock(time,delta,running);
-            if(now-lastPaint<32&&running){schedule();return;}lastPaint=now;
-            if(width<=0||height<=0)return;
+            if(width<=0||height<=0||waterArt===null)return;
             const tide=state.mode==='tide';const narrow=width<760,count=Math.min(state.items.length,narrow?4:7);const held=state.heldId!==null;
             const currentIds=new Set(state.items.map(i=>i.id));for(const id of displayed.keys())if(!currentIds.has(id))displayed.delete(id);
-            if(waterContext!==null){if(Math.abs(time-paintedWaterTime)>=80||paintedReduced!==state.reduced){paintedReduced=state.reduced;paintWater(waterContext,waterLayer.width,waterLayer.height,time,state.mode,state.reduced);paintedWaterTime=time;}ctx.drawImage(waterLayer,0,0,width,height);}else paintWater(ctx,width,height,time,state.mode,state.reduced);
-            const labels=new Map(Array.from(root.querySelectorAll<HTMLButtonElement>('.text-flow-hit')).map(b=>[b.dataset.highlightId,b]));
-            labels.forEach(button=>{button.style.visibility='hidden';});
+            if(waterContext!==null){paintWater(waterContext,waterLayer.width,waterLayer.height,time,state.mode,state.reduced,waterArt);ctx.drawImage(waterLayer,0,0,width,height);}else paintWater(ctx,width,height,time,state.mode,state.reduced,waterArt);waterFrames++;
+            if(buttonItems!==state.items){labels=new Map(Array.from(root.querySelectorAll<HTMLButtonElement>('.text-flow-hit')).map(b=>[b.dataset.highlightId,b]));buttonItems=state.items;}
+            const visibleIds=new Set<string>();
             const reader=root.parentElement?.parentElement?.querySelector<HTMLElement>('.play-original');
             const rb=held&&reader!==null&&reader!==undefined&&!reader.hidden?reader.getBoundingClientRect():null;const box=root.getBoundingClientRect();
             if(priorHeld!==null&&state.heldId===null&&lastReader!==null)returning={id:priorHeld,start:now,...lastReader};
             const paragraph=rb===null?null:reader?.querySelector('blockquote > p')?.getBoundingClientRect();
             const readingBody=rb===null?null:reader?.querySelector('.play-reading-body')?.getBoundingClientRect();
-            if(priorHeld!==state.heldId){const preview=state.heldId===null?undefined:previews.get(state.heldId);pickup=preview===undefined||state.reduced?null:{id:state.heldId as string,start:now,...preview};}
             priorHeld=state.heldId;if(rb!==null)lastReader={x:(paragraph?.x??rb.x+24)-box.x,y:Math.max(paragraph?.y??rb.y+100,readingBody?.y??rb.y)-box.y};
-            previews.clear();if(pickup!==null&&(now-pickup.start>=460||state.reduced||pickup.id!==state.heldId))pickup=null;
             if(returning!==null&&returnProgress(now-returning.start,state.reduced)===1)returning=null;
             if(rb!==null){const calm=ctx.createRadialGradient(rb.x-box.x+rb.width*.5,rb.y-box.y+rb.height*.5,0,rb.x-box.x+rb.width*.5,rb.y-box.y+rb.height*.5,Math.max(rb.width,rb.height)*.8);calm.addColorStop(0,'rgba(12,36,38,.90)');calm.addColorStop(.55,'rgba(12,36,38,.74)');calm.addColorStop(1,'rgba(12,36,38,0)');ctx.fillStyle=calm;ctx.fillRect(0,0,width,height);}
             ctx.save();if(rb!==null){ctx.beginPath();ctx.rect(0,0,width,height);ctx.rect(rb.x-box.x-10,rb.y-box.y-10,rb.width+20,rb.height+20);ctx.clip('evenodd');}
@@ -78,8 +75,8 @@ export function TextFlowScene(props:Props){
                 }
                 if(item.id===state.heldId)continue;
                 const placement=tidePlacement(index,width,height,held);
-                const textWidth=tide?width*placement.width:narrow?width-70:width*.235;
-                const text=layout(item,index,textWidth,tide?placement.fontSize:undefined,tide?placement.lines:3);
+                const textWidth=tide?width*placement.width:narrow?width*.72:width*.21;
+                const text=layout(item,index,textWidth,tide?placement.fontSize:undefined,2);
                 const top=190,bottom=height-90;const textHeight=text.result.height+30;
                 const travel=Math.max(120,bottom-top);
                 let x=tide?width*placement.x+phase.x:width*phase.x-textWidth/2;
@@ -90,30 +87,30 @@ export function TextFlowScene(props:Props){
                 const hiddenByReader=rb!==null&&x+textWidth>rb.x-box.x-10&&x<rb.right-box.x+10&&y+textHeight>rb.y-box.y-10&&y<rb.bottom-box.y+10;
                 // Keep whole passages outside the reading bank; never leave clipped stray lines at its edge.
                 if(hiddenByReader)continue;
-                if(alpha>.1){ctx.globalAlpha=alpha*.18;ctx.strokeStyle='#d9dfc3';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(x+textWidth*.5,y+textHeight+9,textWidth*.48,5,0,0,Math.PI);ctx.stroke();}
                 ctx.globalAlpha=alpha*(held?.50:1);ctx.font=text.font;ctx.textBaseline='top';
                 ctx.fillStyle=hovered.current===item.id?'#ffe2ae':tide?(index===0||index===3?'#f2dbb3':'#d5e0d8'):index===0?'#f3dfb5':'#e5e5d7';
                 text.result.lines.forEach((line,i)=>ctx.fillText(line.text,x,y+i*text.lineHeight));
                 if(tide&&underPointer){ctx.strokeStyle='#dfc79a';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y-13);ctx.lineTo(x+24,y-13);ctx.stroke();}
                 ctx.font=`11px ${family}`;ctx.fillStyle='#a8bbb6';ctx.fillText('— '+text.source,x,y+text.result.height+7);
-                if(alpha>.15){previews.set(item.id,{x,y,text});visible++;const button=labels.get(item.id);if(button!==undefined){
-                    button.style.left=(x-10)+'px';button.style.top=(y-10)+'px';button.style.width=(textWidth+20)+'px';button.style.height=Math.max(44,textHeight+15)+'px';button.style.visibility='visible';
+                if(alpha>.15){visibleIds.add(item.id);visible++;const button=labels.get(item.id);if(button!==undefined){
+                    const transform=`translate3d(${x-10}px,${y-10}px,0)`,bw=(textWidth+20)+'px',bh=Math.max(44,textHeight+15)+'px';
+                    if(button.style.transform!==transform)button.style.transform=transform;if(button.style.width!==bw)button.style.width=bw;if(button.style.height!==bh)button.style.height=bh;if(button.style.visibility!=='visible')button.style.visibility='visible';
                 }}
             }}catch{setFailed(true);disposed=true;}
             ctx.restore();ctx.globalAlpha=1;
-            if(pickup!==null&&lastReader!==null){const t=Math.min(1,(now-pickup.start)/460);const position=readingTransfer(state.mode,pickup,lastReader,1-Math.pow(1-t,3));ctx.save();ctx.globalAlpha=.85*Math.pow(1-t,2);ctx.font=pickup.text.font;ctx.fillStyle='#f2dfb9';ctx.textBaseline='top';const movingText=pickup.text;movingText.result.lines.forEach((line,i)=>ctx.fillText(line.text,position.x,position.y+i*movingText.lineHeight));ctx.restore();}
+            labels.forEach((button,id)=>{if((id===undefined||!visibleIds.has(id))&&button.style.visibility!=='hidden')button.style.visibility='hidden';});
             if(state.mode==='tide'&&tideCycle>=0){const old=cycles.get(-1);const inspecting=(hovered.current!==null&&hovered.current!==state.heldId)||returning!==null;
                 if(old===undefined||!inspecting)cycles.set(-1,tideCycle);if(old!==undefined&&old!==tideCycle&&running&&!inspecting){state.onAdvance(null);batches++;}}
             root.dataset.flowState='ready';root.dataset.flowFrames=String(Number(root.dataset.flowFrames??'0')+1);
             root.dataset.flowTime=Math.round(time).toString();root.dataset.flowVisible=String(visible);root.dataset.flowCount=String(count);
             root.dataset.flowPrepares=String(prepares);root.dataset.flowBatches=String(batches);root.dataset.flowIds=state.items.map(i=>i.id).join(',');
-            root.dataset.flowEdition=tide?'water-shore-3':'water-river-2';root.dataset.waterSurge=waterTide(time,state.reduced).surge.toFixed(4);root.dataset.waterPhase=waterTide(time,state.reduced).phase;root.dataset.flowPickup=pickup?.id??'';root.dataset.flowReturning=returning?.id??'';root.dataset.flowHeld=state.heldId??'';root.dataset.flowReduced=String(state.reduced);root.dataset.flowPaused=String(state.paused||document.hidden||!inView||focusTarget);
-            if((running||returning!==null||pickup!==null)&&!disposed)schedule();
+            root.dataset.flowEdition=tide?'water-shore-3':'water-river-2';root.dataset.waterSurge=waterTide(time,state.reduced).surge.toFixed(4);root.dataset.waterPhase=waterTide(time,state.reduced).phase;root.dataset.flowPickup='';root.dataset.flowWaterFrames=String(waterFrames);root.dataset.flowTextureBuilds=String(textureBuilds);root.dataset.flowPaintMs=(performance.now()-paintStart).toFixed(3);root.dataset.flowReturning=returning?.id??'';root.dataset.flowHeld=state.heldId??'';root.dataset.flowReduced=String(state.reduced);root.dataset.flowPaused=String(state.paused||document.hidden||!inView||focusTarget);
+            if((running||returning!==null)&&!disposed)schedule();
         }
         const observer=new ResizeObserver(resize);observer.observe(root);
         const intersection=new IntersectionObserver(entries=>{inView=entries[0]?.isIntersecting??true;last=performance.now();if(inView)schedule();});intersection.observe(root);
         const visibility=()=>{last=performance.now();if(!document.hidden)schedule();};document.addEventListener('visibilitychange',visibility);
-        void document.fonts.ready.then(()=>{if(disposed)return;clearCache();cache.clear();paintedWaterTime=-Infinity;schedule();});resize();
+        void document.fonts.ready.then(()=>{if(disposed)return;clearCache();cache.clear();schedule();});resize();
         return()=>{disposed=true;if(frame!==null)cancelAnimationFrame(frame);observer.disconnect();intersection.disconnect();document.removeEventListener('visibilitychange',visibility);cache.clear();requestDraw.current=()=>{};};
     },[props.mode]);
     return <div className={`play-stage text-flow-${props.mode}`} ref={host} data-testid="text-flow" data-flow-mode={props.mode} data-flow-state={failed?'fallback':undefined}

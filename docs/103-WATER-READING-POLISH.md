@@ -33,6 +33,10 @@ Henry已实看102，明确说比此前效果好很多、开始有意境，认可
 - 正常public仍同名旧JS/CSS/JSON；三个protectedSHA与102完全一致（snapshot ccef39…c53a7c、terrain a94db8…b1f7、vector49dbdb…14431e），local仍4663/130。仅静态检查私有懒块`PlayWorldRoom-C5EDGIY8.js`73,091B/gzip26,450B、CSS`PlayWorldRoom-fKe0gBr4.css`13,150B/gzip3,060B，非全站/帧率/生产成本。无新依赖或素材/远程请求。
 - 命令与日志在`.private/review/water-polish`，完整e2e-final/check-final/isolation-final/publication-final/local-final/pages-final，文案定点copy-final/pages-copy，截图脚本和touch/long-reading在private/research/water-polish。基础本地commit `1bc8d33` 接整站本地commit；原PID26520/127.0.0.1:5216继续，文档103/102/08/48/AGENTS/README同步。
 
+## 后续反馈
+
+Henry已实看103，肯定更精致且喜欢，进一步指出潮水进退/选中残影卡顿与漂流大字号突兀。漂流瓶只启发小巧相遇、不加实物瓶子；下一轮先设计后获明确开工，见104。以下保留本稿交付时边界，不再记为仍待103首次反馈。
+
 ## 未验证与下一步
 
 本轮工程交付，待Henry在同完整站实看，102正面反馈不转移为103美感/自然性已过。独立首访/物理手机Safari/读屏/实际200%/低端长时与WebKit偶发首帧慢仍待，本轮没有声称其根因已定位。周期节奏仍用102稳定基础，未增加变化/新模式/收藏声音等功能。主入口随机一句/线上第二版、公开范围/Tag/向量/生产点位地形不动，无模型/WeRead/新依赖/外部素材/push/deploy。
