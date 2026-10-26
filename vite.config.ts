@@ -22,6 +22,7 @@ import { validateSnapshot } from './src/domain/validate.ts';
 import { publicRoomPaths } from './scripts/public-route-entries.ts';
 import { matchesMapTerrain } from './scripts/embeddings/mapTerrainArtifact.ts';
 import { playWorldPlugin } from './scripts/research/playWorldPlugin.ts';
+import { mapCoordinatePlugin } from './scripts/research/mapCoordinatePlugin.ts';
 
 const LOCAL_SNAPSHOT_FILE = '.private/local-snapshot.json';
 const LOCAL_COVER_DIR = '.private/covers';
@@ -404,6 +405,7 @@ export default defineConfig(({ command, mode }) => {
                     },
                 },
             } as Plugin] : []),
+            mapCoordinatePlugin(playMode),
             localSnapshotPlugin({ snapshot: anyLocalMode, publication: reviewMode, tags: tagStudioMode }),
             localMapTerrainPlugin(anyLocalMode),
             playWorldPlugin(playMode),
