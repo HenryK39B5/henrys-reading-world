@@ -9,6 +9,7 @@
  * testable without a browser.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { readBrowseContext, browseAddress, type BrowseContext } from '../features/play/browseAddress.ts';
 import { roomLocation, sitePath } from './sitePath.ts';
 
 export type BookFilters = {
@@ -24,7 +25,7 @@ export type RoomRoute =
      * instead of the opening draw. It belongs to the hall only — a shelf or a book room is a browsing
      * context, never the identity of a passage (docs/15 §4.1).
      */
-    | { name: 'hall'; highlightId: string | null }
+    | ({ name: 'hall'; highlightId: string | null } & BrowseContext)
     | { name: 'themes' }
     | { name: 'theme'; themeId: string }
     | { name: 'paths' }
@@ -77,7 +78,7 @@ export function parseRoute(pathname: string, search = ''): RoomRoute {
     const [head, second] = segments;
 
     if (segments.length === 0) {
-        return { name: 'hall', highlightId: readHighlightId(params) };
+        return { name: 'hall', highlightId: readHighlightId(params), ...(typeof __PLAY_WORLD_ENABLED__ !== 'undefined' && __PLAY_WORLD_ENABLED__ ? readBrowseContext(params) : {}) };
     }
     if (head === 'themes') {
         if (segments.length === 1) {
@@ -132,6 +133,7 @@ export function parseRoute(pathname: string, search = ''): RoomRoute {
 export function routePath(route: RoomRoute): string {
     switch (route.name) {
         case 'hall':
+            if (typeof __PLAY_WORLD_ENABLED__ !== 'undefined' && __PLAY_WORLD_ENABLED__) return browseAddress(route);
             return route.highlightId === null ? '/' : `/?h=${encodeURIComponent(route.highlightId)}`;
         case 'themes':
             return '/themes';

@@ -1,13 +1,15 @@
 export type TidePlacement={x:number;y:number;width:number;fontSize:number;lines:number};
 /** Authored typographic composition, never semantic coordinates. Positions are fractions of the stage. */
-export function tidePlacement(index:number,width:number,height:number,held:boolean):TidePlacement{
+export function tidePlacement(index:number,width:number,height:number,_held:boolean):TidePlacement{
+    // Keep the legacy call shape; selection no longer participates in placement.
+    void _held;
     if(!Number.isFinite(width)||!Number.isFinite(height)||width<=0||height<=0||index<0||index>6)throw Error('Invalid tide composition');
     if(width<760){
         const slots=[{x:.10,y:.25,width:.72,fontSize:19,lines:2},{x:.24,y:.43,width:.65,fontSize:18,lines:2},{x:.10,y:.62,width:.69,fontSize:18,lines:2},{x:.28,y:.79,width:.61,fontSize:18,lines:2}];
         const slot=slots[index%4] as TidePlacement;
         return {...slot,fontSize:Math.max(17,slot.fontSize-(width<300?1:0))};
     }
-    if(held){return {x:index%2===0?.035:.79,y:.23+Math.floor(index/2)*.17,width:.18,fontSize:18,lines:2};}
+    // Reading can obscure the world, but must never rearrange it.
     const slots:TidePlacement[]=[
         {x:.09,y:.25,width:.23,fontSize:21,lines:2},
         {x:.51,y:.17,width:.23,fontSize:19,lines:2},

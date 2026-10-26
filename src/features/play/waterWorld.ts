@@ -10,6 +10,11 @@ export function waterTide(time:number,reduced=false){
 }
 /** One shoreline controls both the wet edge and passage displacement. No corpus-derived geography. */
 export function shoreline(y:number,surge:number){return .16+.58*(1-surge)+.065*Math.sin(y*5.2-.9)+.024*Math.sin(y*10)+.003*Math.sin(y*51)+.0015*Math.sin(y*113+1);}
+/** Optical depth is measured from the very shoreline painted this frame, not screen x alone. */
+export function tideClarity(x:number,y:number,surge:number,reduced=false){
+    if(!Number.isFinite(x+y+surge))throw Error('Invalid water depth');
+    return reduced?1:1-smooth((x-shoreline(y,surge)-.03)/.62);
+}
 export function riverCentre(progress:number){return .5+.075*Math.sin(progress*5.8-.8);}
 export function waterPassage(mode:TextFlowMode,time:number,index:number,count:number,compact:boolean,reduced=false){
     if(!Number.isFinite(time)||time<0||!Number.isInteger(index)||index<0||index>=count)throw Error('Invalid water passage');

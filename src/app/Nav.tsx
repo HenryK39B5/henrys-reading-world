@@ -7,7 +7,13 @@ type NavEntry = {
     href: string;
 };
 
-const ENTRIES: NavEntry[] = [
+const ENTRIES: NavEntry[] = __PLAY_WORLD_ENABLED__ ? [
+    { id: 'hall', label: '随便看看', href: '/' },
+    { id: 'paths', label: '主题小径', href: '/paths' },
+    { id: 'map', label: '世界地图', href: '/map' },
+    { id: 'books', label: '书架', href: '/books' },
+    { id: 'about', label: '关于', href: '/about' },
+] : [
     { id: 'hall', label: '随便看看', href: '/' },
     { id: 'themes', label: '主题书架', href: '/themes' },
     { id: 'paths', label: '主题小径', href: '/paths' },
@@ -23,7 +29,7 @@ function activeId(route: RoomRoute): string {
             return 'hall';
         case 'themes':
         case 'theme':
-            return 'themes';
+            return __PLAY_WORLD_ENABLED__ ? 'books' : 'themes';
         case 'paths':
         case 'path':
             return 'paths';

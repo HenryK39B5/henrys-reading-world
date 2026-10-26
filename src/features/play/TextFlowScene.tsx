@@ -4,11 +4,11 @@ import { flowExcerpt,stepFlowClock,type TextFlowMode,type TextFlowPose } from '.
 import { tidePlacement } from './tideComposition.ts';
 import { createWaterArt,paintWater,type WaterArt } from './paintWater.ts';
 import { readingTransfer } from './readingMotion.ts';
-import { waterPassage,waterTide,returnProgress } from './waterWorld.ts';
+import { waterPassage,waterTide,tideClarity,returnProgress } from './waterWorld.ts';
 import { useReducedMotion } from '../encounter/useReducedMotion.ts';
 export type FlowText={id:string;text:string;title:string};
-type Props={items:FlowText[];mode:TextFlowMode;heldId:string|null;onCatch:(id:string)=>void;onAdvance:(slot:number|null)=>void;onPrevious:()=>void;previousAvailable:boolean};
-type Layout={result:LayoutLinesResult;font:string;lineHeight:number;source:string;size:number};
+type Props={clock?:Record<TextFlowMode,number>;items:FlowText[];mode:TextFlowMode;heldId:string|null;onCatch:(id:string)=>void;onAdvance:(slot:number|null)=>void;onPrevious:()=>void;previousAvailable:boolean};
+type Layout={result:LayoutLinesResult;font:string;lineHeight:number;source:string;size:number;glyphs:string[][];glyphCount:number};
 export function TextFlowScene(props:Props){
     const host=useRef<HTMLDivElement>(null),canvas=useRef<HTMLCanvasElement>(null);
     const reduced=useReducedMotion();const [paused,setPaused]=useState(false),[failed,setFailed]=useState(false);
@@ -18,7 +18,7 @@ export function TextFlowScene(props:Props){
     useEffect(()=>{
         const root=host.current,element=canvas.current;if(root===null||element===null)return;
         const ctx=element.getContext('2d',{alpha:false});if(ctx===null){setFailed(true);return;}
-        let frame:number|null=null,disposed=false,inView=true,last=performance.now(),time=props.mode==='tide'?6500:0;
+        let frame:number|null=null,disposed=false,inView=true,last=performance.now(),time=props.clock?.[props.mode]??(props.mode==='tide'?6500:0);
         let width=0,height=0,prepares=0,batches=0;const cycles=new Map<number,number>();const cache=new Map<string,Layout>();const displayed=new Map<string,TextFlowPose>();
         const waterLayer=document.createElement('canvas'),waterContext=waterLayer.getContext('2d',{alpha:false});
         let waterArt:WaterArt|null=null,textureBuilds=0,waterFrames=0;let buttonItems:FlowText[]|null=null;let labels=new Map<string|undefined,HTMLButtonElement>();
@@ -43,7 +43,7 @@ export function TextFlowScene(props:Props){
             }
             let sourceLimit=Math.min(Array.from(item.title).length,narrow?17:22);let source=flowExcerpt(item.title,sourceLimit);
             ctx.save();ctx.font=`11px ${family}`;while(sourceLimit>1&&ctx.measureText('— '+source).width>maxWidth){source=flowExcerpt(item.title,--sourceLimit);}ctx.restore();
-            const value={result,font,lineHeight,source,size};cache.set(key,value);return value;
+            const glyphs=result.lines.map(line=>Array.from(line.text));const value={result,font,lineHeight,source,size,glyphs,glyphCount:glyphs.reduce((n,line)=>n+line.length,0)};cache.set(key,value);return value;
         };
         const paint=(now:number)=>{
             frame=null;if(disposed)return;const paintStart=performance.now();const state=latest.current;const focusTarget=state.heldId===null&&document.activeElement instanceof HTMLElement&&document.activeElement.classList.contains('text-flow-hit');const running=!state.paused&&!state.reduced&&!document.hidden&&inView&&!focusTarget;
@@ -64,9 +64,11 @@ export function TextFlowScene(props:Props){
             if(rb!==null){const calm=ctx.createRadialGradient(rb.x-box.x+rb.width*.5,rb.y-box.y+rb.height*.5,0,rb.x-box.x+rb.width*.5,rb.y-box.y+rb.height*.5,Math.max(rb.width,rb.height)*.8);calm.addColorStop(0,'rgba(12,36,38,.90)');calm.addColorStop(.55,'rgba(12,36,38,.74)');calm.addColorStop(1,'rgba(12,36,38,0)');ctx.fillStyle=calm;ctx.fillRect(0,0,width,height);}
             ctx.save();if(rb!==null){ctx.beginPath();ctx.rect(0,0,width,height);ctx.rect(rb.x-box.x-10,rb.y-box.y-10,rb.width+20,rb.height+20);ctx.clip('evenodd');}
             let visible=0;let tideCycle=-1;
-            try{for(let index=0;index<count;index++){
+            const returnSlot=returning===null?-1:state.items.findIndex(item=>item.id===returning?.id);
+            const slots=Array.from({length:count},(_,index)=>index);if(returnSlot>=count)slots.push(returnSlot);
+            try{for(const index of slots){
                 const item=state.items[index];if(item===undefined)continue;
-                const water=waterPassage(state.mode,time,index,count,narrow,state.reduced);
+                const water=waterPassage(state.mode,time,index,Math.max(count,index+1),narrow,state.reduced);
                 const live={x:tide?water.offsetX*width:water.x,phase:water.progress,opacity:water.alpha,drift:water.offsetY*height,cycle:water.cycle};tideCycle=live.cycle;
                 const underPointer=hovered.current===item.id;const phase=underPointer?(displayed.get(item.id)??live):live;displayed.set(item.id,phase);
                 const previous=cycles.get(index);cycles.set(index,phase.cycle);
@@ -79,7 +81,8 @@ export function TextFlowScene(props:Props){
                 const text=layout(item,index,textWidth,tide?placement.fontSize:undefined,2);
                 const top=190,bottom=height-90;const textHeight=text.result.height+30;
                 const travel=Math.max(120,bottom-top);
-                let x=tide?width*placement.x+phase.x:width*phase.x-textWidth/2;
+                // A directory-only passage returns beyond the compact bank without moving its four neighbours.
+                let x=index>=count?width+textWidth:tide?width*placement.x+phase.x:width*phase.x-textWidth/2;
                 let y=tide?height*placement.y+phase.drift:top+phase.phase*travel-textHeight/2+phase.drift;
                 const release=returning?.id===item.id?returnProgress(now-returning.start,state.reduced):null;
                 if(returning!==null&&release!==null){const position=readingTransfer(state.mode,returning,{x,y},release);x=position.x;y=position.y;}
@@ -87,9 +90,18 @@ export function TextFlowScene(props:Props){
                 const hiddenByReader=rb!==null&&x+textWidth>rb.x-box.x-10&&x<rb.right-box.x+10&&y+textHeight>rb.y-box.y-10&&y<rb.bottom-box.y+10;
                 // Keep whole passages outside the reading bank; never leave clipped stray lines at its edge.
                 if(hiddenByReader)continue;
-                ctx.globalAlpha=alpha*(held?.50:1);ctx.font=text.font;ctx.textBaseline='top';
-                ctx.fillStyle=hovered.current===item.id?'#ffe2ae':tide?(index===0||index===3?'#f2dbb3':'#d5e0d8'):index===0?'#f3dfb5':'#e5e5d7';
-                text.result.lines.forEach((line,i)=>ctx.fillText(line.text,x,y+i*text.lineHeight));
+                const clarity=tide?tideClarity(x/width,y/height,waterTide(time,state.reduced).surge,state.reduced):1;
+                const reveal=underPointer||release!==null?1:clarity;
+                ctx.globalAlpha=alpha*(held?.50:1)*(tide?.72+.28*clarity:1);ctx.font=text.font;ctx.textBaseline='top';
+                ctx.fillStyle=underPointer?'#ffe2ae':tide?`rgb(${Math.round(185+57*clarity)} ${Math.round(207+12*clarity)} ${Math.round(207-28*clarity)})`:index===0?'#f3dfb5':'#e5e5d7';
+                if(tide){
+                    // A contiguous prefix, never holes or synthetic words. Layout stays cached and fixed.
+                    let remaining=Math.ceil(text.glyphCount*(.43+.57*reveal));
+                    text.glyphs.forEach((glyphs,i)=>{const take=Math.min(glyphs.length,remaining);remaining-=take;if(take<=0)return;
+                        const visible=glyphs.slice(0,take);if(take<glyphs.length)visible[visible.length-1]='…';
+                        ctx.fillText(visible.join(''),x,y+i*text.lineHeight);
+                    });
+                }else text.result.lines.forEach((line,i)=>ctx.fillText(line.text,x,y+i*text.lineHeight));
                 if(tide&&underPointer){ctx.strokeStyle='#dfc79a';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y-13);ctx.lineTo(x+24,y-13);ctx.stroke();}
                 ctx.font=`11px ${family}`;ctx.fillStyle='#a8bbb6';ctx.fillText('— '+text.source,x,y+text.result.height+7);
                 if(alpha>.15){visibleIds.add(item.id);visible++;const button=labels.get(item.id);if(button!==undefined){
@@ -104,15 +116,15 @@ export function TextFlowScene(props:Props){
             root.dataset.flowState='ready';root.dataset.flowFrames=String(Number(root.dataset.flowFrames??'0')+1);
             root.dataset.flowTime=Math.round(time).toString();root.dataset.flowVisible=String(visible);root.dataset.flowCount=String(count);
             root.dataset.flowPrepares=String(prepares);root.dataset.flowBatches=String(batches);root.dataset.flowIds=state.items.map(i=>i.id).join(',');
-            root.dataset.flowEdition=tide?'water-shore-3':'water-river-2';root.dataset.waterSurge=waterTide(time,state.reduced).surge.toFixed(4);root.dataset.waterPhase=waterTide(time,state.reduced).phase;root.dataset.flowPickup='';root.dataset.flowWaterFrames=String(waterFrames);root.dataset.flowTextureBuilds=String(textureBuilds);root.dataset.flowPaintMs=(performance.now()-paintStart).toFixed(3);root.dataset.flowReturning=returning?.id??'';root.dataset.flowHeld=state.heldId??'';root.dataset.flowReduced=String(state.reduced);root.dataset.flowPaused=String(state.paused||document.hidden||!inView||focusTarget);
+            root.dataset.flowEdition=tide?'water-shore-4':'water-river-2';root.dataset.waterSurge=waterTide(time,state.reduced).surge.toFixed(4);root.dataset.waterPhase=waterTide(time,state.reduced).phase;root.dataset.flowPickup='';root.dataset.flowWaterFrames=String(waterFrames);root.dataset.flowTextureBuilds=String(textureBuilds);root.dataset.flowPaintMs=(performance.now()-paintStart).toFixed(3);root.dataset.flowReturning=returning?.id??'';root.dataset.flowHeld=state.heldId??'';root.dataset.flowReduced=String(state.reduced);root.dataset.flowPaused=String(state.paused||document.hidden||!inView||focusTarget);
             if((running||returning!==null)&&!disposed)schedule();
         }
         const observer=new ResizeObserver(resize);observer.observe(root);
         const intersection=new IntersectionObserver(entries=>{inView=entries[0]?.isIntersecting??true;last=performance.now();if(inView)schedule();});intersection.observe(root);
         const visibility=()=>{last=performance.now();if(!document.hidden)schedule();};document.addEventListener('visibilitychange',visibility);
         void document.fonts.ready.then(()=>{if(disposed)return;clearCache();cache.clear();schedule();});resize();
-        return()=>{disposed=true;if(frame!==null)cancelAnimationFrame(frame);observer.disconnect();intersection.disconnect();document.removeEventListener('visibilitychange',visibility);cache.clear();requestDraw.current=()=>{};};
-    },[props.mode]);
+        return()=>{if(props.clock!==undefined)props.clock[props.mode]=time;disposed=true;if(frame!==null)cancelAnimationFrame(frame);observer.disconnect();intersection.disconnect();document.removeEventListener('visibilitychange',visibility);cache.clear();requestDraw.current=()=>{};};
+    },[props.mode,props.clock]);
     return <div className={`play-stage text-flow-${props.mode}`} ref={host} data-testid="text-flow" data-flow-mode={props.mode} data-flow-state={failed?'fallback':undefined}
         onPointerDownCapture={e=>{pointer.current={x:e.clientX,y:e.clientY,distance:0};}}
         onPointerMoveCapture={e=>{const p=pointer.current;if(p!==null)p.distance=Math.max(p.distance,Math.hypot(e.clientX-p.x,e.clientY-p.y));}}

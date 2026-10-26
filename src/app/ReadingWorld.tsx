@@ -244,6 +244,7 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
     const room = (() => {
         switch (route.name) {
             case 'hall':
+                if (PlayWorldRoom !== null) return <Suspense fallback={<p role="status">正在打开随便看看……</p>}><PlayWorldRoom index={index} tagId={null} bookId={route.browseBookId ?? null} highlightId={route.highlightId} worldTags={route.worldTags ?? []} playAnchorId={route.playAnchorId ?? null} form={route.form} onNavigate={router.navigate} onReplace={path => router.navigate(path, { replace: true })} onShare={share.open} previousPath={router.previousPath} /></Suspense>;
                 return (
                     <HallRoom
                         index={index}
@@ -281,7 +282,6 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
                     />
                 );
             case 'map':
-                if (PlayWorldRoom !== null) return <Suspense fallback={<p role="status">正在打开本机世界……</p>}><PlayWorldRoom index={index} tagId={route.tagId} bookId={route.bookId} highlightId={route.highlightId} worldTags={route.worldTags ?? []} playAnchorId={route.playAnchorId ?? null} onNavigate={router.navigate} onShare={share.open} previousPath={router.previousPath} /></Suspense>;
                 return (
                     <MapRoom
                         index={index}
@@ -338,6 +338,10 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
             {DATA_MODE === 'local' ? <p className="local-badge">仅本机 · 未公开审核</p> : null}
 
             <main id="room" className="room-region" ref={mainRef} tabIndex={-1}>
+                {__PLAY_WORLD_ENABLED__ && (route.name === 'books' || route.name === 'themes') ? <nav className="room-exits" aria-label="书架浏览方式">
+                    <a className="room-exit" href={sitePath('/books')} aria-current={route.name === 'books' ? 'page' : undefined}>全部书籍</a>
+                    <a className="room-exit" href={sitePath('/themes')} aria-current={route.name === 'themes' ? 'page' : undefined}>按书籍主题</a>
+                </nav> : null}
                 {room}
             </main>
 

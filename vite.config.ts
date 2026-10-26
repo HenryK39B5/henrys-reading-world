@@ -462,7 +462,7 @@ export default defineConfig(({ command, mode }) => {
             __LOCAL_MODE__: JSON.stringify(anyLocalMode && command === 'serve'),
             __PLAY_WORLD_ENABLED__: JSON.stringify((playMode && command === 'serve') || playStaticCheck),
             // Historical feature flag: the accepted study visuals now run in public and local map modes.
-            __MAP_STUDY__: JSON.stringify(mapStudyMode || localMode || (!anyLocalMode && command === 'serve') || command === 'build'),
+            __MAP_STUDY__: JSON.stringify(mapStudyMode || localMode || playMode || (!anyLocalMode && command === 'serve') || command === 'build'),
             __MAP_STUDY_ENDPOINT__: JSON.stringify(mapStudyMode && command === 'serve'),
         },
     };

@@ -30,6 +30,8 @@ export type StageSessionOptions = {
      */
     seedFor?: (key: string) => string | null;
     selector?: Selector;
+    /** Optional owner-provided memory for a reader that is mounted inside an encounter form. */
+    sessionStore?: Map<string, EncounterState>;
 };
 
 export type StageSessionController = {
@@ -75,10 +77,16 @@ export function useStageSessions(
         [books, highlights, durations, selector],
     );
 
-    const sessions = useRef(new Map<string, EncounterState>());
-    const [activeState, setActiveState] = useState<EncounterState>(() =>
-        createInitialState(context, seedFor?.(sessionKey) ?? null, scopeFor(sessionKey)),
-    );
+    const sessions = useRef(options.sessionStore ?? new Map<string, EncounterState>());
+    const [activeState, setActiveState] = useState<EncounterState>(() => {
+        const seed = seedFor?.(sessionKey) ?? null;
+        const saved = sessions.current.get(sessionKey);
+        if (saved === undefined) return createInitialState(context, seed, scopeFor(sessionKey));
+        const settled = settleSession(saved);
+        return seed !== null && settled.currentId !== seed
+            ? encounterReducer(settled, { type: 'OPEN_DEEP_LINK', id: seed }, context)
+            : settled;
+    });
     const [renderedKey, setRenderedKey] = useState(sessionKey);
     const renderedRoom = useRef(roomKey);
 

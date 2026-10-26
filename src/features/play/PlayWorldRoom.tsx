@@ -6,11 +6,14 @@ import { readingFrame,type ReadingFrame } from '../../domain/playExperience.ts';
 import { flowBatch,flowExcerpt,type TextFlowMode } from '../../domain/textFlow.ts';
 import { sitePath } from '../../app/sitePath.ts';
 import { TextFlowScene,type FlowText } from './TextFlowScene.tsx';
+import { SinglePassage } from './SinglePassage.tsx';
+import { browseAddress,type BrowseForm } from './browseAddress.ts';
 import { useReadingViewport } from './useReadingViewport.ts';
 import './play.css';
 type Place={frame:ReadingFrame;anchor:string|null};
 type Session={frame:ReadingFrame;anchor:string|null;parents:Place[];items:Highlight[];recent:string[]};
 const memories=new WeakMap<Snapshot,Session>();
+const clocks=new WeakMap<Snapshot,Record<TextFlowMode,number>>();
 const requests=new WeakMap<Snapshot,Promise<PlayWorldData>>();
 function geometry(snapshot:Snapshot):Promise<PlayWorldData>{
     const saved=requests.get(snapshot);if(saved!==undefined)return saved;
@@ -22,15 +25,12 @@ function geometry(snapshot:Snapshot):Promise<PlayWorldData>{
         if(hash!==value.snapshotHash)throw Error('联想资料与原文不匹配；不使用这份关系。');return value;
     });requests.set(snapshot,pending);return pending;
 }
-function savedMode():TextFlowMode{try{return sessionStorage.getItem('reading-world-water-world')==='river'?'river':'tide';}catch{return 'tide';}}
-function address(frame:ReadingFrame,anchor:string|null,bookId:string|null):string{
-    const query=new URLSearchParams();if(bookId!==null)query.set('book',bookId);
-    if(frame.selectedId!==null)query.set('h',frame.selectedId);
-    if(frame.tags.length>0)query.set('world',frame.tags.join(','));if(anchor!==null)query.set('anchor',anchor);
-    return query.size===0?'/map':`/map?${query.toString()}`;
-}
+function savedForm():BrowseForm{try{const saved=sessionStorage.getItem('reading-world-browse-form');return saved==='river'||saved==='tide'?saved:'single';}catch{return 'single';}}
+type Props=MapRoomProps&{form?:BrowseForm|undefined;onReplace:(path:string)=>void};
 /** Text moves; a caught original does not expire. Model exploration is explicit, never a mandatory junction. */
-export function PlayWorldRoom({index,tagId,bookId,highlightId,worldTags=[],playAnchorId=null,onNavigate,onShare,previousPath}:MapRoomProps){
+export function PlayWorldRoom({index,tagId,bookId,highlightId,worldTags=[],playAnchorId=null,onNavigate,onShare,previousPath,form:requestedForm,onReplace}:Props){
+    const [preference,setPreference]=useState(()=>highlightId===null?savedForm():'single');
+    const form=requestedForm??preference,mode:TextFlowMode=form==='river'?'river':'tide';
     const snapshot=index.snapshot;const requested=worldTags.length>0?worldTags:tagId===null?[]:[tagId];const requestedKey=requested.join(',');
     const signature=`${requestedKey}#${highlightId??''}#${playAnchorId??''}#${bookId??''}`;
     const [session,setSession]=useState<Session>(()=>{
@@ -38,12 +38,14 @@ export function PlayWorldRoom({index,tagId,bookId,highlightId,worldTags=[],playA
         let members=topicMembers(snapshot.highlights,requested);
         if(bookId!==null&&highlightId===null){const fromBook=members.filter(h=>h.bookId===bookId);if(fromBook.length>0)members=fromBook;}
         const frame=readingFrame(members,requested,highlightId,playAnchorId,Math.random);
+        if(form==='single'&&highlightId===null&&playAnchorId===null)frame.selectedId=null;
         return {frame,anchor:playAnchorId,parents:[],items:flowBatch(members,7,Math.random,new Set(),frame.selectedId),recent:[]};
     });
-    const [mode,setMode]=useState<TextFlowMode>(savedMode);const [readingOpen,setReadingOpen]=useState(highlightId!==null);
+    const clock=useMemo(()=>{const saved=clocks.get(snapshot)??{river:0,tide:6500};clocks.set(snapshot,saved);return saved;},[snapshot]);
+    const [readingOpen,setReadingOpen]=useState(highlightId!==null);
     const [data,setData]=useState<PlayWorldData|null>(null);const [error,setError]=useState<string|null>(null);
     const [retry,setRetry]=useState(0);const handled=useRef(signature);const history=useRef(new Map<string,Place[]>());
-    const source=useRef(previousPath!==null&&!previousPath.startsWith('/map')?previousPath:null);
+    const source=useRef(previousPath!==null&&previousPath.split('?')[0]!=='/'?previousPath:null);
     const original=useRef<HTMLElement>(null);
     const frame=session.frame;
     const reading=useReadingViewport(frame.selectedId,readingOpen,mode);
@@ -58,11 +60,12 @@ export function PlayWorldRoom({index,tagId,bookId,highlightId,worldTags=[],playA
     const nextCandidates=useMemo(()=>current===undefined||data===null?[]:playNeighbours(data,current.id,members,16),[current,data,members]);
     const sceneItems:FlowText[]=useMemo(()=>session.items.map(h=>({id:h.id,text:h.text,title:index.booksById.get(h.bookId)?.title??''})),[session.items,index]);
     const open=()=>{setReadingOpen(true);requestAnimationFrame(()=>original.current?.focus({preventScroll:true}));};
-    const close=()=>{setReadingOpen(false);setSession(old=>{const held=index.highlightsById.get(old.frame.selectedId??'');const slot=old.items.findIndex(h=>h.id===held?.id);const visible=(original.current?.parentElement?.querySelector('.play-stage')?.clientWidth??1000)<760?4:7;return held===undefined||(slot>=0&&slot<visible)?old:{...old,items:[held,...old.items.filter(h=>h.id!==held.id)].slice(0,7)};});requestAnimationFrame(()=>document.querySelector<HTMLButtonElement>('.text-flow-controls button')?.focus());};
-    const navigate=(next:Session)=>{
+    const close=()=>{setReadingOpen(false);requestAnimationFrame(()=>document.querySelector<HTMLButtonElement>('.text-flow-controls button')?.focus());};
+    const navigate=(next:Session,replace=false)=>{
         handled.current=`${next.frame.tags.join(',')}#${next.frame.selectedId??''}#${next.anchor??''}#${bookId??''}`;
         setSession(next);history.current.set(`${next.frame.tags.join(',')}#${next.anchor??''}`,next.parents);
-        onNavigate(address(next.frame,next.anchor,bookId));
+        const path=browseAddress({form,highlightId:next.frame.selectedId,worldTags:next.frame.tags,playAnchorId:next.anchor,browseBookId:bookId});
+        if(replace)onReplace(path);else onNavigate(path);
     };
     const select=(id:string)=>{if(!members.some(h=>h.id===id))return;open();navigate({...session,frame:{...frame,selectedId:id},recent:[...session.recent.filter(h=>h!==id),id].slice(-24)});};
     const newBatch=()=>setSession(old=>({...old,items:flowBatch(pool,7,Math.random,new Set(old.items.map(h=>h.id)),readingOpen?old.frame.selectedId:null),recent:[...old.recent,...old.items.map(h=>h.id)].slice(-24)}));
@@ -95,17 +98,20 @@ export function PlayWorldRoom({index,tagId,bookId,highlightId,worldTags=[],playA
     },[signature,requestedKey,highlightId,playAnchorId,snapshot,data]);
     // Matching graph arrival only changes an explicitly requested model scope, never the base stream.
     useEffect(()=>{if(session.anchor===null)return;setSession(old=>({...old,items:flowBatch(pool,7,Math.random)}));},[pool,session.anchor]);
-    const changeMode=(value:TextFlowMode)=>{setMode(value);try{sessionStorage.setItem('reading-world-water-world',value);}catch{/* preference is optional */}};
-    return <section className={`play-room play-edition-${mode}`} data-testid="play-world" data-play-data="ready">
-        <header className="play-heading"><div><p className="play-eyebrow">HENRY’S READING WORLD · 文字本身的风景</p><h1>{mode==='tide'?'潮汐 · 水岸':'河流 · 河湾'}<span>不必选下一步，喜欢的就留一会儿。</span></h1></div>
-            <div className="text-flow-modes" role="group" aria-label="两种文字流"><button type="button" aria-pressed={mode==='river'} onClick={()=>changeMode('river')}>河流</button><button type="button" aria-pressed={mode==='tide'} onClick={()=>changeMode('tide')}>潮汐</button></div></header>
-        <nav className="play-breadcrumb" aria-label="阅读来路">{frame.tags.length>0||session.anchor!==null?<button type="button" onClick={back}>← {session.parents.length>0?'回到刚才的流':'回到全部'}</button>:<span>按书偶遇 · 多处同时经过</span>}
+    const singleScopeKey=JSON.stringify([frame.tags,session.anchor,bookId,pool.length]);
+    const changeMode=(value:BrowseForm)=>{if(value===form)return;const selected=form==='single'||readingOpen?frame.selectedId:null;handled.current=`${frame.tags.join(',')}#${selected??''}#${session.anchor??''}#${bookId??''}`;if(form==='single'&&selected!==null)setReadingOpen(true);setPreference(value);try{sessionStorage.setItem('reading-world-browse-form',value);}catch{/* preference is optional */}onNavigate(browseAddress({form:value,highlightId:selected,worldTags:frame.tags,playAnchorId:session.anchor,browseBookId:bookId}));};
+    return <section className={`play-room play-edition-${form}`} data-testid="play-world" data-play-data="ready">
+        <header className="play-heading"><div><p className="play-eyebrow">HENRY’S READING WORLD · 文字本身的风景</p><h1>随便看看<span>一句一句读，或坐在水边，让文字经过。</span></h1></div>
+            <div className="text-flow-modes" role="group" aria-label="偶遇方式"><button type="button" aria-pressed={form==='single'} onClick={()=>changeMode('single')}>一句一句</button><button type="button" aria-pressed={form==='river'} onClick={()=>changeMode('river')}>河流</button><button type="button" aria-pressed={form==='tide'} onClick={()=>changeMode('tide')}>潮汐</button></div></header>
+        <nav className="play-breadcrumb" aria-label="阅读来路">{frame.tags.length>0||session.anchor!==null?<button type="button" onClick={back}>← {session.parents.length>0?'回到刚才的流':'回到全部'}</button>:<span>{form==='single'?'按书偶遇 · 一句一句读':'按书偶遇 · 多处同时经过'}</span>}
             {frame.tags.map(id=><span key={id}>{index.tagsById.get(id)?.title??'未知主题'}</span>)}<small>{new Set(pool.map(h=>h.bookId)).size} 本书 · {pool.length} 处划线{session.anchor!==null?' · 本机模型联想候选':''}</small>{source.current!==null?<a href={sitePath(source.current)}>回到刚才的房间</a>:null}</nav>
         {litBook!==undefined?<p className="play-lit-book" data-play-lit-book={litBook.id}>从《{litBook.title}》来到这里</p>:null}
         {unknown?<p role="status">这处原文不在当前资料中；下面仍是真实划线。</p>:null}
         {outside?<p role="status">请求的原文不属于当前范围。<button type="button" onClick={()=>{const next=readingFrame(snapshot.highlights,[],highlightId,null,Math.random);navigate({...session,frame:next,anchor:null,parents:[],items:flowBatch(snapshot.highlights,7,Math.random,new Set(),next.selectedId)});}}>打开请求的原文</button></p>:null}
-        <div className="play-experience"><div className="play-landscape">
-            <TextFlowScene items={sceneItems} mode={mode} heldId={readingOpen?frame.selectedId:null} onCatch={select} onAdvance={advance} onPrevious={()=>{if(previous!==undefined)select(previous);}} previousAvailable={previous!==undefined}/>
+        <SinglePassage key={singleScopeKey} scopeKey={singleScopeKey} index={index} pool={pool} selectedId={frame.selectedId} active={form==='single'}
+            onCurrent={id=>navigate({...session,frame:{...frame,selectedId:id}},true)} onShare={onShare} onOpenBook={id=>onNavigate('/books/'+encodeURIComponent(id))}/>
+        {form!=='single'?<div className="play-experience"><div className="play-landscape">
+            <TextFlowScene clock={clock} items={sceneItems} mode={mode} heldId={readingOpen?frame.selectedId:null} onCatch={select} onAdvance={advance} onPrevious={()=>{if(previous!==undefined)select(previous);}} previousAvailable={previous!==undefined}/>
             <div className="text-flow-directory-heading"><details className="play-page-menu"><summary>文字目录 <span>{session.items.length}</span></summary><div className="play-page-strip" role="group" aria-label="留住一处文字">
                 {session.items.map(h=><button type="button" key={h.id} aria-pressed={readingOpen&&h.id===frame.selectedId} data-highlight-id={h.id} onClick={()=>select(h.id)}><strong>{index.booksById.get(h.bookId)?.title}</strong><span>{flowExcerpt(h.text,60)}</span></button>)}
             </div></details><button type="button" onClick={newBatch} disabled={pool.length<2}>换一批文字 ↗</button></div>
@@ -121,9 +127,9 @@ export function PlayWorldRoom({index,tagId,bookId,highlightId,worldTags=[],playA
             </>}
             </div></div>
             {reading.edges.below?<button type="button" className="play-reading-more" onClick={()=>reading.scroll((reading.viewport.current?.clientHeight??300)*.75)}>继续向下阅读 <span aria-hidden="true">↓</span></button>:<p className="play-reading-end">原文至此 <span aria-hidden="true">·</span></p>}
-        </article></div>
+        </article></div>:null}
         <section className="play-topics" aria-label="主题入口"><div><p className="play-eyebrow">想有个方向时</p><h2>沿主题看一会儿</h2></div><details className="play-entrances"><summary>浏览主题 <span>{gates.length}</span></summary>{gates.length===0?<p>这里不再划出更小的范围，仍可以继续看文字经过。</p>:<ul>{gates.map(g=><li key={g.tagIds.join('|')}><button type="button" onClick={()=>enter(g.tagIds[0] as string)}><span>{g.tagIds.map(id=>index.tagsById.get(id)?.title).join(' / ')}</span><small>{g.bookCount} 本书 · {g.memberIds.length} 处划线</small></button></li>)}</ul>}</details></section>
         {error!==null?<p className="play-data-note" role="status">{error}<button type="button" onClick={()=>{requests.delete(snapshot);setRetry(n=>n+1);}}>重试联想资料</button></p>:null}
-        <details className="play-notes"><summary>关于这片文字</summary><p>文字来自真实划线。河流持续经过，潮汐成批到来/停留/退去；水路、岸线与文字位置是原创场景构图，不表示语义距离。“沿这处流一会儿”仅在匹配的本机资料中取实际模型候选，不是作者引用或观点一致；没有资料时仍可按书偶遇、阅读与分享。主题只筛选已有正标签，未标注仍留在全部文字。</p><p>这是原网站中的本机水岸探索，现有“随机一句”与已发布第二版不变。完整原文不等动画、不定时放走、不用拼字或完成任务。可以暂停动态，也可以通过原生目录选择、复制正文、去书房/主题小径或分享稳定原文。</p></details>
+        <details className="play-notes"><summary>关于这片文字</summary><p>文字来自真实划线。河流持续经过，潮汐成批到来/停留/退去；水路、岸线与文字位置是原创场景构图，不表示语义距离。“沿这处流一会儿”仅在匹配的本机资料中取实际模型候选，不是作者引用或观点一致；没有资料时仍可按书偶遇、阅读与分享。主题只筛选已有正标签，未标注仍留在全部文字。</p><p>三种方式都在“随便看看”里；“一句一句”保留原有的按书公平抽取和下一句动作。世界地图仍是另一处入口。当前仅本机试行，已发布第二版不变。完整原文不等动画、不定时放走、不用拼字或完成任务。可以暂停动态，也可以通过原生目录选择、复制正文、去书房/主题小径或分享稳定原文。</p></details>
     </section>;
 }

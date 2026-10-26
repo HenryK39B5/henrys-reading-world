@@ -9,7 +9,7 @@ describe('second tide is an authored, bounded composition',()=>{
   for(const w of [244,316,646]){const slots=Array.from({length:4},(_,i)=>tidePlacement(i,w,800,false));for(let i=0;i<3;i++){const a=slots[i],b=slots[i+1];if(a===undefined||b===undefined)throw Error('Missing slot');expect(a.y*800+a.lines*a.fontSize*1.57+45).toBeLessThan(b.y*800);}}
  });
  it('floating previews stay small, two-line and distinct from full reading typography',()=>{for(const w of [244,316,1064])for(let i=0;i<(w<760?4:7);i++){const p=tidePlacement(i,w,820,false);expect(p.lines).toBe(2);expect(p.fontSize).toBeGreaterThanOrEqual(17);expect(p.fontSize).toBeLessThanOrEqual(w<760?19:21);}});
- it('held side previews retain legible sizes rather than miniature labels',()=>{for(let i=0;i<7;i++){const p=tidePlacement(i,1064,820,true);expect(p.fontSize).toBe(18);expect(p.lines).toBe(2);}});
+ it('catching and releasing never change the world composition or typography',()=>{for(const width of [244,316,1064])for(let i=0;i<7;i++)expect(tidePlacement(i,width,820,true)).toEqual(tidePlacement(i,width,820,false));});
  it('arrival/departure and still dwell share a continuous finite cycle',()=>{
   for(let t=0;t<80000;t+=137)for(let i=0;i<7;i++){const p=tideArrival(t,i);expect(p.opacity).toBeGreaterThanOrEqual(0);expect(p.opacity).toBeLessThanOrEqual(1);expect(Number.isFinite(p.x+p.y+p.shore)).toBe(true);}
   expect(tideArrival(10000,6).opacity).toBe(1);expect(tideArrival(10000,6).x).toBe(0);expect(tideArrival(TIDE_REDESIGN_PERIOD+10000,6).cycle).toBe(1);
