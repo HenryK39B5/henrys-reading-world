@@ -1,7 +1,7 @@
 # 108 — 公开水景阅读与新地图发布
 
 日期：2026-10-26（本机UTC+8）
-状态：正式公开构建已接线，本机发布验收进行中；线上替换结果在文末追加。
+状态：正式公开版已于2026-10-26替换旧版；构建、部署成功，线上复核见文末。
 
 ## 用户判断与本次授权
 
@@ -48,6 +48,16 @@ Henry实际体验106地图后明确表示“效果真的很好”，认为主题
 
 ## 发布与剩余边界
 
-本次将使用现有master→GitHub Actions→Pages工作流，只上传dist；不新建后台、遥测、账号、素材／模型依赖或扩大公开内容。将核对实际Actions与线上三方式、公开数据／地图版本、深链及资源，再记录具体commit、run和结果。
+发布候选为`b2a940148116d1dadfbe92d7615e6760e6d2f569`，已正常push master；Actions run `40290865575`的build与deploy均success，CI独立npm ci安装298个package并正常通过公开数据、地图清单、terrain、type和build。推送包含此前本机小步源码提交，所有private输入仍不受Git跟踪。
+
+发布前用`git archive`导出此提交至private独立目录，不含`.private`，复用已安装node_modules（没有另跑npm ci），独立`npm run build`通过；Chromium四个入口（single／tide／river／map真h）通过，原文及全108封面验证一致。初尝试逐字节比较产物发现不同：本工作区public JSON为LF，Git导出为79,926处CRLF，资产名因此变化；记录为失败的字节相等假设，不宣称跨环境bit-identical。规范化内容摘要完全相等，source-export-verification.json与原失败comparison均保留。随后CI独立npm ci亦已通过。
+
+本次已通过现有master→GitHub Actions→Pages工作流替换线上版本，只上传dist；未新增后台、遥测、账号、素材／模型依赖或扩大公开内容。网站仍为`https://henryk39b5.github.io/henrys-reading-world/`。
+
+线上真实浏览器首轮16／18通过；Chromium1440的交互正文断言已通过，但afterEach记录一次封面p020.jpg的HTTP503；WebKit最长原文例在goto时SSL connect error，还未进入应用。保留原日志、截图和trace，未改代码、未豁免503／SSL、未放宽断言／时间；原Chromium1440例和WebKit最长例分别再次1／1通过。最终18项逐项覆盖，**不是一次18／18全绿**。网络失败根因未定位，不把复核通过称为永久网络稳定。过程中曾按运行列表中的临时通过标记汇报Chromium9过，最终afterEach结果应以本段16＋2为准。
+
+独立线上校验117份文件（入口、全部构建资源、108封面）字节与验收dist完全一致，线上快照SHA256为`df21d4c5c5146acd3411e9a5179e33134f891e6b0c9c940672e71e9295ae7daa`，map版本／完整原文／公开数量一致；见live-byte-verification.json。实际读取线上WebKit390地图／潮汐完整原文及Chromium1440对读截图。
+
+随后只将README／本记录／AGENTS／08／48改为已发布状态并提交推送，运行时代码和公开数据与b2a9401完全一致；文档提交触发的工作流及最终线上字节会再确认，不需要将原18项重跑写成新成绩。
 
 真机手机／Safari、读屏、独立首次访客、真实200%浏览器缩放、低端长期性能／字体矩阵及权利判断仍各自独立；自动化、Henry定性认可和用户本次发布授权不会把它们自动记为通过。106的种子敏感性和二维投影信息损失保留，不重新扩展算法研究。
