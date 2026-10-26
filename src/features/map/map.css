@@ -918,7 +918,9 @@ body:has(.shell--dark-map) {
 /* This invisible reference retains the overview's magnification as its visible window clips.
    Its dimensions depend on viewport CSS, never the reading/detail panel or transition progress. */
 .map-scale-reference {
-    position: absolute;
+    position: fixed;
+    left: 0;
+    top: 0;
     width: min(calc(100vw - 48px), 1360px);
     height: min(80svh, 800px);
     visibility: hidden;

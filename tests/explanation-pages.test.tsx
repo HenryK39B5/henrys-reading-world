@@ -16,12 +16,12 @@ describe('explanations follow actual scope and map contract', () => {
         expect(html).not.toContain('你现在看到的是本机阅读范围');
         expect(html).toContain('aria-label="网站介绍"');
     });
-    it('the existing public map is not described as the new local algorithm', () => {
+    it('the released public map is explained using its actual algorithm', () => {
         const html = renderToStaticMarkup(<TechnicalRoom index={index} />);
-        expect(html).toContain('data-explained-map="fixed-baseline"');
-        expect(html).toContain('不重新运行 UMAP，也不为发布移动点位');
+        expect(html).toContain('data-explained-map="exact-neighbors"');
+        expect(html).not.toContain('不重新运行 UMAP，也不为发布移动点位');
         expect(html).toContain('地图首次绘制就使用这份公开地形，不等待再次请求');
-        expect(html).not.toContain('当前这张地图在本机直接计算原1024维');
+        expect(html).toContain('当前这张地图在本机直接计算原1024维');
     });
     it('scope and algorithm metadata independently select the correct explanation', () => {
         // Real approved originals/points; only contract metadata is varied, never used as product data.

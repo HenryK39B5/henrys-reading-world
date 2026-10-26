@@ -33,13 +33,11 @@ test('scope, live features and map explanation agree, and secondary navigation w
     await readingLink.focus(); await expect(readingLink).toBeFocused(); await readingLink.press('Enter');
     await expect(page.getByTestId('room-heading')).toHaveText('这个网站怎么运作');
     const article = page.locator('[data-room="design"]');
-    if (local) await expect(article).toContainText('河流让几处文字持续经过');
-    else await expect(article).not.toContainText('河流让几处文字持续经过');
+    await expect(article).toContainText('河流让几处文字持续经过');
     const technicalLink = nav.getByRole('link', { name: '实现细节' });
     await technicalLink.focus(); await expect(technicalLink).toBeFocused(); await technicalLink.press('Enter');
-    await expect(page.locator('[data-room="technical"]')).toHaveAttribute('data-explained-map', local ? 'exact-neighbors' : 'fixed-baseline');
-    if (local) await expect(page.getByRole('heading', { name: '流动的预览，稳定的原文' })).toBeVisible();
-    else await expect(page.getByRole('heading', { name: '流动的预览，稳定的原文' })).toHaveCount(0);
+    await expect(page.locator('[data-room="technical"]')).toHaveAttribute('data-explained-map', 'exact-neighbors');
+    await expect(page.getByRole('heading', { name: '流动的预览，稳定的原文' })).toBeVisible();
     await page.reload(); await expect(page.getByTestId('room-heading')).toHaveText('技术实现');
     await page.getByRole('link', { name: '返回网站说明', exact: true }).click();
     await expect(page.getByTestId('room-heading')).toHaveText('这个网站怎么运作');

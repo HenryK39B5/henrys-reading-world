@@ -9,6 +9,11 @@ describe('encounter forms and shoreline revelation',()=>{
   expect(readBrowseContext(params)).toEqual({form:'river',worldTags:input.worldTags,playAnchorId:'h-231'});
   expect(browseAddress({highlightId:null})).toBe('/');
  });
+ it('drops model scopes for public URLs while retaining the real original and tags',()=>{
+  const params=new URLSearchParams('view=tide&h=h-3501&world=tag-026&anchor=h-231');
+  expect(readBrowseContext(params,false)).toEqual({form:'tide',worldTags:['tag-026']});
+  expect(browseAddress({...readBrowseContext(params,false),highlightId:params.get('h')})).toBe('/?view=tide&h=h-3501&world=tag-026');
+ });
  it('ignores unknown forms and malformed, repeated or excessive tags',()=>{
   expect(readBrowseContext(new URLSearchParams('view=map&world=tag-001,tag-001,bogus,tag-002,tag-003,tag-004'))).toEqual({worldTags:['tag-001','tag-002','tag-003']});
  });

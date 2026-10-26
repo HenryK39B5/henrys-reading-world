@@ -8,7 +8,7 @@ const site = '/henrys-reading-world';
 const snapshot = JSON.parse(readFileSync(join(process.cwd(), 'src/data/public-snapshot.json'), 'utf8')) as Snapshot;
 const book = snapshot.books[0]!;
 const highlight = snapshot.highlights[0]!;
-const captures = join(process.cwd(), '.private/review/public-pages-preflight');
+const captures = join(process.cwd(), process.env.PAGES_EVIDENCE ?? '.private/review/public-pages-preflight');
 const browserSuffix = () => test.info().project.name === 'chromium' ? '' : `-${test.info().project.name}`;
 
 test('built project-site hall, navigation, covers, and stable share address', async ({ page }) => {
@@ -25,7 +25,7 @@ test('built project-site hall, navigation, covers, and stable share address', as
     await expect(page.getByTestId('stage-passage')).toBeVisible();
     await mkdir(captures, { recursive: true });
     await page.screenshot({ path: join(captures, `hall-desktop${browserSuffix()}.png`), fullPage: true });
-    await page.getByRole('link', { name: '所有书' }).first().click();
+    await page.getByTestId('nav-books').click();
     await expect(page).toHaveURL(`${site}/books/`);
     const cover = page.locator('img[src^="/henrys-reading-world/covers/"]').first();
     await expect(cover).toBeVisible();
@@ -64,7 +64,8 @@ test('public room documents return 200; missing rooms still use the 404 fallback
     await expect(page.getByTestId('room-heading')).toHaveText('技术实现');
     await page.getByRole('link', { name: '返回网站说明' }).click();
     await expect(page).toHaveURL(`${site}/design/`);
-    await page.getByRole('link', { name: '主题书架' }).last().click();
+    await page.getByRole('link', { name: '书架', exact: true }).first().click();
+    await page.getByRole('link', { name: '按书籍主题', exact: true }).click();
     await expect(page).toHaveURL(`${site}/themes/`);
     response = await page.goto(`${site}/themes/${encodeURIComponent(snapshot.themes[0]!.id)}/`);
     expect(response?.status()).toBe(200);
@@ -83,7 +84,7 @@ test('public room documents return 200; missing rooms still use the 404 fallback
 
 test('built project-site map renders approved terrain at desktop and mobile widths', async ({ page }) => {
     test.setTimeout(90_000); // Three cold navigations include public-snapshot fetch/parse in WebKit.
-    const folder = join(process.cwd(), '.private/review/maintenance/m04/production');
+    const folder = join(process.cwd(), process.env.PAGES_EVIDENCE ?? '.private/review/maintenance/m04/production');
     await mkdir(folder, { recursive: true });
     for (const width of [1440, 390, 320]) {
         await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
@@ -148,7 +149,7 @@ test('a cold public map starts with the accepted terrain, not an older snapshot 
 });
 
 test('the finished design page remains readable and linked across widths', async ({ page }) => {
-    const folder = join(process.cwd(), '.private/review/site-design');
+    const folder = join(process.cwd(), process.env.PAGES_EVIDENCE ?? '.private/review/site-design');
     await mkdir(folder, { recursive: true });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     for (const width of [1440, 720, 390, 320]) {
@@ -170,7 +171,7 @@ test('the finished design page remains readable and linked across widths', async
 });
 
 test('about gives each explanation its own entry without adding to primary navigation', async ({ page }) => {
-    const folder = join(process.cwd(), '.private/review/maintenance/m05');
+    const folder = join(process.cwd(), process.env.PAGES_EVIDENCE ?? '.private/review/maintenance/m05');
     await mkdir(folder, { recursive: true });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     for (const width of [1440, 390, 320]) {
@@ -192,7 +193,7 @@ test('about gives each explanation its own entry without adding to primary navig
 });
 
 test('the technical companion has a direct public entry and readable narrow layouts', async ({ page }) => {
-    const folder = join(process.cwd(), '.private/review/maintenance/m05');
+    const folder = join(process.cwd(), process.env.PAGES_EVIDENCE ?? '.private/review/maintenance/m05');
     await mkdir(folder, { recursive: true });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     for (const width of [1440, 720, 390, 320]) {

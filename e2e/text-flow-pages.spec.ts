@@ -7,7 +7,7 @@ mkdirSync(evidence,{recursive:true});
 for(const width of [1440,390])test(`both text forms work in static Pages subpath at ${width}`,async({page,request},info)=>{
  await page.setViewportSize({width,height:980});const errors:string[]=[],requests:string[]=[],failed:string[]=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>requests.push(r.url()));page.on('response',r=>{if(r.status()>=400)failed.push(`${r.status()} ${r.url()}`);});
  await page.goto(`/henrys-reading-world/?view=tide&h=${anchor.id}`);await expect(page.getByTestId('text-flow')).toHaveAttribute('data-flow-state','ready');await expect(page.locator('.play-original blockquote > p')).toHaveText(anchor.text);
- await expect(page.getByRole('button',{name:'沿这处流一会儿',exact:false})).toBeDisabled();
+ await expect(page.getByRole('button',{name:'沿这处流一会儿',exact:false})).toHaveCount(0);
  for(const label of ['一句一句','河流','潮汐']){await page.getByRole('button',{name:label,exact:true}).click();await expect(label==='一句一句'?page.getByTestId('stage-passage'):page.locator('.play-original blockquote > p')).toHaveText(anchor.text);}
  await page.locator('.play-page-menu summary').click();const b=page.locator('.play-page-strip button').nth(1);const id=await b.getAttribute('data-highlight-id');await b.click();const real=snapshot.highlights.find(h=>h.id===id);expect(real).toBeDefined();await expect(page.locator('.play-original blockquote > p')).toHaveText(real?.text??'');expect(new URL(page.url()).pathname).toBe('/henrys-reading-world/');
  await page.reload();await expect(page.getByTestId('text-flow')).toHaveAttribute('data-flow-state','ready');await expect(page.locator('.play-original blockquote > p')).toHaveText(real?.text??'');const address=page.url();

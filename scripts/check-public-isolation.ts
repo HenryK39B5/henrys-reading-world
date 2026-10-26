@@ -49,6 +49,7 @@ for (const needle of [
     'flomo_178', 'weread_image',
     'publication-review', 'reviewComplete', 'excludedHighlightIds', '__publication_policy', 'tag-studio',
     '__tag_vocabulary', '__tag_assignments', 'studio-rationale', 'possible-missing-tag',
+    '__play_world_geometry', 'selected-local.json', 'sourceVectorHash',
 ]) {
     check(`dist excludes ${needle}`, !hay.includes(needle));
 }

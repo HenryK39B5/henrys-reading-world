@@ -34,7 +34,8 @@ describe('real published map labels stay put during travel', () => {
             expect(unrepresented.map((entry) => entry.tagId)).toEqual([]);
             expect(world.length).toBeLessThanOrEqual(size.width < 520 ? 12 : 20);
             expect(world.every((entry) => (entry.summary.localHighlightCount ?? 0) >= 3)).toBe(true);
-            expect(world.map((entry) => entry.summary.tagId)).not.toContain('tag-050'); // Its median has no nearby reviewed member.
+            // Local support, rather than the old map's unsupported class median, controls admission.
+            expect(labels.find(entry => entry.tagId === 'tag-050')?.localHighlightCount).toBeGreaterThanOrEqual(3);
             expectSeparated(world);
             for (let step = 1; step <= 140; step += 1) {
                 expectSeparated(projectMapLabels(plan, 1 + step * 0.05, size, measure, null, true));
@@ -70,10 +71,16 @@ describe('real published map labels stay put during travel', () => {
             [...title].length * mapLabelFontSize(zoom, size.width, active, true);
         const plan = planMapLabels(labels, null, size, measure, true);
         const placed = projectMapLabels(plan, 4, size, measure, null, true);
-        const before = visibleMapLabels(placed, 5662, 2407, 4, size);
-        const after = visibleMapLabels(placed, 6012, 2407, 4, size);
-        const first = before.find((entry) => entry.summary.tagId === 'tag-006');
-        const last = after.find((entry) => entry.summary.tagId === 'tag-006');
+        // Derive a real interior from the frozen current geography; do not retain old coordinates.
+        const target = [...placed].sort((a, b) => a.summary.tagId.localeCompare(b.summary.tagId))[0]!;
+        expect(target).toBeDefined();
+        const scale = Math.min(size.width, size.height) / 10000 * 4;
+        const centerX = 5000 + (target.x - size.width / 2) / scale;
+        const centerY = 5000 + (target.y - size.height / 2) / scale;
+        const before = visibleMapLabels(placed, centerX, centerY, 4, size);
+        const after = visibleMapLabels(placed, centerX + 350, centerY, 4, size);
+        const first = before.find((entry) => entry.summary.tagId === target.summary.tagId);
+        const last = after.find((entry) => entry.summary.tagId === target.summary.tagId);
         expect(first).toBeDefined();
         expect(last).toBeDefined();
         expect(last!.x).toBeGreaterThan(50);
@@ -81,6 +88,16 @@ describe('real published map labels stay put during travel', () => {
         expect(last!.y).toBeGreaterThan(35);
         expect(last!.y).toBeLessThan(size.height - 35);
         expect(last!.x - first!.x).toBeCloseTo(-26.6, 2);
-        expect(after.length).toBeGreaterThan(before.length);
+        // Also exercise real frame edges on this layout and verify that every still-interior name persists.
+        let entrants = 0;
+        for (let step = 0; step < 160; step++) {
+            const x = 1000 + (step % 16) * 500, y = 1000 + Math.floor(step / 16) * 800;
+            const a = visibleMapLabels(placed, x, y, 4, size);
+            const b = visibleMapLabels(placed, x + 350, y, 4, size);
+            entrants += b.filter(e => !a.some(p => p.summary.tagId === e.summary.tagId)).length;
+            for (const name of a.filter(e => e.left - 26.6 >= 8))
+                expect(b.some(e => e.summary.tagId === name.summary.tagId)).toBe(true);
+        }
+        expect(entrants).toBeGreaterThan(0);
     });
 });

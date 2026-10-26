@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
 import type { EncounterState } from '../../domain/encounter.ts';
 import type { Highlight, Snapshot } from '../../domain/types.ts';
 import type { SnapshotIndex } from '../../domain/snapshot.ts';
@@ -28,7 +28,7 @@ export function SinglePassage({ index, pool, scopeKey, selectedId, active, onCur
         scopeFor: () => ALL_SCOPE, seedFor: () => selectedId, selector,
     });
     const handled = useRef(selectedId);
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (!active) return;
         if (handled.current !== selectedId) {
             handled.current = selectedId;

@@ -78,7 +78,7 @@ export function parseRoute(pathname: string, search = ''): RoomRoute {
     const [head, second] = segments;
 
     if (segments.length === 0) {
-        return { name: 'hall', highlightId: readHighlightId(params), ...(typeof __PLAY_WORLD_ENABLED__ !== 'undefined' && __PLAY_WORLD_ENABLED__ ? readBrowseContext(params) : {}) };
+        return { name: 'hall', highlightId: readHighlightId(params), ...(typeof __PLAY_WORLD_ENABLED__ !== 'undefined' && __PLAY_WORLD_ENABLED__ ? readBrowseContext(params, __LOCAL_MODE__) : {}) };
     }
     if (head === 'themes') {
         if (segments.length === 1) {
@@ -102,7 +102,7 @@ export function parseRoute(pathname: string, search = ''): RoomRoute {
             tagId: params.get('tag'),
             bookId: params.get('book'),
             highlightId: readHighlightId(params),
-            ...(typeof __PLAY_WORLD_ENABLED__ !== 'undefined' && __PLAY_WORLD_ENABLED__ && params.has('anchor') ? { playAnchorId: params.get('anchor') } : {}),
+            ...(typeof __PLAY_WORLD_ENABLED__ !== 'undefined' && __PLAY_WORLD_ENABLED__ && __LOCAL_MODE__ && params.has('anchor') ? { playAnchorId: params.get('anchor') } : {}),
             ...(typeof __PLAY_WORLD_ENABLED__ !== 'undefined' && __PLAY_WORLD_ENABLED__ && params.has('world') ?
                 { worldTags: [...new Set((params.get('world') ?? '').split(',').filter(id => /^tag-\d{3}$/u.test(id)))].slice(0, 3) } : {}),
         };
@@ -149,7 +149,7 @@ export function routePath(route: RoomRoute): string {
             if (route.bookId !== null) params.set('book', route.bookId);
             if (route.highlightId !== null) params.set('h', route.highlightId);
             if (typeof __PLAY_WORLD_ENABLED__ !== 'undefined' && __PLAY_WORLD_ENABLED__ && route.worldTags !== undefined && route.worldTags.length > 0) params.set('world', route.worldTags.join(','));
-            if (typeof __PLAY_WORLD_ENABLED__ !== 'undefined' && __PLAY_WORLD_ENABLED__ && route.playAnchorId) params.set('anchor', route.playAnchorId);
+            if (typeof __PLAY_WORLD_ENABLED__ !== 'undefined' && __PLAY_WORLD_ENABLED__ && __LOCAL_MODE__ && route.playAnchorId) params.set('anchor', route.playAnchorId);
             const query = params.toString();
             return query.length === 0 ? '/map' : `/map?${query}`;
         }

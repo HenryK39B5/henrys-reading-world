@@ -5,8 +5,9 @@ import { basename, join } from 'node:path';
 import sharp from 'sharp';
 import { projectPublicationPreview, releaseReadiness, validatePublicationPolicy } from '../src/domain/publication.ts';
 import { validateSnapshot } from '../src/domain/validate.ts';
-import { mapLayoutHash, projectFilteredMapLayout } from './embeddings/mapLayout.ts';
+import { mapLayoutHash } from './embeddings/mapLayout.ts';
 import { publicRoomPaths } from './public-route-entries.ts';
+import { verifyPublicMapRelease } from './publicMapRelease.ts';
 
 const root = process.cwd();
 const privatePath = (file: string) => join(root, '.private', file);
@@ -43,7 +44,11 @@ async function main(): Promise<void> {
     assert(output.ok, 'public snapshot validation');
     const projected = projectPublicationPreview(policy.policy, local.snapshot).snapshot;
     assert(local.snapshot.map !== undefined, 'source map availability');
-    const expectedMap = projectFilteredMapLayout(projected, local.snapshot.map);
+    const mapRelease = await json(publicPath('scripts/public-map-release.json'));
+    const released = verifyPublicMapRelease(output.snapshot, await json(publicPath('src/data/public-map-terrain.json')), mapRelease);
+    // Publication decisions are still compared field by field below. The separately frozen public-only
+    // map now has its own committed manifest rather than borrowing full-local fitting coordinates.
+    const expectedMap = output.snapshot.map!;
     const expectedBooks = projected.books.map((book) => book.coverPath === undefined ? book : {
         ...book,
         coverPath: `covers/${basename(book.coverPath).replace(/\.[^.]+$/u, '.jpg')}`,
@@ -64,7 +69,6 @@ async function main(): Promise<void> {
         ['tags', projected.tags, actual.tags],
         ['books', expectedBooks, actual.books],
         ['highlights', projected.highlights, actual.highlights],
-        ['map', expectedMap, actual.map],
     ] as const) {
         assert(fingerprint(expected) === fingerprint(found), `${name} diverged from approved projection`);
     }
@@ -106,7 +110,9 @@ async function main(): Promise<void> {
             approvedMetadataAndPassagesMatch: true,
             tagAndDraftProjectionMatch: true,
             fixedMapLayoutHash: mapLayoutHash(expectedMap),
-            fixedMapUnmoved: true,
+            fixedMapUnmoved: false,
+            publicOnlyMapRelease: released.release,
+            mapFitsApprovedPublicOnly: true,
             publishedCoverDerivativesMatch: true,
             productionAssetMatches: true,
             staticRoomEntriesMatchPublicIds: true,
@@ -124,7 +130,7 @@ async function main(): Promise<void> {
     };
     await writeFile(privatePath('public-release-verification.json'), `${JSON.stringify(report, null, 2)}\n`, 'utf8');
     console.log(`public release parity: ${String(report.counts.books)} books / ${String(report.counts.highlights)} highlights / ${String(report.counts.covers)} cover derivatives`);
-    console.log(`static rooms: ${String(report.counts.staticRooms)}; fixed map and production asset: verified`);
+    console.log(`static rooms: ${String(report.counts.staticRooms)}; public-only map release and production asset: verified`);
     console.log('human content and rights decision: not inferred from this check');
 }
 

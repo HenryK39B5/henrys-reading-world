@@ -106,7 +106,7 @@ export function PlayWorldRoom({index,tagId,bookId,highlightId,worldTags=[],playA
         <nav className="play-breadcrumb" aria-label="阅读来路">{frame.tags.length>0||session.anchor!==null?<button type="button" onClick={back}>← {session.parents.length>0?'回到刚才的流':'回到全部'}</button>:<span>{form==='single'?'按书偶遇 · 一句一句读':'按书偶遇 · 多处同时经过'}</span>}
             {frame.tags.map(id=><span key={id}>{index.tagsById.get(id)?.title??'未知主题'}</span>)}<small>{new Set(pool.map(h=>h.bookId)).size} 本书 · {pool.length} 处划线{session.anchor!==null?' · 本机模型联想候选':''}</small>{source.current!==null?<a href={sitePath(source.current)}>回到刚才的房间</a>:null}</nav>
         {litBook!==undefined?<p className="play-lit-book" data-play-lit-book={litBook.id}>从《{litBook.title}》来到这里</p>:null}
-        {unknown?<p role="status">这处原文不在当前资料中；下面仍是真实划线。</p>:null}
+        {unknown?<p role="status" data-testid="link-unavailable">这处原文不在当前资料中；下面仍是真实划线。</p>:null}
         {outside?<p role="status">请求的原文不属于当前范围。<button type="button" onClick={()=>{const next=readingFrame(snapshot.highlights,[],highlightId,null,Math.random);navigate({...session,frame:next,anchor:null,parents:[],items:flowBatch(snapshot.highlights,7,Math.random,new Set(),next.selectedId)});}}>打开请求的原文</button></p>:null}
         <SinglePassage key={singleScopeKey} scopeKey={singleScopeKey} index={index} pool={pool} selectedId={frame.selectedId} active={form==='single'}
             onCurrent={id=>navigate({...session,frame:{...frame,selectedId:id}},true)} onShare={onShare} onOpenBook={id=>onNavigate('/books/'+encodeURIComponent(id))}/>
@@ -123,13 +123,13 @@ export function PlayWorldRoom({index,tagId,bookId,highlightId,worldTags=[],playA
             <div className="play-reading-body" ref={reading.viewport} onScroll={reading.measure} tabIndex={0} role="region" aria-label="完整原文，可上下滚动"><div ref={reading.content}>
             {current===undefined?<p>这个范围暂时没有原文，可以回到全部文字。</p>:<><blockquote><p>{current.text}</p><footer><span>《{book?.title}》</span><span>{book?.author}</span></footer></blockquote>
                 <div className="play-clues">{current.tagIds.map(id=><a key={id} href={sitePath(`/paths/${id}?h=${current.id}`)}>#{index.tagsById.get(id)?.title}</a>)}</div>
-                <div className="play-reading-actions"><button type="button" onClick={explore} disabled={nextCandidates.length===0||session.anchor===current.id}>沿这处流一会儿 →</button><a href={sitePath(`/books/${current.bookId}`)}>去这本书</a><button type="button" onClick={()=>onShare(current.id)}>分享</button></div>
+                <div className="play-reading-actions">{__LOCAL_MODE__?<button type="button" onClick={explore} disabled={nextCandidates.length===0||session.anchor===current.id}>沿这处流一会儿 →</button>:null}<a href={sitePath(`/books/${current.bookId}`)}>去这本书</a><button type="button" onClick={()=>onShare(current.id)}>分享</button></div>
             </>}
             </div></div>
             {reading.edges.below?<button type="button" className="play-reading-more" onClick={()=>reading.scroll((reading.viewport.current?.clientHeight??300)*.75)}>继续向下阅读 <span aria-hidden="true">↓</span></button>:<p className="play-reading-end">原文至此 <span aria-hidden="true">·</span></p>}
         </article></div>:null}
         <section className="play-topics" aria-label="主题入口"><div><p className="play-eyebrow">想有个方向时</p><h2>沿主题看一会儿</h2></div><details className="play-entrances"><summary>浏览主题 <span>{gates.length}</span></summary>{gates.length===0?<p>这里不再划出更小的范围，仍可以继续看文字经过。</p>:<ul>{gates.map(g=><li key={g.tagIds.join('|')}><button type="button" onClick={()=>enter(g.tagIds[0] as string)}><span>{g.tagIds.map(id=>index.tagsById.get(id)?.title).join(' / ')}</span><small>{g.bookCount} 本书 · {g.memberIds.length} 处划线</small></button></li>)}</ul>}</details></section>
         {error!==null?<p className="play-data-note" role="status">{error}<button type="button" onClick={()=>{requests.delete(snapshot);setRetry(n=>n+1);}}>重试联想资料</button></p>:null}
-        <details className="play-notes"><summary>关于这片文字</summary><p>文字来自真实划线。河流持续经过，潮汐成批到来/停留/退去；水路、岸线与文字位置是原创场景构图，不表示语义距离。“沿这处流一会儿”仅在匹配的本机资料中取实际模型候选，不是作者引用或观点一致；没有资料时仍可按书偶遇、阅读与分享。主题只筛选已有正标签，未标注仍留在全部文字。</p><p>三种方式都在“随便看看”里；“一句一句”保留原有的按书公平抽取和下一句动作。世界地图仍是另一处入口。当前仅本机试行，已发布第二版不变。完整原文不等动画、不定时放走、不用拼字或完成任务。可以暂停动态，也可以通过原生目录选择、复制正文、去书房/主题小径或分享稳定原文。</p></details>
+        <details className="play-notes"><summary>关于这片文字</summary><p>文字来自真实划线。河流持续经过，潮汐成批到来/停留/退去；水路、岸线与文字位置是原创场景构图，不表示语义距离。主题只筛选已有正标签，未标注仍留在全部文字。{__LOCAL_MODE__?'“沿这处流一会儿”仅在匹配的本机资料中取实际模型候选，不是作者引用或观点一致。':null}</p><p>三种方式都在“随便看看”里；“一句一句”保留原有的按书公平抽取和下一句动作。世界地图是另一处入口。{__LOCAL_MODE__?'当前是本机阅读范围；线上另用单独审核的公开内容。':'这里仅展示经过审核的公开内容。'}完整原文不等动画、不定时放走、不用拼字或完成任务。可以暂停动态，也可以通过原生目录选择、复制正文、去书房/主题小径或分享稳定原文。</p></details>
     </section>;
 }

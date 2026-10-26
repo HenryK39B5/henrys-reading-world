@@ -3,8 +3,8 @@
  *
  * This is the first command allowed to write the public content files. It is intentionally explicit and
  * never creates a repository, pushes, configures CI, or deploys. The public snapshot is projected through
- * the same publication policy as the reviewer; map coordinates are filtered, never moved or re-run through
- * UMAP. Cover files are resized into public/covers and the snapshot references only those derivatives.
+ * the same publication policy as the reviewer. A separately frozen public map is preserved only when its
+ * content and terrain manifest matches; a changed approved content set requires explicit map preparation. Cover files are resized into public/covers and the snapshot references only those derivatives.
  *
  * Usage: npm run publication:export
  */
@@ -16,9 +16,10 @@ import {
     releaseReadiness,
     validatePublicationPolicy,
 } from '../src/domain/publication.ts';
-import { projectFilteredMapLayout, mapLayoutHash } from './embeddings/mapLayout.ts';
+import { mapLayoutHash } from './embeddings/mapLayout.ts';
 import { validateSnapshot } from '../src/domain/validate.ts';
 import type { Book, Snapshot } from '../src/domain/types.ts';
+import { publicContentFingerprint, verifyPublicMapRelease } from './publicMapRelease.ts';
 
 const ROOT = process.cwd();
 const LOCAL_SNAPSHOT_PATH = join(ROOT, '.private/local-snapshot.json');
@@ -58,7 +59,6 @@ async function main(): Promise<void> {
 
     const preview = projectPublicationPreview(policy, localSnapshot);
     const localProjected = preview.snapshot;
-    const publicMap = projectFilteredMapLayout(localProjected, localSnapshot.map);
     const publicBooks: Book[] = [];
     const coverJobs: { source: string; target: string }[] = [];
     for (const book of localProjected.books) {
@@ -78,6 +78,14 @@ async function main(): Promise<void> {
         publicBooks.push({ ...book, coverPath: `covers/${targetName}` });
         coverJobs.push({ source, target });
     }
+
+    const existing = validateSnapshot(await readJson(PUBLIC_SNAPSHOT_PATH), { expectedVisibility: 'public' });
+    assert(existing.ok, 'current public snapshot is invalid; no files written');
+    verifyPublicMapRelease(existing.snapshot, await readJson(join(ROOT, 'src/data/public-map-terrain.json')),
+        await readJson(join(ROOT, 'scripts/public-map-release.json')));
+    assert(publicContentFingerprint({ ...localProjected, visibility: 'public', books: publicBooks }) === publicContentFingerprint(existing.snapshot),
+        'approved content changed; prepare a matching public map release explicitly before exporting');
+    const publicMap = existing.snapshot.map!;
 
     const publicSnapshot: Snapshot = {
         ...localProjected,

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "release": "release-c-2026-10-26",
+  "method": "exact-cosine-48-v1",
+  "seed": 1296126005,
+  "contentHash": "2348a6fddee667584cf8f09dd28f103e69c625b817951838eeb1704517a7bcb4",
+  "mapHash": "401812f472ed488f43642d780ae067f9c71f334472bbb831187810ac4181b520",
+  "terrainHash": "42eeb8a339dfd030b3d7470d849444fa049da752dfdbd6266c5ca93242919249",
+  "mapVersion": "exact-cosine-48-v1-public-exact-1296126005-ccef39e741",
+  "highlights": 3462,
+  "books": 108,
+  "fitScope": "approved-public-only",
+  "sourceSnapshotHash": "ccef39e7410ba7dd1618a8038762933464dd35c45a98f5fa48fb5e8c02c53a7c",
+  "implementationHash": "545da584bee741a927767dd8c7e6d3a84092adf1498ab5457566027c7146ad2c",
+  "parameters": {
+    "model": "Xenova/bge-large-zh-v1.5@a48549b-q8-cls",
+    "dimensions": 1024,
+    "umapVersion": "1.4.0",
+    "neighborsIncludingSelf": 48,
+    "distance": "exact-float64-cosine",
+    "minDist": 0.14,
+    "spread": 1.25,
+    "epochs": 350,
+    "scaling": "uniform-350-9650",
+    "tagForce": false
+  }
+}
