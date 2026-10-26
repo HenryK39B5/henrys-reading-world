@@ -1,72 +1,105 @@
 import { sitePath } from '../../app/sitePath.ts';
+import type { SnapshotIndex } from '../../domain/snapshot.ts';
+import { ExplanationNav } from './ExplanationNav.tsx';
 
-/** Optional technical companion to the shorter, visitor-facing design explanation. */
-export function TechnicalRoom() {
+/** Explain the loaded map/data contract, never silently describe a local candidate as the public map. */
+export function TechnicalRoom({ index }: { index: SnapshotIndex }) {
+    const local = index.snapshot.visibility === 'local-only';
+    const exactMap = index.snapshot.map?.version.startsWith('exact-cosine-48-v1-') ?? false;
     return (
-        <article className="room room-design" aria-labelledby="technical-heading" data-room="technical">
+        <article className="room room-design" aria-labelledby="technical-heading" data-room="technical"
+            data-explained-map={exactMap ? 'exact-neighbors' : 'fixed-baseline'}>
+            <ExplanationNav current="technical" />
             <header className="design-intro">
-                <p className="room-kicker">延伸阅读</p>
+                <p className="room-kicker">实现细节</p>
                 <h1 id="technical-heading" className="room-heading" data-testid="room-heading">技术实现</h1>
-                <p className="design-lead">
-                    这个阅读世界由提前整理好的真实划线、关系和地图组成。下面是从本机准备内容到浏览器呈现的关键步骤，以及它们各自的边界。
+                <p className="design-lead">复杂的准备留在本机，轻松的阅读留在浏览器。</p>
+                <p className="design-summary">
+                    这是一个由 React 与 TypeScript 构建的静态网站。真实划线、主题与地图提前准备，
+                    浏览器负责呈现、选择与返回，不在阅读过程中调用生成式 AI。
                 </p>
             </header>
 
             <section className="design-section" aria-labelledby="technical-data">
                 <h2 id="technical-data">从阅读记录到公开快照</h2>
                 <p>
-                    划线先在本机整理成有稳定 ID 的书与句子。公开审核以书为单位，也能排除单条划线或某本书的封面。
-                    导出时只保留获准展示的内容、出处、主题和地图投影；完整本机记录、审核决定的内部字段与原始高维向量不进入公开快照。
+                    原始阅读记录先在本机整理为有稳定 ID 的书籍与划线。公开审核可以决定展示哪些书、哪些句子，以及是否展示封面；
+                    线上只读取单独导出的已审核快照，不读取本机完整记录。
+                    改页面结构，不等于扩大公开范围。
                 </p>
                 <p>
-                    公开版是一份已经交付给浏览器的数据集，不是按请求临时抽取的一句。改变公开内容需要重新审核、导出、验证与部署。
+                    导出保留原文、出处、已复核的主题和用于显示的派生数据，排除凭证、平台账号字段、内部审核备注与原始高维向量。
+                    分享链接绑定稳定的划线 ID，而不是数组中的第几个位置。公开版的完整快照会交付浏览器，不是按请求秘密抽取一句。
                 </p>
             </section>
 
             <section className="design-section" aria-labelledby="technical-selection">
                 <h2 id="technical-selection">按书公平，再选句子</h2>
                 <p>
-                    首页先在当前范围内选一本书，再从书里选还未读过的划线；每个阅读范围都记录本轮已出现的书，避免划线数量最多的书占满探索过程。
-                    主题书架限定的是可选书籍范围，书房则只在同一本书的划线里轮换。当前轮结束后才开始下一轮。
+                    一句一句读时，先在当前范围轮换书籍，再在选中的书里选择未见划线。书籍划线数量不会直接变成被抽中的权重。
+                    书房限定同一本书，主题书架限定一组书；轮次状态保存在浏览器侧，不需要账户或远程同步。
+                </p>
+                <p>句长可以影响阅读节奏，但不是质量分。没有根据访客点击建立的个人画像，也没有远程访问统计。</p>
+            </section>
+
+            {__PLAY_WORLD_ENABLED__ ? <section className="design-section" aria-labelledby="technical-water">
+                <h2 id="technical-water">流动的预览，稳定的原文</h2>
+                <p>
+                    河流和潮汐使用 Canvas2D 绘制水面与文字预览，Pretext 辅助测量文字排版。
+                    水与文字共用动画时间，岸线按当前帧更新，静态纹理和路径缓存复用；这是一种场景呈现，不是流体物理模拟。
                 </p>
                 <p>
-                    句长影响阅读切换的节奏，不代表质量评分；系统也不会根据访客点击训练个人偏好。
+                    预览只截取真实原文的连续前缀，不生成摘要或拼接新句。
+                    选择后的全文由普通 DOM 呈现，保留原生滚动、复制、来源与全部主题标签，不等待动画结束，也不会自动收走。
+                    原生按钮、文字目录、暂停和减少动态设置提供不同的操作方式；这些实现不等同于已经完成所有读屏与真机验证。
                 </p>
-            </section>
+            </section> : null}
 
             <section className="design-section" aria-labelledby="technical-tags">
                 <h2 id="technical-tags">两层主题与跨书小径</h2>
                 <p>
-                    书籍主题整理整本书；划线主题描述某一句可支持的概念，两者不互相推导。
-                    本机 embedding 与 Agent 用于发现候选并辅助复核，无法可靠标注的内容保留未标注状态；同一句的多个主题没有主次。
+                    书籍主题整理整本书，划线主题描述某一句涉及的概念，两者不互相推导。
+                    本机 embedding 与 Agent 用于发现候选并辅助复核，无法可靠标注的内容保留未标注状态；多个标签没有主次之分。
                 </p>
                 <p>
-                    小径同样先轮换书籍，再从选中的书里挑句子。有可用的预计算低维语义投影时，余弦相似度把候选分成近、中、远三档来调节节奏；
-                    资料不足时退回均匀选择。访客可以使用纯公平模式，浏览时不会调用模型。
+                    小径先轮换书，再选句。有可用的预计算低维语义投影时，以余弦相似度区分近、中、远来调节节奏；
+                    资料不足时退回均匀选择，也可以使用纯公平模式。模型相似不等于作者引用、因果关系或观点相同。
                 </p>
             </section>
 
             <section className="design-section" aria-labelledby="technical-map">
                 <h2 id="technical-map">点、地形与区域名称</h2>
+                {exactMap ? <p>
+                    当前这张地图在本机直接计算原1024维文本向量的精确余弦近邻，再由 UMAP 生成二维布局，统一缩放而不逐轴拉伸或裁切离群点。
+                    地名落在附近有同主题真实划线支持的成员点上，不用标签把所有内容强行划成互斥区域。
+                    本轮采用不以标签调整坐标的版本；没有标签的内容同样保留。
+                </p> : <p>
+                    当前加载的是已固定的地图版本。它由本机文本向量经过随机投影与 UMAP 生成二维坐标；
+                    既有公开版沿用获准点位，不重新运行 UMAP，也不为发布移动点位。
+                    这描述的是当前数据版本，不是未来地图不能更新的规则。
+                </p>}
                 <p>
-                    公开地图沿用已经固定的二维坐标：公开范围只筛选获准展示的点位，<strong>不重新运行 UMAP，也不为发布移动点位</strong>。每个点对应一条真实划线；主题区域名称只来自已复核的主题成员，不由密度自动命名。
+                    地形由点位离线生成，使用128 × 80密度网格、7层等值带与等值线。
+                    它表达二维点位的局部聚集，不是主题国界、阅读价值或个人偏好。二维压缩始终有损，近邻保留率也不是语义准确率。
                 </p>
                 <p>
-                    地形由公开的固定点位离线生成，使用 128 × 80 密度网格、7 层淡等值带和 7 层等值线。它首先表达这张二维投影上的局部聚集密度，不表达主题边界、个人偏好或跨书共鸣。
-                </p>
-                <p>
-                    支持 WebGL2 时，地图用逐像素明暗绘制连续地形，并在上层绘制点、标签和详情；WebGL2 不可用、初始化失败或上下文丢失时，使用 Canvas2D 等值带回退。主题列表和划线列表同时提供键盘与读屏可用的替代入口。二维距离与密度只描述这张固定投影，不能证明原句之间的完整语义关系。
+                    支持 WebGL2 时使用连续明暗地形；不可用或上下文丢失时，退回 Canvas2D 等值带。
+                    点、地名和原文由相应图层与 DOM 呈现，主题与划线列表保留不依赖画布的入口。
                 </p>
             </section>
 
             <section className="design-section" aria-labelledby="technical-delivery">
-                <h2 id="technical-delivery">在浏览器里交付</h2>
+                <h2 id="technical-delivery">静态交付，明确边界</h2>
                 <p>
-                    公开站点是静态构建。获准快照和公开地形预先从带版本指纹的 JSON 准备；地形在构建前会校验版本、固定点位 hash 和几何层数。地图首次绘制就使用这份公开地形，不等待再次请求。本机私有数据、运行时接口或模型服务不进入公开站点。
+                    Vite 将页面和已审核数据构建成静态文件，可由 GitHub Pages 托管；书房、小径与说明页都有可直接访问的静态入口。
+                    浏览不需要登录、数据库或运行时模型服务。本机开发工具与研究结果不会因为页面更新而自动进入公开站点。
                 </p>
+                <p>{local
+                    ? '当前是本机数据范围。地图派生数据通过只读本机端点校验后提供；这不代表线上采用了同样的内容或坐标。正式公开前，仍需核对单独的公开快照及其匹配地形。'
+                    : '公开地形在构建前校验版本、点位指纹与几何层数。地图首次绘制就使用这份公开地形，不等待再次请求；浏览器不会向本机开发端点取数据。'}</p>
                 <p>
-                    推送后由 GitHub Pages 工作流安装锁定依赖、重新构建并部署静态资源。改变公开内容或地图资源需要重新审核、导出、隔离检查、构建验证与部署。
-                    关于出处、更正与上下文，请看<a href={sitePath('/about')}>内容与来源说明</a>。
+                    发布前检查数据隔离、原文与稳定链接、静态子路径、键盘和窄屏阅读；模型指标、自动测试、实际体验与内容审核是不同的检查，不能互相替代。
+                    出处和更正说明见<a href={sitePath('/about')}>内容与来源说明</a>。
                 </p>
             </section>
 

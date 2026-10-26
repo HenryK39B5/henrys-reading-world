@@ -102,9 +102,9 @@ test('tab and touch icons resolve from the project root even on a deep book rout
     const icon = await page.locator('link[rel="icon"][type="image/svg+xml"]').getAttribute('href');
     const fallback = await page.locator('link[rel="icon"][type="image/png"]').getAttribute('href');
     const touch = await page.locator('link[rel="apple-touch-icon"]').getAttribute('href');
-    expect(icon).toBe(`${site}/favicon.svg`);
-    expect(fallback).toBe(`${site}/favicon-32.png`);
-    expect(touch).toBe(`${site}/apple-touch-icon.png`);
+    expect(icon).toBe(`${site}/favicon.svg?v=water-1`);
+    expect(fallback).toBe(`${site}/favicon-32.png?v=water-1`);
+    expect(touch).toBe(`${site}/apple-touch-icon.png?v=water-1`);
     const favicon = await page.request.get(icon ?? '');
     expect(favicon.status()).toBe(200);
     expect(favicon.headers()['content-type']).toContain('image/svg+xml');

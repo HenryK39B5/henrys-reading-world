@@ -311,7 +311,7 @@ export function ReadingWorld({ snapshot, warnings, router }: ReadingWorldProps) 
             case 'design':
                 return <DesignRoom />;
             case 'technical':
-                return <TechnicalRoom />;
+                return <TechnicalRoom index={index} />;
             case 'unknown':
                 return <UnknownRoom path={route.path} />;
         }

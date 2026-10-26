@@ -609,6 +609,36 @@
     max-width: 760px;
 }
 
+.explanation-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    margin: 0 0 32px;
+    font-size: 14px;
+}
+
+.explanation-nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--ink-soft);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+}
+
+.explanation-nav a[aria-current="page"] {
+    color: var(--ink);
+    border-bottom-color: currentColor;
+}
+
+.design-summary {
+    max-width: 40em;
+    margin: 18px 0 0;
+    color: var(--ink-soft);
+    font-size: 16px;
+    line-height: 1.9;
+}
+
 .design-intro {
     margin: 0 0 48px;
 }
@@ -620,10 +650,11 @@
 }
 
 .design-lead {
-    max-width: 40em;
+    max-width: 30em;
     margin: 0;
-    font-size: 17px;
-    line-height: 1.9;
+    font-family: var(--stage-font);
+    font-size: clamp(19px, 2.4vw, 24px);
+    line-height: 1.8;
 }
 
 .design-section {
@@ -640,11 +671,11 @@
 }
 
 .design-section p {
-    max-width: 42em;
-    margin: 0 0 16px;
+    max-width: 40em;
+    margin: 0 0 18px;
     color: var(--ink-soft);
-    font-size: 15px;
-    line-height: 1.9;
+    font-size: 16px;
+    line-height: 1.95;
 }
 
 .design-section p:last-child {
